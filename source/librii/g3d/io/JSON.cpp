@@ -893,151 +893,182 @@ struct JSONG3dMaterialData {
     return material;
   }
 };
+
+// Utility function to pack entries into a vector of bytes
+template <typename T>
+std::vector<u8> packEntries(const std::vector<T>& entries) {
+  std::vector<u8> buffer(entries.size() * sizeof(T));
+  std::memcpy(buffer.data(), entries.data(), buffer.size());
+  return buffer;
+}
+
+// Utility function to unpack entries from a vector of bytes
+template <typename T>
+std::vector<T> unpackEntries(const std::vector<u8>& buffer) {
+  std::vector<T> entries(buffer.size() / sizeof(T));
+  std::memcpy(entries.data(), buffer.data(), buffer.size());
+  return entries;
+}
+
 struct JSONPositionBuffer {
-  DEFINE_SERIALIZABLE(JSONPositionBuffer, mName, mId, mType, divisor, stride,
-                      mCompCount, mEntries)
+  DEFINE_SERIALIZABLE(JSONPositionBuffer, name, id, q_type, q_divisor, q_stride,
+                      q_comp, dataBufferId)
 
-  std::string mName;
-  u32 mId;
-  librii::gx::VertexBufferType::Generic mType;
-  u8 divisor;
-  u8 stride;
-  VCC::Position mCompCount;
-  std::vector<glm::vec3> mEntries;
+  std::string name;
+  u32 id;
+  /* librii::gx::VertexBufferType::Generic */ u32 q_type;
+  u8 q_divisor;
+  u8 q_stride;
+  /* VCC::Position */ u32 q_comp;
+  u32 dataBufferId;
 
-  static JSONPositionBuffer from(const PositionBuffer& original) {
+  static JSONPositionBuffer from(const PositionBuffer& original,
+                                 JsonWriteCtx& ctx) {
     JSONPositionBuffer json;
-    json.mName = original.mName;
-    json.mId = original.mId;
-    json.mType = original.mQuantize.mType.generic;
-    json.divisor = original.mQuantize.divisor;
-    json.stride = original.mQuantize.stride;
-    json.mCompCount = original.mQuantize.mComp.position;
-    json.mEntries = original.mEntries;
+    json.name = original.mName;
+    json.id = original.mId;
+    json.q_type = static_cast<u32>(original.mQuantize.mType.generic);
+    json.q_divisor = original.mQuantize.divisor;
+    json.q_stride = original.mQuantize.stride;
+    json.q_comp = static_cast<u32>(original.mQuantize.mComp.position);
+    json.dataBufferId =
+        ctx.save_buffer_with_move(packEntries(original.mEntries));
     return json;
   }
 
-  operator PositionBuffer() const {
+  PositionBuffer to(std::span<const std::vector<u8>> buffers) const {
     PositionBuffer buffer;
-    buffer.mName = mName;
-    buffer.mId = mId;
-    buffer.mQuantize.mType = VertexBufferType(mType);
-    buffer.mQuantize.divisor = divisor;
-    buffer.mQuantize.stride = stride;
-    buffer.mQuantize.mComp = VertexComponentCount(mCompCount);
-    buffer.mEntries = mEntries;
+    buffer.mName = name;
+    buffer.mId = id;
+    buffer.mQuantize.mType = VertexBufferType(
+        static_cast<librii::gx::VertexBufferType::Generic>(q_type));
+    buffer.mQuantize.divisor = q_divisor;
+    buffer.mQuantize.stride = q_stride;
+    buffer.mQuantize.mComp =
+        VertexComponentCount(static_cast<VCC::Position>(q_comp));
+    buffer.mEntries = unpackEntries<glm::vec3>(buffers[dataBufferId]);
     buffer.mCachedMinMax = std::nullopt;
     return buffer;
   }
 };
+
 struct JSONNormalBuffer {
-  DEFINE_SERIALIZABLE(JSONNormalBuffer, mName, mId, mType, divisor, stride,
-                      mCompCount, mEntries)
+  DEFINE_SERIALIZABLE(JSONNormalBuffer, name, id, q_type, q_divisor, q_stride,
+                      q_comp, dataBufferId)
 
-  std::string mName;
-  u32 mId;
-  librii::gx::VertexBufferType::Generic mType;
-  u8 divisor;
-  u8 stride;
-  VCC::Normal mCompCount;
-  std::vector<glm::vec3> mEntries;
+  std::string name;
+  u32 id;
+  /* librii::gx::VertexBufferType::Generic */ u32 q_type;
+  u8 q_divisor;
+  u8 q_stride;
+  /* VCC::Normal */ u32 q_comp;
+  u32 dataBufferId;
 
-  static JSONNormalBuffer from(const NormalBuffer& original) {
+  static JSONNormalBuffer from(const NormalBuffer& original,
+                               JsonWriteCtx& ctx) {
     JSONNormalBuffer json;
-    json.mName = original.mName;
-    json.mId = original.mId;
-    json.mType = original.mQuantize.mType.generic;
-    json.divisor = original.mQuantize.divisor;
-    json.stride = original.mQuantize.stride;
-    json.mCompCount = original.mQuantize.mComp.normal;
-    json.mEntries = original.mEntries;
+    json.name = original.mName;
+    json.id = original.mId;
+    json.q_type = static_cast<u32>(original.mQuantize.mType.generic);
+    json.q_divisor = original.mQuantize.divisor;
+    json.q_stride = original.mQuantize.stride;
+    json.q_comp = static_cast<u32>(original.mQuantize.mComp.normal);
+    json.dataBufferId =
+        ctx.save_buffer_with_move(packEntries(original.mEntries));
     return json;
   }
 
-  operator NormalBuffer() const {
+  NormalBuffer to(std::span<const std::vector<u8>> buffers) const {
     NormalBuffer buffer;
-    buffer.mName = mName;
-    buffer.mId = mId;
-    buffer.mQuantize.mType = VertexBufferType(mType);
-    buffer.mQuantize.divisor = divisor;
-    buffer.mQuantize.stride = stride;
-    buffer.mQuantize.mComp = VertexComponentCount(mCompCount);
-    buffer.mEntries = mEntries;
+    buffer.mName = name;
+    buffer.mId = id;
+    buffer.mQuantize.mType = VertexBufferType(
+        static_cast<librii::gx::VertexBufferType::Generic>(q_type));
+    buffer.mQuantize.divisor = q_divisor;
+    buffer.mQuantize.stride = q_stride;
+    buffer.mQuantize.mComp =
+        VertexComponentCount(static_cast<VCC::Normal>(q_comp));
+    buffer.mEntries = unpackEntries<glm::vec3>(buffers[dataBufferId]);
     return buffer;
   }
 };
 
 struct JSONColorBuffer {
-  DEFINE_SERIALIZABLE(JSONColorBuffer, mName, mId, mType, divisor, stride,
-                      mCompCount, mEntries)
+  DEFINE_SERIALIZABLE(JSONColorBuffer, name, id, q_type, q_divisor, q_stride,
+                      q_comp, dataBufferId)
 
-  std::string mName;
-  u32 mId;
-  librii::gx::VertexBufferType::Color mType;
-  u8 divisor;
-  u8 stride;
-  VCC::Color mCompCount;
-  std::vector<librii::gx::Color> mEntries;
+  std::string name;
+  u32 id;
+  /* librii::gx::VertexBufferType::Color*/ u32 q_type;
+  u8 q_divisor;
+  u8 q_stride;
+  /* VCC::Color*/ u32 q_comp;
+  u32 dataBufferId;
 
-  static JSONColorBuffer from(const ColorBuffer& original) {
+  static JSONColorBuffer from(const ColorBuffer& original, JsonWriteCtx& ctx) {
     JSONColorBuffer json;
-    json.mName = original.mName;
-    json.mId = original.mId;
-    json.mType = original.mQuantize.mType.color;
-    json.divisor = original.mQuantize.divisor;
-    json.stride = original.mQuantize.stride;
-    json.mCompCount = original.mQuantize.mComp.color;
-    json.mEntries = original.mEntries;
+    json.name = original.mName;
+    json.id = original.mId;
+    json.q_type = static_cast<u32>(original.mQuantize.mType.color);
+    json.q_divisor = original.mQuantize.divisor;
+    json.q_stride = original.mQuantize.stride;
+    json.q_comp = static_cast<u32>(original.mQuantize.mComp.color);
+    json.dataBufferId =
+        ctx.save_buffer_with_move(packEntries(original.mEntries));
     return json;
   }
 
-  operator ColorBuffer() const {
+  ColorBuffer to(std::span<const std::vector<u8>> buffers) const {
     ColorBuffer buffer;
-    buffer.mName = mName;
-    buffer.mId = mId;
-    buffer.mQuantize.mType = VertexBufferType(mType);
-    buffer.mQuantize.divisor = divisor;
-    buffer.mQuantize.stride = stride;
-    buffer.mQuantize.mComp = VertexComponentCount(mCompCount);
-    buffer.mEntries = mEntries;
+    buffer.mName = name;
+    buffer.mId = id;
+    buffer.mQuantize.mType = VertexBufferType(
+        static_cast<librii::gx::VertexBufferType::Color>(q_type));
+    buffer.mQuantize.divisor = q_divisor;
+    buffer.mQuantize.stride = q_stride;
+    buffer.mQuantize.mComp =
+        VertexComponentCount(static_cast<VCC::Color>(q_comp));
+    buffer.mEntries = unpackEntries<librii::gx::Color>(buffers[dataBufferId]);
     return buffer;
   }
 };
 
 struct JSONTextureCoordinateBuffer {
-  DEFINE_SERIALIZABLE(JSONTextureCoordinateBuffer, mName, mId, mType, divisor,
-                      stride, mCompCount, mEntries)
-
-  std::string mName;
-  u32 mId;
-  librii::gx::VertexBufferType::Generic mType;
-  u8 divisor;
-  u8 stride;
-  VCC::TextureCoordinate mCompCount;
-  std::vector<glm::vec2> mEntries;
+  DEFINE_SERIALIZABLE(JSONTextureCoordinateBuffer, name, id, q_type, q_divisor,
+                      q_stride, q_comp, dataBufferId)
+  std::string name;
+  u32 id;
+  /* librii::gx::VertexBufferType::Generic */ u32 q_type;
+  u8 q_divisor;
+  u8 q_stride;
+  /* VCC::TextureCoordinate */ u32 q_comp;
+  u32 dataBufferId;
 
   static JSONTextureCoordinateBuffer
-  from(const TextureCoordinateBuffer& original) {
+  from(const TextureCoordinateBuffer& original, JsonWriteCtx& ctx) {
     JSONTextureCoordinateBuffer json;
-    json.mName = original.mName;
-    json.mId = original.mId;
-    json.mType = original.mQuantize.mType.generic;
-    json.divisor = original.mQuantize.divisor;
-    json.stride = original.mQuantize.stride;
-    json.mCompCount = original.mQuantize.mComp.texcoord;
-    json.mEntries = original.mEntries;
+    json.name = original.mName;
+    json.id = original.mId;
+    json.q_type = static_cast<u32>(original.mQuantize.mType.generic);
+    json.q_divisor = original.mQuantize.divisor;
+    json.q_stride = original.mQuantize.stride;
+    json.q_comp = static_cast<u32>(original.mQuantize.mComp.normal);
+    json.dataBufferId =
+        ctx.save_buffer_with_move(packEntries(original.mEntries));
     return json;
   }
 
-  operator TextureCoordinateBuffer() const {
+  TextureCoordinateBuffer to(std::span<const std::vector<u8>> buffers) const {
     TextureCoordinateBuffer buffer;
-    buffer.mName = mName;
-    buffer.mId = mId;
-    buffer.mQuantize.mType = VertexBufferType(mType);
-    buffer.mQuantize.divisor = divisor;
-    buffer.mQuantize.stride = stride;
-    buffer.mQuantize.mComp = VertexComponentCount(mCompCount);
-    buffer.mEntries = mEntries;
+    buffer.mName = name;
+    buffer.mId = id;
+    buffer.mQuantize.mType = VertexBufferType(
+        static_cast<librii::gx::VertexBufferType::Generic>(q_type));
+    buffer.mQuantize.divisor = q_divisor;
+    buffer.mQuantize.stride = q_stride;
+    buffer.mQuantize.mComp =
+        VertexComponentCount(static_cast<VCC::TextureCoordinate>(q_comp));
+    buffer.mEntries = unpackEntries<glm::vec2>(buffers[dataBufferId]);
     return buffer;
   }
 };
@@ -1067,19 +1098,20 @@ struct JSONModel {
     }
 
     for (const auto& position : original.positions) {
-      model.positions.emplace_back(JSONPositionBuffer::from(position));
+      model.positions.emplace_back(JSONPositionBuffer::from(position, c));
     }
 
     for (const auto& normal : original.normals) {
-      model.normals.emplace_back(JSONNormalBuffer::from(normal));
+      model.normals.emplace_back(JSONNormalBuffer::from(normal, c));
     }
 
     for (const auto& color : original.colors) {
-      model.colors.emplace_back(JSONColorBuffer::from(color));
+      model.colors.emplace_back(JSONColorBuffer::from(color, c));
     }
 
     for (const auto& texcoord : original.texcoords) {
-      model.texcoords.emplace_back(JSONTextureCoordinateBuffer::from(texcoord));
+      model.texcoords.emplace_back(
+          JSONTextureCoordinateBuffer::from(texcoord, c));
     }
 
     for (const auto& material : original.materials) {
@@ -1106,20 +1138,19 @@ struct JSONModel {
     }
 
     for (const auto& jsonPosition : positions) {
-      result.positions.push_back(static_cast<PositionBuffer>(jsonPosition));
+      result.positions.push_back(jsonPosition.to(buffers));
     }
 
     for (const auto& jsonNormal : normals) {
-      result.normals.push_back(static_cast<NormalBuffer>(jsonNormal));
+      result.normals.push_back(jsonNormal.to(buffers));
     }
 
     for (const auto& jsonColor : colors) {
-      result.colors.push_back(static_cast<ColorBuffer>(jsonColor));
+      result.colors.push_back(jsonColor.to(buffers));
     }
 
     for (const auto& jsonTexCoord : texcoords) {
-      result.texcoords.push_back(
-          static_cast<TextureCoordinateBuffer>(jsonTexCoord));
+      result.texcoords.push_back(jsonTexCoord.to(buffers));
     }
 
     for (const auto& jsonMaterial : materials) {
@@ -1140,6 +1171,10 @@ struct JSONModel {
 
 std::string ModelToJSON(const Model& model) {
   JsonWriteCtx ctx;
+  JSONModel mdl = JSONModel::from(model, ctx);
+  return JS::serializeStruct(mdl);
+}
+std::string ModelToJSON(const Model& model, JsonWriteCtx& ctx) {
   JSONModel mdl = JSONModel::from(model, ctx);
   return JS::serializeStruct(mdl);
 }

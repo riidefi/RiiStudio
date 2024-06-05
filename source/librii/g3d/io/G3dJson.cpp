@@ -20,11 +20,7 @@ template <typename T> using Expected = std::expected<T, std::string>;
 struct JsonWriteCtx;
 
 namespace librii::g3d {
-std::string PolyToJSON(const g3d::PolygonData& model, JsonWriteCtx& c);
-std::string MatToJSON(const G3dMaterialData& model);
-std::string BoneToJSON(const g3d::BoneData& model);
-std::string MtxToJSON(const g3d::DrawMatrix&);
-std::string InfoToJSON(const g3d::ModelInfo&);
+std::string ModelToJSON(const g3d::Model& model, JsonWriteCtx& c);
 } // namespace librii::g3d
 
 struct JsonReadCtx {
@@ -135,130 +131,10 @@ void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
   j["dataBufferId"] = ctx.save_buffer_with_copy<u8>(tex.data);
 }
 
-template <typename T, bool HasMinimum, bool HasDivisor,
-          librii::gx::VertexBufferKind kind>
-void WriteJson(
-    JsonWriteCtx& c, nlohmann::json& j,
-    const librii::g3d::GenericBuffer<T, HasMinimum, HasDivisor, kind>& b) {
-  j["name"] = b.mName;
-  j["id"] = b.mId;
-  if constexpr (kind == librii::gx::VertexBufferKind::position) {
-    j["q_comp"] = static_cast<int>(b.mQuantize.mComp.position);
-  }
-  if constexpr (kind == librii::gx::VertexBufferKind::normal) {
-    j["q_comp"] = static_cast<int>(b.mQuantize.mComp.normal);
-  }
-  if constexpr (kind == librii::gx::VertexBufferKind::textureCoordinate) {
-    j["q_comp"] = static_cast<int>(b.mQuantize.mComp.texcoord);
-  }
-  if constexpr (kind == librii::gx::VertexBufferKind::color) {
-    j["q_comp"] = static_cast<int>(b.mQuantize.mComp.color);
-  }
-  if constexpr (kind == librii::gx::VertexBufferKind::position) {
-    j["q_type"] = static_cast<int>(b.mQuantize.mType.generic);
-  }
-  if constexpr (kind == librii::gx::VertexBufferKind::normal) {
-    j["q_type"] = static_cast<int>(b.mQuantize.mType.generic);
-  }
-  if constexpr (kind == librii::gx::VertexBufferKind::textureCoordinate) {
-    j["q_type"] = static_cast<int>(b.mQuantize.mType.generic);
-  }
-  if constexpr (kind == librii::gx::VertexBufferKind::color) {
-    j["q_type"] = static_cast<int>(b.mQuantize.mType.color);
-  }
-  j["q_divisor"] = b.mQuantize.divisor;
-  j["q_stride"] = b.mQuantize.stride;
-  j["dataBufferId"] = c.save_buffer_with_copy<T>(b.mEntries);
-}
-
 void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
-               const librii::g3d::PolygonData& p) {
-  auto s = librii::g3d::PolyToJSON(p, c);
+               const librii::g3d::Model& p) {
+  auto s = librii::g3d::ModelToJSON(p, c);
   j = nlohmann::json::parse(s);
-}
-
-void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
-               const librii::g3d::G3dMaterialData& m) {
-  auto s = librii::g3d::MatToJSON(m);
-  j = nlohmann::json::parse(s);
-}
-void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
-               const librii::g3d::BoneData& m) {
-  auto s = librii::g3d::BoneToJSON(m);
-  j = nlohmann::json::parse(s);
-}
-void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
-               const librii::g3d::ModelInfo& m) {
-  auto s = librii::g3d::InfoToJSON(m);
-  j = nlohmann::json::parse(s);
-}
-void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
-               const librii::g3d::DrawMatrix& m) {
-  auto s = librii::g3d::MtxToJSON(m);
-  j = nlohmann::json::parse(s);
-}
-
-void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
-               const librii::g3d::Model& model) {
-
-  j["name"] = model.name;
-  WriteJson(ctx, j["info"], model.info);
-
-  j["bones"] = nlohmann::json::array();
-  for (const auto& bone : model.bones) {
-    nlohmann::json boneJson;
-    WriteJson(ctx, boneJson, bone);
-    j["bones"].push_back(boneJson);
-  }
-
-  j["positions"] = nlohmann::json::array();
-  for (const auto& pos : model.positions) {
-    nlohmann::json positionJson;
-    WriteJson(ctx, positionJson, pos);
-    j["positions"].push_back(positionJson);
-  }
-
-  j["normals"] = nlohmann::json::array();
-  for (const auto& normal : model.normals) {
-    nlohmann::json normalJson;
-    WriteJson(ctx, normalJson, normal);
-    j["normals"].push_back(normalJson);
-  }
-
-  j["colors"] = nlohmann::json::array();
-  for (const auto& color : model.colors) {
-    nlohmann::json colorJson;
-    WriteJson(ctx, colorJson, color);
-    j["colors"].push_back(colorJson);
-  }
-
-  j["texcoords"] = nlohmann::json::array();
-  for (const auto& texcoord : model.texcoords) {
-    nlohmann::json texcoordJson;
-    WriteJson(ctx, texcoordJson, texcoord);
-    j["texcoords"].push_back(texcoordJson);
-  }
-
-  j["materials"] = nlohmann::json::array();
-  for (const auto& material : model.materials) {
-    nlohmann::json materialJson;
-    WriteJson(ctx, materialJson, material);
-    j["materials"].push_back(materialJson);
-  }
-
-  j["meshes"] = nlohmann::json::array();
-  for (const auto& mesh : model.meshes) {
-    nlohmann::json meshJson;
-    WriteJson(ctx, meshJson, mesh);
-    j["meshes"].push_back(meshJson);
-  }
-
-  j["matrices"] = nlohmann::json::array();
-  for (const auto& matrix : model.matrices) {
-    nlohmann::json matrixJson;
-    WriteJson(ctx, matrixJson, matrix);
-    j["matrices"].push_back(matrixJson);
-  }
 }
 
 void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
