@@ -1,9 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Result;
 use std::fs::File;
 use std::io::BufReader;
-use std::vec::Vec;
 
 mod buffers;
 mod enums;
@@ -83,12 +81,12 @@ struct JsonModel {
     name: String,
     info: JSONModelInfo,
     bones: Vec<JSONBoneData>,
-    colors: Vec<serde_json::Value>,
     materials: Vec<JSONMaterial>,
     matrices: Vec<JSONDrawMatrix>,
     meshes: Vec<JsonMesh>,
-    normals: Vec<JsonBufferData>,
     positions: Vec<JsonBufferData>,
+    normals: Vec<JsonBufferData>,
+    colors: Vec<JsonBufferData>,
     texcoords: Vec<JsonBufferData>,
 }
 
@@ -101,6 +99,138 @@ struct JsonBufferData {
     q_divisor: i32,
     q_stride: i32,
     q_type: i32,
+}
+
+#[derive(Debug)]
+struct PositionBuffer {
+    id: i32,
+    name: String,
+    q_comp: i32,
+    q_divisor: i32,
+    q_stride: i32,
+    q_type: i32,
+    data: Vec<(f32, f32, f32)>,
+}
+
+#[derive(Debug)]
+struct NormalBuffer {
+    id: i32,
+    name: String,
+    q_comp: i32,
+    q_divisor: i32,
+    q_stride: i32,
+    q_type: i32,
+    data: Vec<(f32, f32, f32)>,
+}
+
+#[derive(Debug)]
+struct ColorBuffer {
+    id: i32,
+    name: String,
+    q_comp: i32,
+    q_divisor: i32,
+    q_stride: i32,
+    q_type: i32,
+    data: Vec<[u8; 4]>,
+}
+
+#[derive(Debug)]
+struct TextureCoordinateBuffer {
+    id: i32,
+    name: String,
+    q_comp: i32,
+    q_divisor: i32,
+    q_stride: i32,
+    q_type: i32,
+    data: Vec<(f32, f32)>,
+}
+
+impl PositionBuffer {
+    fn from_json(buffer_data: JsonBufferData, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<(f32, f32, f32)>();
+        let data: Vec<(f32, f32, f32)> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const (f32, f32, f32), elem_count).to_vec()
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+        }
+    }
+}
+
+impl NormalBuffer {
+    fn from_json(buffer_data: JsonBufferData, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<(f32, f32, f32)>();
+        let data: Vec<(f32, f32, f32)> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const (f32, f32, f32), elem_count).to_vec()
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+        }
+    }
+}
+
+impl ColorBuffer {
+    fn from_json(buffer_data: JsonBufferData, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<[u8; 4]>();
+        let data: Vec<[u8; 4]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [u8; 4], elem_count).to_vec()
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+        }
+    }
+}
+
+impl TextureCoordinateBuffer {
+    fn from_json(buffer_data: JsonBufferData, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<(f32, f32)>();
+        let data: Vec<(f32, f32)> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const (f32, f32), elem_count).to_vec()
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -317,10 +447,10 @@ pub struct Model {
     pub meshes: Vec<Mesh>,
 
     // Vertex buffers
-    pub positions: Vec<JsonBufferData>,
-    pub normals: Vec<JsonBufferData>,
-    pub texcoords: Vec<JsonBufferData>,
-    pub colors: Vec<serde_json::Value>,
+    pub positions: Vec<PositionBuffer>,
+    pub normals: Vec<NormalBuffer>,
+    pub texcoords: Vec<TextureCoordinateBuffer>,
+    pub colors: Vec<ColorBuffer>,
 
     /// For skinning
     pub matrices: Vec<JSONDrawMatrix>,
@@ -330,7 +460,6 @@ impl Model {
     fn from_json(model: JsonModel, buffers: &[Vec<u8>]) -> Self {
         Self {
             bones: model.bones,
-            colors: model.colors,
             materials: model.materials,
             matrices: model.matrices,
             meshes: model
@@ -340,9 +469,26 @@ impl Model {
                 .collect(),
             name: model.name,
             info: model.info,
-            normals: model.normals,
-            positions: model.positions,
-            texcoords: model.texcoords,
+            positions: model
+                .positions
+                .into_iter()
+                .map(|m| PositionBuffer::from_json(m, buffers))
+                .collect(),
+            normals: model
+                .normals
+                .into_iter()
+                .map(|m| NormalBuffer::from_json(m, buffers))
+                .collect(),
+            colors: model
+                .colors
+                .into_iter()
+                .map(|m| ColorBuffer::from_json(m, buffers))
+                .collect(),
+            texcoords: model
+                .texcoords
+                .into_iter()
+                .map(|m| TextureCoordinateBuffer::from_json(m, buffers))
+                .collect(),
         }
     }
 }
@@ -645,6 +791,7 @@ struct JSONMaterial {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn test_archive() {
@@ -652,10 +799,7 @@ mod tests {
         match read_json(file_path) {
             Ok(json_archive) => {
                 // Assuming buffers are loaded here
-                let buffers = vec![
-                    vec![0, 1, 2, 3, 4], // Example buffer
-                    vec![5, 6, 7, 8, 9],
-                ];
+                let buffers = buffers::read_buffer(&fs::read("dummy.bin").unwrap());
                 let archive = Archive::from_json(json_archive, buffers);
                 // Add more tests to validate Archive methods
                 assert!(archive.get_model("example").is_some());

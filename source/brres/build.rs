@@ -81,6 +81,8 @@ fn main() {
             // warning : TextureFormat texformat, const u8* tlut, TLUTFormat tlutfmt,
             // warning : ^
             build.flag("-Wno-unused-parameter");
+
+            build.flag("-Wno-sign-compare");
         }
         if !compiler.is_like_gnu() && !compiler.is_like_clang() {
             #[cfg(not(debug_assertions))]
