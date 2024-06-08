@@ -1316,6 +1316,22 @@ mod tests4 {
         test_validate_binary_is_lossless("../../tests/samples/sea.brres", true)
     }
     #[test]
+    fn test_validate_binary_is_lossless_srt() {
+        test_validate_binary_is_lossless("../../tests/samples/srt.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_rPB() {
+        test_validate_binary_is_lossless("../../tests/samples/rPB.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_MashBalloonGC() {
+        test_validate_binary_is_lossless("../../tests/samples/MashBalloonGC.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_human_walk_env() {
+        test_validate_binary_is_lossless("../../tests/samples/human_walk_env.brres", true)
+    }
+    #[test]
     fn test_validate_binary_is_lossless_map_model() {
         // FAILS: ???
         test_validate_binary_is_lossless("../../tests/samples/map_model.brres", false)
