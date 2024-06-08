@@ -127,6 +127,33 @@ Generally, the `mk8` algorithm gets acceptable compression the fastest. For case
 <img src="asset/large_file_comparison.png"/>
 
 
+### (Windows) Performance Comparison: Clang vs. MSVC
+
+On Windows, Microsoft's compiler (MSVC) appears to fall behind [Clang](https://releases.llvm.org/download.html) for most algorithms by a non-trivial margin:
+
+| Method     | Clang Time (s) | MSVC Time (s) | Performance Uplift (%) |
+|------------|----------------|---------------|------------------------|
+| lib-yaz0   | 15.24          | 19.08         | -25.20%                |
+| mkw        | 62.04          | 58.34         | 5.96%                  |
+| mkw-sp     | 26.73          | 50.01         | -87.09%                |
+| haroohie   | 5.84           | 5.85          | -0.17%                 |
+| ct-lib     | 2.91           | 2.81          | 3.44%                  |
+| mk8        | 1.34           | 1.62          | -20.90%                |
+| ctgp       | 5.22           | 5.88          | -12.64%                |
+
+*\* Average of 3 runs; x64 MSVC build tested on an Intel i9-13900KF on Windows 11*
+
+**Average Performance Uplift:** -19.51%
+
+#### Recommendation
+
+Based on the performance results, Clang is generally preferred. To set Clang as the compiler for `szs`, run the following command before `cargo build`:
+
+```sh
+SET CXX=clang
+```
+
+Additionally, using a compatible Clang/Rust version will allow for cross-language LTO optimizations.
 
 ### Example (C Bindings)
 ```c
