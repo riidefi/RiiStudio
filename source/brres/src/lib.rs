@@ -298,7 +298,7 @@ struct JsonArchive {
     clrs: Vec<serde_json::Value>,
     models: Vec<JsonModel>,
     pats: Vec<serde_json::Value>,
-    srts: Vec<serde_json::Value>,
+    srts: Vec<JSONSrtData>,
     textures: Vec<JsonTexture>,
     viss: Vec<serde_json::Value>,
 }
@@ -333,7 +333,7 @@ pub struct Archive {
     pub chrs: Vec<serde_json::Value>,
 
     /// Texture matrix ("SRT" a.k.a. "Scale, Rotate, Translate") animation
-    pub srts: Vec<serde_json::Value>,
+    pub srts: Vec<JSONSrtData>,
 
     /// Texture data (pattern) animation (e.g. like a GIF)
     pub pats: Vec<serde_json::Value>,
@@ -737,7 +737,7 @@ struct JSONAlphaStage {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONIndirectStage {
+struct JSONIndirectStageTev {
     indStageSel: u8,
     format: IndTexFormat,
     bias: IndTexBiasSel,
@@ -758,7 +758,7 @@ struct JSONTevStage {
     texMapSwap: u8,
     colorStage: JSONColorStage,
     alphaStage: JSONAlphaStage,
-    indirectStage: JSONIndirectStage,
+    indirectStage: JSONIndirectStageTev,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -831,7 +831,135 @@ struct JSONMaterial {
     tevKonstColors: [Color; 4],
     tevColors: [ColorS10; 4],
     earlyZComparison: bool,
+    zMode: JSONZMode,
+    alphaCompare: JSONAlphaComparison,
+    blendMode: JSONBlendMode,
+    dstAlpha: JSONDstAlpha,
+    xlu: bool,
+    indirectStages: Vec<JSONIndirectStage>, // Max 4
+    mIndMatrices: Vec<JSONIndirectMatrix>,  // Max 3
+    mSwapTable: JSONSwapTable,
     mStages: Vec<JSONTevStage>, // Max 16
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONSwapTableEntry {
+    r: ColorComponent,
+    g: ColorComponent,
+    b: ColorComponent,
+    a: ColorComponent,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONSwapTable {
+    entries: [JSONSwapTableEntry; 4],
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONIndOrder {
+    refMap: u8,
+    refCoord: u8,
+}
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONIndirectTextureScalePair {
+    U: IndirectTextureScalePairSelection,
+    V: IndirectTextureScalePairSelection,
+}
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONIndirectStage {
+    scale: JSONIndirectTextureScalePair,
+    order: JSONIndOrder,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONIndirectMatrix {
+    scale: (f32, f32),
+    rotate: f32,
+    trans: (f32, f32),
+    quant: i32,
+    method: IndirectMatrixMethod,
+    refLight: i8,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONZMode {
+    compare: bool,
+    function: Comparison,
+    update: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONAlphaComparison {
+    compLeft: Comparison,
+    refLeft: u8,
+    op: AlphaOp,
+    compRight: Comparison,
+    refRight: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONBlendMode {
+    #[serde(rename = "type")]
+    type_: BlendModeType,
+    source: BlendModeFactor,
+    dest: BlendModeFactor,
+    logic: LogicOp,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct JSONDstAlpha {
+    enabled: bool,
+    alpha: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+struct JSONSrtKeyFrame {
+    frame: f32,
+    value: f32,
+    tangent: f32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+struct JSONSrtTrack {
+    keyframes: Vec<JSONSrtKeyFrame>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+struct JSONSrtMatrix {
+    scaleX: JSONSrtTrack,
+    scaleY: JSONSrtTrack,
+    rot: JSONSrtTrack,
+    transX: JSONSrtTrack,
+    transY: JSONSrtTrack,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+struct JSONSrtTarget {
+    materialName: String,
+    indirect: bool,
+    matrixIndex: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+struct JSONSrtTargetedMtx {
+    target: JSONSrtTarget,
+    matrix: JSONSrtMatrix,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+struct JSONSrtData {
+    matrices: Vec<JSONSrtTargetedMtx>,
+    name: String,
+    sourcePath: String,
+    frameDuration: u16,
+    xformModel: u32,
+    wrapMode: AnimationWrapMode,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+enum AnimationWrapMode {
+    Clamp,  // One-shot
+    Repeat, // Loop
 }
 
 struct JsonWriteCtx {
@@ -1151,11 +1279,20 @@ mod tests4 {
         }
     }
     fn test_validate_binary_is_lossless(path: &str, passes: bool) {
+        let name = std::path::Path::new(path)
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap();
         let brres_data = fs::read(path).expect("Failed to read brres file");
         let archive = read_raw_brres(&brres_data).expect("Error reading brres file");
         let written_data = write_raw_brres(&archive).expect("Error writing brres file");
 
         if passes {
+            if &brres_data != &written_data {
+                fs::write(format!("{name}_good.brres"), &brres_data);
+                fs::write(format!("{name}_bad.brres"), &written_data);
+            }
             assert_buffers_equal(&brres_data, &written_data, path);
         } else {
             assert!(&brres_data != &written_data)
@@ -1176,8 +1313,7 @@ mod tests4 {
     }
     #[test]
     fn test_validate_binary_is_lossless_sea() {
-        // FAILS: SRT0
-        test_validate_binary_is_lossless("../../tests/samples/sea.brres", false)
+        test_validate_binary_is_lossless("../../tests/samples/sea.brres", true)
     }
     #[test]
     fn test_validate_binary_is_lossless_map_model() {

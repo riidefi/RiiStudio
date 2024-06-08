@@ -525,6 +525,11 @@ Result<void> Archive::write(std::string_view path) const {
   writer.saveToDisk(path);
   return {};
 }
+Result<std::vector<u8>> Archive::write() const {
+  oishii::Writer writer(std::endian::big);
+  TRY(write(writer));
+  return writer.mBuf;
+}
 
 Result<Archive> Archive::fromFile(std::string path,
                                   kpi::LightIOTransaction& transaction) {

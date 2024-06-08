@@ -936,6 +936,19 @@
       },
       "materials": [
         {
+          "alphaCompare": {
+            "compLeft": "ALWAYS",
+            "compRight": "ALWAYS",
+            "op": "_and",
+            "refLeft": 0,
+            "refRight": 0
+          },
+          "blendMode": {
+            "dest": "inv_src_a",
+            "logic": "_copy",
+            "source": "src_a",
+            "type": "none"
+          },
           "chanData": [
             {
               "ambColor": {
@@ -985,11 +998,17 @@
             }
           ],
           "cullMode": "Back",
+          "dstAlpha": {
+            "alpha": 0,
+            "enabled": false
+          },
           "earlyZComparison": true,
           "flag": 0,
           "fogIndex": 0,
           "id": 0,
+          "indirectStages": [],
           "lightSetIndex": 0,
+          "mIndMatrices": [],
           "mStages": [
             {
               "alphaStage": {
@@ -1034,6 +1053,34 @@
               "texMapSwap": 0
             }
           ],
+          "mSwapTable": {
+            "entries": [
+              {
+                "a": "a",
+                "b": "b",
+                "g": "g",
+                "r": "r"
+              },
+              {
+                "a": "a",
+                "b": "r",
+                "g": "r",
+                "r": "r"
+              },
+              {
+                "a": "a",
+                "b": "g",
+                "g": "g",
+                "r": "g"
+              },
+              {
+                "a": "a",
+                "b": "b",
+                "g": "b",
+                "r": "b"
+              }
+            ]
+          },
           "name": "human_all",
           "samplers": [
             {
@@ -1124,7 +1171,13 @@
               "transformModel": "Maya",
               "translate": [ 0.0, 0.0 ]
             }
-          ]
+          ],
+          "xlu": false,
+          "zMode": {
+            "compare": true,
+            "function": "LEQUAL",
+            "update": true
+          }
         }
       ],
       "matrices": [
@@ -3608,6 +3661,8 @@
       ],
       "positions": [
         {
+          "cached_max": [ 2.711901, 4.567477, 0.430527 ],
+          "cached_min": [ -2.711916, -0.554473, -0.3898 ],
           "dataBufferId": 0,
           "id": 0,
           "name": "unknown__unknown__0",
@@ -3617,6 +3672,8 @@
           "q_type": 3
         },
         {
+          "cached_max": [ 0.34635, -0.050812, -0.155369 ],
+          "cached_min": [ 0.300974, -0.141497, -0.226693 ],
           "dataBufferId": 1,
           "id": 1,
           "name": "unknown__unknown__1",
@@ -3626,6 +3683,8 @@
           "q_type": 3
         },
         {
+          "cached_max": [ 0.34635, 0.141497, -0.155369 ],
+          "cached_min": [ 0.300974, 0.050812, -0.226693 ],
           "dataBufferId": 2,
           "id": 2,
           "name": "unknown__unknown__2",
@@ -3635,6 +3694,8 @@
           "q_type": 3
         },
         {
+          "cached_max": [ 0.975418, 4.791755, 0.356649 ],
+          "cached_min": [ -0.240388, -0.288878, -0.592145 ],
           "dataBufferId": 3,
           "id": 3,
           "name": "unknown__unknown__3",
@@ -3646,6 +3707,8 @@
       ],
       "texcoords": [
         {
+          "cached_max": [ 0.99811703, 0.998692 ],
+          "cached_min": [ 0.003113, 0.001953 ],
           "dataBufferId": 8,
           "id": 0,
           "name": "#0",
@@ -3655,6 +3718,8 @@
           "q_type": 2
         },
         {
+          "cached_max": [ 0.672826, 0.070943 ],
+          "cached_min": [ 0.59867, 0.010395 ],
           "dataBufferId": 9,
           "id": 1,
           "name": "#1",
@@ -3664,6 +3729,8 @@
           "q_type": 2
         },
         {
+          "cached_max": [ 0.672826, 0.070943 ],
+          "cached_min": [ 0.59867, 0.010395 ],
           "dataBufferId": 10,
           "id": 2,
           "name": "#2",
@@ -3673,6 +3740,8 @@
           "q_type": 2
         },
         {
+          "cached_max": [ 0.997401, 0.579185 ],
+          "cached_min": [ 0.435547, 0.005813 ],
           "dataBufferId": 11,
           "id": 3,
           "name": "#3",

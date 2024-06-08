@@ -389,3 +389,92 @@ pub enum PostTexMatrix {
     Matrix19 = 121,
     Identity = 125,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum IndirectTextureScalePairSelection {
+    x_1,
+    x_2,
+    x_4,
+    x_8,
+    x_16,
+    x_32,
+    x_64,
+    x_128,
+    x_256,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Comparison {
+    NEVER,
+    LESS,
+    EQUAL,
+    LEQUAL,
+    GREATER,
+    NEQUAL,
+    GEQUAL,
+    ALWAYS,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum AlphaOp {
+    _and,
+    _or,
+    _xor,
+    _xnor,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum BlendModeType {
+    none,
+    blend,
+    logic,
+    subtract,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum BlendModeFactor {
+    zero,
+    one,
+    src_c,
+    inv_src_c,
+    src_a,
+    inv_src_a,
+    dst_a,
+    inv_dst_a,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum LogicOp {
+    _clear,
+    _and,
+    _rev_and,
+    _copy,
+    _inv_and,
+    _no_op,
+    _xor,
+    _or,
+    _nor,
+    _equiv,
+    _inv,
+    _revor,
+    _inv_copy,
+    _inv_or,
+    _nand,
+    _set,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum ColorComponent {
+    r,
+    g,
+    b,
+    a,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum IndirectMatrixMethod {
+    Warp,
+    NormalMap,
+    NormalMapSpec,
+    Fur,
+}

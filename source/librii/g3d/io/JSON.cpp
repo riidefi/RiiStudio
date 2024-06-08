@@ -522,8 +522,8 @@ struct JSONAlphaStage {
     return alphaStage;
   }
 };
-struct JSONIndirectStage {
-  DEFINE_SERIALIZABLE(JSONIndirectStage, indStageSel, format, bias, matrix,
+struct JSONIndirectStageTev {
+  DEFINE_SERIALIZABLE(JSONIndirectStageTev, indStageSel, format, bias, matrix,
                       wrapU, wrapV, addPrev, utcLod, alpha)
 
   u8 indStageSel;
@@ -536,8 +536,8 @@ struct JSONIndirectStage {
   bool utcLod;
   IndTexAlphaSel alpha;
 
-  static JSONIndirectStage from(const TevStage::IndirectStage& original) {
-    JSONIndirectStage json;
+  static JSONIndirectStageTev from(const TevStage::IndirectStage& original) {
+    JSONIndirectStageTev json;
     // Direct assignments
     json.indStageSel = original.indStageSel;
     json.format = original.format;
@@ -576,7 +576,7 @@ struct JSONTevStage {
   u8 texMapSwap;
   JSONColorStage colorStage;
   JSONAlphaStage alphaStage;
-  JSONIndirectStage indirectStage;
+  JSONIndirectStageTev indirectStage;
 
   static JSONTevStage from(const TevStage& original) {
     JSONTevStage json;
@@ -587,7 +587,7 @@ struct JSONTevStage {
     json.texMapSwap = original.texMapSwap;
     json.colorStage = JSONColorStage::from(original.colorStage);
     json.alphaStage = JSONAlphaStage::from(original.alphaStage);
-    json.indirectStage = JSONIndirectStage::from(original.indirectStage);
+    json.indirectStage = JSONIndirectStageTev::from(original.indirectStage);
     return json;
   }
 
@@ -775,7 +775,6 @@ struct JSONTexCoordGen {
     json.postMatrix = original.postMatrix;
     return json;
   }
-
   operator TexCoordGen() const {
     TexCoordGen texCoordGen;
     texCoordGen.func = func;
@@ -786,11 +785,260 @@ struct JSONTexCoordGen {
     return texCoordGen;
   }
 };
+struct JSONIndirectMatrix {
+  DEFINE_SERIALIZABLE(JSONIndirectMatrix, scale, rotate, trans, quant, method,
+                      refLight)
+
+  glm::vec2 scale;
+  f32 rotate;
+  glm::vec2 trans;
+  int quant;
+  IndirectMatrix::Method method;
+  s8 refLight;
+
+  static JSONIndirectMatrix from(const IndirectMatrix& original) {
+    JSONIndirectMatrix json;
+    json.scale = original.scale;
+    json.rotate = original.rotate;
+    json.trans = original.trans;
+    json.quant = original.quant;
+    json.method = original.method;
+    json.refLight = original.refLight;
+    return json;
+  }
+
+  operator IndirectMatrix() const {
+    IndirectMatrix matrix;
+    matrix.scale = scale;
+    matrix.rotate = rotate;
+    matrix.trans = trans;
+    matrix.quant = quant;
+    matrix.method = method;
+    matrix.refLight = refLight;
+    return matrix;
+  }
+};
+
+struct JSONIndOrder {
+  DEFINE_SERIALIZABLE(JSONIndOrder, refMap, refCoord)
+
+  u8 refMap;
+  u8 refCoord;
+
+  static JSONIndOrder from(const IndOrder& original) {
+    JSONIndOrder json;
+    json.refMap = original.refMap;
+    json.refCoord = original.refCoord;
+    return json;
+  }
+
+  operator IndOrder() const {
+    IndOrder order;
+    order.refMap = refMap;
+    order.refCoord = refCoord;
+    return order;
+  }
+};
+struct JSONIndirectTextureScalePair {
+  DEFINE_SERIALIZABLE(JSONIndirectTextureScalePair, U, V)
+
+  IndirectTextureScalePair::Selection U;
+  IndirectTextureScalePair::Selection V;
+
+  static JSONIndirectTextureScalePair
+  from(const IndirectTextureScalePair& original) {
+    JSONIndirectTextureScalePair json;
+    json.U = original.U;
+    json.V = original.V;
+    return json;
+  }
+
+  operator IndirectTextureScalePair() const {
+    IndirectTextureScalePair pair;
+    pair.U = U;
+    pair.V = V;
+    return pair;
+  }
+};
+struct JSONIndirectStage {
+  DEFINE_SERIALIZABLE(JSONIndirectStage, scale, order)
+
+  JSONIndirectTextureScalePair scale;
+  JSONIndOrder order;
+
+  static JSONIndirectStage from(const IndirectStage& original) {
+    JSONIndirectStage json;
+    json.scale = JSONIndirectTextureScalePair::from(original.scale);
+    json.order = JSONIndOrder::from(original.order);
+    return json;
+  }
+
+  operator IndirectStage() const {
+    IndirectStage stage;
+    stage.scale = scale;
+    stage.order = order;
+    return stage;
+  }
+};
+
+struct JSONZMode {
+  DEFINE_SERIALIZABLE(JSONZMode, compare, function, update)
+
+  bool compare;
+  Comparison function;
+  bool update;
+
+  static JSONZMode from(const ZMode& original) {
+    JSONZMode json;
+    json.compare = original.compare;
+    json.function = original.function;
+    json.update = original.update;
+    return json;
+  }
+
+  operator ZMode() const {
+    ZMode zmode;
+    zmode.compare = compare;
+    zmode.function = function;
+    zmode.update = update;
+    return zmode;
+  }
+};
+
+struct JSONAlphaComparison {
+  DEFINE_SERIALIZABLE(JSONAlphaComparison, compLeft, refLeft, op, compRight,
+                      refRight)
+
+  Comparison compLeft;
+  u8 refLeft;
+  AlphaOp op;
+  Comparison compRight;
+  u8 refRight;
+
+  static JSONAlphaComparison from(const AlphaComparison& original) {
+    JSONAlphaComparison json;
+    json.compLeft = original.compLeft;
+    json.refLeft = original.refLeft;
+    json.op = original.op;
+    json.compRight = original.compRight;
+    json.refRight = original.refRight;
+    return json;
+  }
+
+  operator AlphaComparison() const {
+    AlphaComparison alphaComparison;
+    alphaComparison.compLeft = compLeft;
+    alphaComparison.refLeft = refLeft;
+    alphaComparison.op = op;
+    alphaComparison.compRight = compRight;
+    alphaComparison.refRight = refRight;
+    return alphaComparison;
+  }
+};
+
+struct JSONBlendMode {
+  DEFINE_SERIALIZABLE(JSONBlendMode, type, source, dest, logic)
+
+  BlendModeType type;
+  BlendModeFactor source;
+  BlendModeFactor dest;
+  LogicOp logic;
+
+  static JSONBlendMode from(const BlendMode& original) {
+    JSONBlendMode json;
+    json.type = original.type;
+    json.source = original.source;
+    json.dest = original.dest;
+    json.logic = original.logic;
+    return json;
+  }
+
+  operator BlendMode() const {
+    BlendMode blendMode;
+    blendMode.type = type;
+    blendMode.source = source;
+    blendMode.dest = dest;
+    blendMode.logic = logic;
+    return blendMode;
+  }
+};
+
+struct JSONDstAlpha {
+  DEFINE_SERIALIZABLE(JSONDstAlpha, enabled, alpha)
+
+  bool enabled;
+  u8 alpha;
+
+  static JSONDstAlpha from(const DstAlpha& original) {
+    JSONDstAlpha json;
+    json.enabled = original.enabled;
+    json.alpha = original.alpha;
+    return json;
+  }
+
+  operator DstAlpha() const {
+    DstAlpha dstAlpha;
+    dstAlpha.enabled = enabled;
+    dstAlpha.alpha = alpha;
+    return dstAlpha;
+  }
+};
+
+struct JSONSwapTableEntry {
+  DEFINE_SERIALIZABLE(JSONSwapTableEntry, r, g, b, a)
+
+  ColorComponent r;
+  ColorComponent g;
+  ColorComponent b;
+  ColorComponent a;
+
+  static JSONSwapTableEntry from(const SwapTableEntry& original) {
+    JSONSwapTableEntry json;
+    json.r = original.r;
+    json.g = original.g;
+    json.b = original.b;
+    json.a = original.a;
+    return json;
+  }
+
+  operator SwapTableEntry() const {
+    SwapTableEntry entry;
+    entry.r = r;
+    entry.g = g;
+    entry.b = b;
+    entry.a = a;
+    return entry;
+  }
+};
+
+struct JSONSwapTable {
+  DEFINE_SERIALIZABLE(JSONSwapTable, entries)
+
+  std::array<JSONSwapTableEntry, 4> entries;
+
+  static JSONSwapTable from(const SwapTable& original) {
+    JSONSwapTable json;
+    for (size_t i = 0; i < 4; ++i) {
+      json.entries[i] = JSONSwapTableEntry::from(original[i]);
+    }
+    return json;
+  }
+
+  operator SwapTable() const {
+    SwapTable table;
+    for (size_t i = 0; i < 4; ++i) {
+      table[i] = entries[i];
+    }
+    return table;
+  }
+};
 struct JSONG3dMaterialData {
   DEFINE_SERIALIZABLE(JSONG3dMaterialData, flag, id, lightSetIndex, fogIndex,
                       name, texMatrices, samplers, cullMode, chanData,
                       colorChanControls, texGens, tevKonstColors, tevColors,
-                      earlyZComparison, mStages)
+                      earlyZComparison, zMode, alphaCompare, blendMode,
+                      dstAlpha, xlu, indirectStages, mIndMatrices, mSwapTable,
+                      mStages)
 
   u32 flag;
   u32 id;
@@ -810,6 +1058,14 @@ struct JSONG3dMaterialData {
   std::array<Color, 4> tevKonstColors;
   std::array<ColorS10, 4> tevColors;
   bool earlyZComparison;
+  JSONZMode zMode;
+  JSONAlphaComparison alphaCompare;
+  JSONBlendMode blendMode;
+  JSONDstAlpha dstAlpha;
+  bool xlu;
+  std::vector<JSONIndirectStage> indirectStages; // Max 4
+  std::vector<JSONIndirectMatrix> mIndMatrices;  // Max 3
+  JSONSwapTable mSwapTable;
   std::vector<JSONTevStage> mStages; // Max 16
 
   static JSONG3dMaterialData from(const G3dMaterialData& original) {
@@ -842,6 +1098,19 @@ struct JSONG3dMaterialData {
     json.tevKonstColors = original.tevKonstColors;
     json.tevColors = original.tevColors;
     json.earlyZComparison = original.earlyZComparison;
+    json.zMode = JSONZMode::from(original.zMode);
+    json.alphaCompare = JSONAlphaComparison::from(original.alphaCompare);
+    json.blendMode = JSONBlendMode::from(original.blendMode);
+    json.dstAlpha = JSONDstAlpha::from(original.dstAlpha);
+    json.xlu = original.xlu;
+
+    for (const auto& stage : original.indirectStages) {
+      json.indirectStages.push_back(JSONIndirectStage::from(stage));
+    }
+    for (const auto& matrix : original.mIndMatrices) {
+      json.mIndMatrices.push_back(JSONIndirectMatrix::from(matrix));
+    }
+    json.mSwapTable = JSONSwapTable::from(original.mSwapTable);
 
     for (const auto& stage : original.mStages) {
       json.mStages.push_back(JSONTevStage::from(stage));
@@ -880,6 +1149,21 @@ struct JSONG3dMaterialData {
     material.tevKonstColors = tevKonstColors;
     material.tevColors = tevColors;
     material.earlyZComparison = earlyZComparison;
+    material.zMode = zMode;
+    material.alphaCompare = alphaCompare;
+    material.blendMode = blendMode;
+    material.dstAlpha = dstAlpha;
+    material.xlu = xlu;
+
+    material.indirectStages.resize(0);
+    for (const auto& jsonStage : indirectStages) {
+      material.indirectStages.push_back(jsonStage);
+    }
+    material.mIndMatrices.resize(0);
+    for (const auto& jsonMatrix : mIndMatrices) {
+      material.mIndMatrices.push_back(jsonMatrix);
+    }
+    material.mSwapTable = mSwapTable;
 
     material.mStages.resize(0);
     for (const auto& jsonStage : mStages) {
@@ -1253,6 +1537,127 @@ struct JSONTextureData {
   }
 };
 
+struct JSONSrtKeyFrame {
+  float frame{};
+  float value{};
+  float tangent{};
+
+  DEFINE_SERIALIZABLE(JSONSrtKeyFrame, frame, value, tangent)
+
+  static JSONSrtKeyFrame from(const SRT0KeyFrame& keyFrame) {
+    return {keyFrame.frame, keyFrame.value, keyFrame.tangent};
+  }
+
+  SRT0KeyFrame to() const { return {frame, value, tangent}; }
+};
+
+struct JSONSrtTrack {
+  std::vector<JSONSrtKeyFrame> keyframes;
+
+  DEFINE_SERIALIZABLE(JSONSrtTrack, keyframes)
+
+  static JSONSrtTrack from(const SrtAnim::Track& track) {
+    JSONSrtTrack jsonTrack;
+    for (const auto& keyFrame : track) {
+      jsonTrack.keyframes.push_back(JSONSrtKeyFrame::from(keyFrame));
+    }
+    return jsonTrack;
+  }
+
+  SrtAnim::Track to() const {
+    SrtAnim::Track track;
+    for (const auto& jsonKeyFrame : keyframes) {
+      track.push_back(jsonKeyFrame.to());
+    }
+    return track;
+  }
+};
+
+struct JSONSrtMatrix {
+  JSONSrtTrack scaleX;
+  JSONSrtTrack scaleY;
+  JSONSrtTrack rot;
+  JSONSrtTrack transX;
+  JSONSrtTrack transY;
+
+  DEFINE_SERIALIZABLE(JSONSrtMatrix, scaleX, scaleY, rot, transX, transY)
+
+  static JSONSrtMatrix from(const SrtAnim::Mtx& mtx) {
+    return {JSONSrtTrack::from(mtx.scaleX), JSONSrtTrack::from(mtx.scaleY),
+            JSONSrtTrack::from(mtx.rot), JSONSrtTrack::from(mtx.transX),
+            JSONSrtTrack::from(mtx.transY)};
+  }
+
+  SrtAnim::Mtx to() const {
+    return {scaleX.to(), scaleY.to(), rot.to(), transX.to(), transY.to()};
+  }
+};
+
+struct JSONSrtTarget {
+  std::string materialName;
+  bool indirect;
+  int matrixIndex;
+
+  DEFINE_SERIALIZABLE(JSONSrtTarget, materialName, indirect, matrixIndex)
+
+  static JSONSrtTarget from(const SrtAnim::Target& target) {
+    return {target.materialName, target.indirect, target.matrixIndex};
+  }
+
+  SrtAnim::Target to() const { return {materialName, indirect, matrixIndex}; }
+};
+
+struct JSONSrtTargetedMtx {
+  JSONSrtTarget target;
+  JSONSrtMatrix matrix;
+
+  DEFINE_SERIALIZABLE(JSONSrtTargetedMtx, target, matrix)
+
+  static JSONSrtTargetedMtx from(const SrtAnim::TargetedMtx& targetedMtx) {
+    return {JSONSrtTarget::from(targetedMtx.target),
+            JSONSrtMatrix::from(targetedMtx.matrix)};
+  }
+
+  SrtAnim::TargetedMtx to() const { return {target.to(), matrix.to()}; }
+};
+
+struct JSONSrtData {
+  std::vector<JSONSrtTargetedMtx> matrices;
+  std::string name;
+  std::string sourcePath;
+  u16 frameDuration;
+  u32 xformModel;
+  AnimationWrapMode wrapMode;
+
+  DEFINE_SERIALIZABLE(JSONSrtData, matrices, name, sourcePath, frameDuration,
+                      xformModel, wrapMode)
+
+  static JSONSrtData from(const SrtAnim& anim) {
+    JSONSrtData json;
+    json.name = anim.name;
+    json.sourcePath = anim.sourcePath;
+    json.frameDuration = anim.frameDuration;
+    json.xformModel = anim.xformModel;
+    json.wrapMode = anim.wrapMode;
+    for (const auto& targetedMtx : anim.matrices) {
+      json.matrices.push_back(JSONSrtTargetedMtx::from(targetedMtx));
+    }
+    return json;
+  }
+
+  SrtAnim to() const {
+    SrtAnim anim;
+    anim.name = name;
+    anim.sourcePath = sourcePath;
+    anim.frameDuration = frameDuration;
+    anim.xformModel = xformModel;
+    anim.wrapMode = wrapMode;
+    for (const auto& jsonTargetedMtx : matrices) {
+      anim.matrices.push_back(jsonTargetedMtx.to());
+    }
+    return anim;
+  }
+};
 struct JSONChrData {
   DEFINE_SERIALIZABLE(JSONChrData, name)
 
@@ -1307,24 +1712,6 @@ struct JSONPatData {
     librii::g3d::BinaryTexPat pat;
     pat.name = name;
     return pat;
-  }
-};
-
-struct JSONSrtData {
-  DEFINE_SERIALIZABLE(JSONSrtData, name)
-
-  std::string name;
-
-  static JSONSrtData from(const librii::g3d::SrtAnim& srt, JsonWriteCtx& ctx) {
-    JSONSrtData json;
-    json.name = srt.name;
-    return json;
-  }
-
-  librii::g3d::SrtAnim to(std::span<const std::vector<u8>> buffers) const {
-    librii::g3d::SrtAnim srt;
-    srt.name = name;
-    return srt;
   }
 };
 
@@ -1384,7 +1771,7 @@ struct JSONArchive {
     }
 
     for (const auto& srt : original.srts) {
-      archive.srts.emplace_back(JSONSrtData::from(srt, c));
+      archive.srts.emplace_back(JSONSrtData::from(srt));
     }
 
     for (const auto& vis : original.viss) {
@@ -1418,7 +1805,7 @@ struct JSONArchive {
     }
 
     for (const auto& jsonSrt : srts) {
-      result.srts.push_back(jsonSrt.to(buffers));
+      result.srts.push_back(jsonSrt.to());
     }
 
     for (const auto& jsonVis : viss) {
