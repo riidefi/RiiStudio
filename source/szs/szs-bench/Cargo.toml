@@ -1,0 +1,15 @@
+[package]
+name = "szs-bench"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+argp = "0.3.0"
+anyhow = "1.0.75"
+#szs = "0.3.3"
+szs = { path = "../" }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+cli-table = "0.4.7"
