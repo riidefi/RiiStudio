@@ -18,3 +18,23 @@ fn test_read_raw_brres() {
     }
 }
 ```
+
+## Progress
+Implements a Rust layer on top of `librii::g3d`'s JSON export-import layer. Importantly, large buffers like texture data and vertex data are not actually encoded in JSON but passed directly as a binary blob. This allows JSON files to stay light and results in minimal encoding latency (tests TBD).
+
+| Format | Supported |
+|--------|-----------|
+| MDL0   | Yes       |
+| TEX0   | Yes       |
+| SRT0   | Yes       |
+| PAT0   | No        |
+| CLR0   | No        |
+| CHR0   | No        |
+| VIS0   | No        |
+
+
+## Tests
+Unit tests are being used to validate correctness. Run the suite with `cargo test`
+
+## `brres-sys`
+Low level documentation available [here](lib/brres-sys/README.md).

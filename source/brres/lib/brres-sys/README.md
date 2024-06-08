@@ -1,5 +1,7 @@
 # brres-sys
 
+Implements a Rust layer on top of `librii::g3d`'s JSON export-import layer. Importantly, large buffers like texture data and vertex data are not actually encoded in JSON but passed directly as a binary blob. This allows JSON files to stay light.
+
 Exposes the following Rust interface
 ```rs
 pub struct CBrresWrapper<'a> {
