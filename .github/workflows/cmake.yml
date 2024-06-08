@@ -21,7 +21,7 @@ jobs:
     - name: SetupRust
       uses: dtolnay/rust-toolchain@stable
     - name: Install LLVM
-      run: choco install -y llvm --version=16.0.6
+      run: choco install -y llvm --version=18.1.6
       if: runner.os == 'Windows'
     - name: Install Ninja
       run: choco install -y ninja
