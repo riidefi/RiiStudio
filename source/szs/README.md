@@ -95,7 +95,7 @@ Generally, the `mk8` algorithm gets acceptable compression the fastest. For case
 | mkw-sp              | 3.76s                  |           57.23% |
 | Haroohie            | 0.58s                  |           57.23% |
 | CTLib               | 0.32s                  |           57.24% |
-| MK8                 | 0.09s                  |           57.59% |
+| MK8 (Small memory footprint mode)     | 0.09s                  |           57.59% |
 | ctgp                | 0.31s                  |           71.41% |
 | worst-case-encoding | **0s**                 |          112.50% |
 | **Comparison with other libraries:** |       |                  |
@@ -111,16 +111,16 @@ Generally, the `mk8` algorithm gets acceptable compression the fastest. For case
 NSMBU 8-43 (63.9 MB decompressed)
 | Method               | Time (Avg 3 runs) | Compression Rate | File Size |
 |----------------------|-------------------|------------------|-----------|
-| lib-yaz0             |            25.97s |           29.32% |  18.74 MB |
-| mkw                  |            78.26s |           29.40% |  18.79 MB |
-| mkw-sp               |            49.28s |           29.74% |  19.01 MB |
-| haroohie             |            11.44s |           29.74% |  19.01 MB |
-| ct-lib               |             5.32s |           29.74% |  19.01 MB |
-| mk8                  |             1.46s |           30.12% |  19.25 MB |
-| ctgp                 |            12.05s |           40.91% |  26.14 MB |
-| worst-case-encoding  |             0.07s |          112.50% |  71.90 MB |
+| lib-yaz0             |            15.24s |           29.32% |  18.74 MB |
+| mkw                  |            62.04s |           29.40% |  18.79 MB |
+| mkw-sp               |            26.73s |           29.74% |  19.01 MB |
+| haroohie             |             5.84s |           29.74% |  19.01 MB |
+| ct-lib               |             2.91s |           29.74% |  19.01 MB |
+| mk8                  |             1.34s |           29.43% |  18.81 MB |
+| ctgp                 |             5.22s |           40.91% |  26.14 MB |
+| worst-case-encoding  |             0.03s |          112.50% |  71.90 MB |
 
-*\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
+*\* Average of 3 runs; x64 Clang (17.0.6) build tested on an Intel i9-13900KF on Windows 11*
 
 Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
 
