@@ -26,7 +26,10 @@ private:
     cWorkNum1 = 0x8000,
     cWorkNum2 = 0x1000,
 
-    cWorkSize0 = 0x2000,
+	// In-game: 1x (~8KB)
+	// Official tooling: 10x presumably
+	// Better results attained with 100x (~1MB)
+    cWorkSize0 = 0x2000 * 100,
     cWorkSize1 = cWorkNum1 * sizeof(s32),
     cWorkSize2 = cWorkNum2 * sizeof(s32)
   };
