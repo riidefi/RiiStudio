@@ -45,6 +45,8 @@ struct JSONModelInfo {
     texmtx_mode: String,
     source_location: String,
     evpmtx_mode: String,
+    min: [f32; 3],
+    max: [f32; 3],
 }
 
 impl Default for JSONModelInfo {
@@ -54,6 +56,8 @@ impl Default for JSONModelInfo {
             texmtx_mode: "Maya".to_string(),
             source_location: "".to_string(),
             evpmtx_mode: "Normal".to_string(),
+            min: [0.0, 0.0, 0.0],
+            max: [0.0, 0.0, 0.0],
         }
     }
 }
@@ -1333,7 +1337,6 @@ mod tests4 {
     }
     #[test]
     fn test_validate_binary_is_lossless_map_model() {
-        // FAILS: ???
-        test_validate_binary_is_lossless("../../tests/samples/map_model.brres", false)
+        test_validate_binary_is_lossless("../../tests/samples/map_model.brres", true)
     }
 }

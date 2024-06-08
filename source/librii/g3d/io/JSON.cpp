@@ -162,13 +162,12 @@ struct JSONDrawMatrix {
 
 struct JSONModelInfo {
   DEFINE_SERIALIZABLE(JSONModelInfo, scaling_rule, texmtx_mode, source_location,
-                      evpmtx_mode)
+                      evpmtx_mode, min, max)
   std::string scaling_rule = "Maya";
   std::string texmtx_mode = "Maya";
   std::string source_location = "";
   std::string evpmtx_mode = "Normal";
-  // rfl::Field<"min", glm::vec3> min = glm::vec3{0.0f, 0.0f, 0.0f};
-  // rfl::Field<"max", glm::vec3> max = glm::vec3{0.0f, 0.0f, 0.0f};
+  glm::vec3 min, max;
 
   static JSONModelInfo from(const ModelInfo& x) {
     JSONModelInfo result;
@@ -177,6 +176,8 @@ struct JSONModelInfo {
     result.texmtx_mode = magic_enum::enum_name(x.texMtxMode);
     result.source_location = x.sourceLocation;
     result.evpmtx_mode = magic_enum::enum_name(x.evpMtxMode);
+    result.min = x.min;
+    result.max = x.max;
 
     return result;
   }
@@ -190,6 +191,8 @@ struct JSONModelInfo {
     result.sourceLocation = source_location;
     result.evpMtxMode =
         TRY(rsl::enum_cast<librii::g3d::EnvelopeMatrixMode>(evpmtx_mode));
+    result.min = min;
+    result.max = max;
 
     return result;
   }

@@ -930,6 +930,8 @@
       "colors": [],
       "info": {
         "evpmtx_mode": "Normal",
+        "max": [ 0.0, 0.0, 0.0 ],
+        "min": [ 0.0, 0.0, 0.0 ],
         "scaling_rule": "Maya",
         "source_location": "",
         "texmtx_mode": "Maya"
