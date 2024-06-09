@@ -1,6 +1,6 @@
 use std::vec;
 
-const RBUF_ALIGN : u32 = 64;
+const RBUF_ALIGN: u32 = 64;
 
 pub fn collate_buffers(buffers: &[Vec<u8>]) -> Vec<u8> {
     let mut result = Vec::new();

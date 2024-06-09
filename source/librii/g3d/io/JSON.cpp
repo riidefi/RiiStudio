@@ -1702,10 +1702,11 @@ struct JSONChrTrack {
   f32 scale{};
   f32 offset{};
   f32 step{};
-  u32 framesDataBufferId;
+  u32 framesDataBufferId{};
+  u32 numKeyFrames{};
 
   DEFINE_SERIALIZABLE(JSONChrTrack, quant, scale, offset, step,
-                      framesDataBufferId)
+                      framesDataBufferId, numKeyFrames)
 
   static JSONChrTrack from(const ChrTrack& track, JsonWriteCtx& ctx) {
     JSONChrTrack jsonTrack;
@@ -1715,15 +1716,19 @@ struct JSONChrTrack {
     jsonTrack.step = track.step;
     jsonTrack.framesDataBufferId =
         ctx.save_buffer_with_move(ChrFramePacker::pack(track.frames));
+    jsonTrack.numKeyFrames = track.frames.size();
     return jsonTrack;
   }
 
-  ChrTrack to(std::span<const std::vector<u8>> buffers) const {
+  Result<ChrTrack> to(std::span<const std::vector<u8>> buffers) const {
     ChrTrack track;
     track.quant = quant;
     track.scale = scale;
     track.offset = offset;
     track.step = step;
+    if (framesDataBufferId >= buffers.size()) {
+      return std::unexpected("Invalid buffer index");
+    }
     track.frames = ChrFramePacker::unpack(buffers[framesDataBufferId]);
     return track;
   }
@@ -1784,7 +1789,7 @@ struct JSONChrData {
     return jsonAnim;
   }
 
-  ChrAnim to(std::span<const std::vector<u8>> buffers) const {
+  Result<ChrAnim> to(std::span<const std::vector<u8>> buffers) const {
     ChrAnim anim;
     anim.name = name;
     anim.sourcePath = sourcePath;
@@ -1797,7 +1802,7 @@ struct JSONChrData {
     }
 
     for (const auto& jsonTrack : tracks) {
-      anim.tracks.push_back(jsonTrack.to(buffers));
+      anim.tracks.push_back(TRY(jsonTrack.to(buffers)));
     }
 
     return anim;
@@ -1920,7 +1925,7 @@ struct JSONArchive {
     }
 
     for (const auto& jsonChr : chrs) {
-      result.chrs.push_back(jsonChr.to(buffers));
+      result.chrs.push_back(TRY(jsonChr.to(buffers)));
     }
 
     for (const auto& jsonClr : clrs) {

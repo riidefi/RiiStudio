@@ -298,7 +298,7 @@ struct JsonTexture {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct JsonArchive {
-    chrs: Vec<serde_json::Value>,
+    chrs: Vec<JSONChrData>,
     clrs: Vec<serde_json::Value>,
     models: Vec<JsonModel>,
     pats: Vec<serde_json::Value>,
@@ -334,7 +334,7 @@ pub struct Archive {
 
     // Animation data
     /// Bone (character motion) animation
-    pub chrs: Vec<serde_json::Value>,
+    pub chrs: Vec<ChrData>,
 
     /// Texture matrix ("SRT" a.k.a. "Scale, Rotate, Translate") animation
     pub srts: Vec<JSONSrtData>,
@@ -352,7 +352,11 @@ pub struct Archive {
 impl Archive {
     fn from_json(archive: JsonArchive, buffers: Vec<Vec<u8>>) -> Self {
         Self {
-            chrs: archive.chrs,
+            chrs: archive
+                .chrs
+                .into_iter()
+                .map(|m| ChrData::from_json(m, &buffers))
+                .collect(),
             clrs: archive.clrs,
             models: archive
                 .models
@@ -966,6 +970,45 @@ enum AnimationWrapMode {
     Repeat, // Loop
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
+enum ChrQuantization {
+    Track32,
+    Track48,
+    Track96,
+    BakedTrack8,
+    BakedTrack16,
+    BakedTrack32,
+    Const,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct JSONChrTrack {
+    quant: ChrQuantization,
+    scale: f32,
+    offset: f32,
+    step: f32,
+    framesDataBufferId: u32,
+    numKeyFrames: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct JSONChrNode {
+    name: String,
+    flags: u32,
+    tracks: Vec<u32>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct JSONChrData {
+    nodes: Vec<JSONChrNode>,
+    tracks: Vec<JSONChrTrack>,
+    name: String,
+    sourcePath: String,
+    frameDuration: u16,
+    wrapMode: u32,
+    scaleRule: u32,
+}
+
 struct JsonWriteCtx {
     buffers: Vec<Vec<u8>>,
 }
@@ -987,6 +1030,160 @@ impl JsonWriteCtx {
         self.save_buffer_with_move(tmp)
     }
 }
+#[derive(Debug, Clone, PartialEq)]
+struct ChrTrack {
+    quant: ChrQuantization,
+    scale: f32,
+    offset: f32,
+    step: f32,
+    frames_data: Vec<ChrFrame>,
+}
+
+impl ChrTrack {
+    fn from_json(json_track: JSONChrTrack, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(json_track.framesDataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let frames_data = ChrFramePacker::unpack(data, json_track.numKeyFrames as usize);
+
+        Self {
+            quant: json_track.quant,
+            scale: json_track.scale,
+            offset: json_track.offset,
+            step: json_track.step,
+            frames_data,
+        }
+    }
+
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JSONChrTrack {
+        let buffer_id = ctx.save_buffer_with_move(ChrFramePacker::pack(&self.frames_data));
+
+        JSONChrTrack {
+            quant: self.quant,
+            scale: self.scale,
+            offset: self.offset,
+            step: self.step,
+            framesDataBufferId: buffer_id as u32,
+            numKeyFrames: self.frames_data.len() as u32,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct ChrNode {
+    name: String,
+    flags: u32,
+    tracks: Vec<u32>,
+}
+
+impl ChrNode {
+    fn from_json(json_node: JSONChrNode) -> Self {
+        Self {
+            name: json_node.name,
+            flags: json_node.flags,
+            tracks: json_node.tracks,
+        }
+    }
+
+    fn to_json(&self) -> JSONChrNode {
+        JSONChrNode {
+            name: self.name.clone(),
+            flags: self.flags,
+            tracks: self.tracks.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct ChrData {
+    nodes: Vec<ChrNode>,
+    tracks: Vec<ChrTrack>,
+    name: String,
+    source_path: String,
+    frame_duration: u16,
+    wrap_mode: u32,
+    scale_rule: u32,
+}
+
+impl ChrData {
+    fn from_json(json_data: JSONChrData, buffers: &[Vec<u8>]) -> Self {
+        let nodes = json_data
+            .nodes
+            .into_iter()
+            .map(ChrNode::from_json)
+            .collect();
+        let tracks = json_data
+            .tracks
+            .into_iter()
+            .map(|json_track| ChrTrack::from_json(json_track, buffers))
+            .collect();
+
+        Self {
+            nodes,
+            tracks,
+            name: json_data.name,
+            source_path: json_data.sourcePath,
+            frame_duration: json_data.frameDuration,
+            wrap_mode: json_data.wrapMode,
+            scale_rule: json_data.scaleRule,
+        }
+    }
+
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JSONChrData {
+        let nodes = self.nodes.iter().map(ChrNode::to_json).collect();
+        let tracks = self.tracks.iter().map(|track| track.to_json(ctx)).collect();
+
+        JSONChrData {
+            nodes,
+            tracks,
+            name: self.name.clone(),
+            sourcePath: self.source_path.clone(),
+            frameDuration: self.frame_duration,
+            wrapMode: self.wrap_mode,
+            scaleRule: self.scale_rule,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct ChrFrame {
+    frame: f64,
+    value: f64,
+    slope: f64,
+}
+
+struct ChrFramePacker;
+
+impl ChrFramePacker {
+    const CHR_FRAME_SIZE: usize = 8 * 3;
+
+    pub fn pack(frames: &[ChrFrame]) -> Vec<u8> {
+        let mut buffer = Vec::with_capacity(frames.len() * Self::CHR_FRAME_SIZE);
+        for frame in frames {
+            buffer.extend_from_slice(&frame.frame.to_le_bytes());
+            buffer.extend_from_slice(&frame.value.to_le_bytes());
+            buffer.extend_from_slice(&frame.slope.to_le_bytes());
+        }
+        buffer
+    }
+
+    pub fn unpack(bytes: &[u8], num_keyframes: usize) -> Vec<ChrFrame> {
+        let mut frames = Vec::with_capacity(num_keyframes);
+        for i in 0..num_keyframes {
+            let offset = i * Self::CHR_FRAME_SIZE;
+            let frame = f64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
+            let value = f64::from_le_bytes(bytes[offset + 8..offset + 16].try_into().unwrap());
+            let slope = f64::from_le_bytes(bytes[offset + 16..offset + 24].try_into().unwrap());
+            frames.push(ChrFrame {
+                frame,
+                value,
+                slope,
+            });
+        }
+        frames
+    }
+}
+
 impl PositionBuffer {
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
@@ -1125,7 +1322,7 @@ impl Texture {
 impl Archive {
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonArchive {
         JsonArchive {
-            chrs: self.chrs.clone(),
+            chrs: self.chrs.iter().map(|c| c.to_json(ctx)).collect(),
             clrs: self.clrs.clone(),
             models: self.models.iter().map(|m| m.to_json(ctx)).collect(),
             pats: self.pats.clone(),
@@ -1338,5 +1535,26 @@ mod tests4 {
     #[test]
     fn test_validate_binary_is_lossless_map_model() {
         test_validate_binary_is_lossless("../../tests/samples/map_model.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_kuribo() {
+        // CHR0
+        test_validate_binary_is_lossless("../../tests/samples/kuribo.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_human_walk_chr0() {
+        test_validate_binary_is_lossless("../../tests/samples/human_walk_chr0.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_driver_model() {
+        test_validate_binary_is_lossless("../../tests/samples/driver_model.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_mariotreeGC() {
+        test_validate_binary_is_lossless("../../tests/samples/mariotreeGC.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_fur_rabbits_chr0() {
+        test_validate_binary_is_lossless("../../tests/samples/fur_rabbits-chr0.brres", true)
     }
 }

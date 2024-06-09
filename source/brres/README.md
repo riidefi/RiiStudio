@@ -29,7 +29,7 @@ Implements a Rust layer on top of `librii::g3d`'s JSON export-import layer. Impo
 | SRT0   | Yes       |
 | PAT0   | No        |
 | CLR0   | No        |
-| CHR0   | No        |
+| CHR0   | Yes       |
 | VIS0   | No        |
 
 
