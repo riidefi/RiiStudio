@@ -11,25 +11,23 @@ namespace librii::g3d {
 
 struct CHR0Frame32 {
   // raw
-  u32 frame : 8;
+  u32 frame; //: 8;
   // Quantization specified externally
-  u32 value : 12;
+  u32 value; // : 12;
   // S6.5
-  s32 slope : 12;
-
-  u32 bruh = 0;
+  s32 slope; //: 12;
 
   bool operator==(const CHR0Frame32&) const = default;
 
   static Result<CHR0Frame32> read(rsl::SafeReader& reader) {
     u32 x = TRY(reader.U32());
-    return CHR0Frame32{
-        .bruh = x,
-    };
 
     u32 frame = x >> 24;
     u32 value = (x >> 12) & 0xFFF;
-    s32 slope = static_cast<s32>(x << 20) >> 20;
+    s32 slope = static_cast<int>(x) & 0xFFF;
+    if (slope & 0x800) {
+      slope |= ~0xFFF;
+    }
     return CHR0Frame32{
         .frame = frame,
         .value = value,
@@ -37,8 +35,7 @@ struct CHR0Frame32 {
     };
   }
   void write(oishii::Writer& writer) const {
-    u32 x = (frame << 24) | (value << 12) | slope;
-    x = bruh;
+    u32 x = (frame << 24) | (value << 12) | (static_cast<u32>(slope) & 0xFFF);
     writer.write<u32>(x);
   }
 };
