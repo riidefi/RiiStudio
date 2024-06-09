@@ -456,6 +456,7 @@ std::variant<CHR0AnyTrack, f32> ChrTrack::to_any() const {
       quant == ChrQuantization::Track96) {
     return CHR0AnyTrack{chr0Track};
   } else if (quant == ChrQuantization::Const) {
+    assert(frames.size() >= 1);
     return static_cast<f32>(frames[0].value);
   } else {
     return CHR0AnyTrack{chr0BakedTrack};

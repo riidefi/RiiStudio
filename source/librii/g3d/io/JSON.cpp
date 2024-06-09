@@ -1209,8 +1209,7 @@ std::vector<u8> packEntries(const std::vector<T>& entries) {
 }
 
 // Utility function to unpack entries from a vector of bytes
-template <typename T>
-std::vector<T> unpackEntries(const std::vector<u8>& buffer) {
+template <typename T> std::vector<T> unpackEntries(std::span<const u8> buffer) {
   std::vector<T> entries(buffer.size() / sizeof(T));
   std::memcpy(entries.data(), buffer.data(), buffer.size());
   return entries;
@@ -1684,22 +1683,124 @@ struct JSONSrtData {
     return anim;
   }
 };
-struct JSONChrData {
-  DEFINE_SERIALIZABLE(JSONChrData, name)
 
-  std::string name;
+struct ChrFramePacker {
+  constexpr static size_t CHR_FRAME_SIZE = 8 * 3;
+  static_assert(sizeof(librii::g3d::ChrFrame) == CHR_FRAME_SIZE);
 
-  static JSONChrData from(const librii::g3d::ChrAnim& chr,
-                          JsonWriteCtx& ctx) {
-    JSONChrData json;
-    json.name = chr.name;
-    return json;
+  static std::vector<u8>
+  pack(const std::vector<librii::g3d::ChrFrame>& frames) {
+    return packEntries<librii::g3d::ChrFrame>(frames);
+  }
+  static std::vector<librii::g3d::ChrFrame> unpack(std::span<const u8> bytes) {
+    return unpackEntries<librii::g3d::ChrFrame>(bytes);
+  }
+};
+
+struct JSONChrTrack {
+  ChrQuantization quant{};
+  f32 scale{};
+  f32 offset{};
+  f32 step{};
+  u32 framesDataBufferId;
+
+  DEFINE_SERIALIZABLE(JSONChrTrack, quant, scale, offset, step,
+                      framesDataBufferId)
+
+  static JSONChrTrack from(const ChrTrack& track, JsonWriteCtx& ctx) {
+    JSONChrTrack jsonTrack;
+    jsonTrack.quant = track.quant;
+    jsonTrack.scale = track.scale;
+    jsonTrack.offset = track.offset;
+    jsonTrack.step = track.step;
+    jsonTrack.framesDataBufferId =
+        ctx.save_buffer_with_move(ChrFramePacker::pack(track.frames));
+    return jsonTrack;
   }
 
-  librii::g3d::ChrAnim to(std::span<const std::vector<u8>> buffers) const {
-    librii::g3d::ChrAnim chr;
-    chr.name = name;
-    return chr;
+  ChrTrack to(std::span<const std::vector<u8>> buffers) const {
+    ChrTrack track;
+    track.quant = quant;
+    track.scale = scale;
+    track.offset = offset;
+    track.step = step;
+    track.frames = ChrFramePacker::unpack(buffers[framesDataBufferId]);
+    return track;
+  }
+};
+
+struct JSONChrNode {
+  std::string name;
+  u32 flags;
+  std::vector<u32> tracks;
+
+  DEFINE_SERIALIZABLE(JSONChrNode, name, flags, tracks)
+
+  static JSONChrNode from(const ChrNode& node) {
+    JSONChrNode jsonNode;
+    jsonNode.name = node.name;
+    jsonNode.flags = node.flags;
+    jsonNode.tracks = node.tracks;
+    return jsonNode;
+  }
+
+  ChrNode to() const {
+    ChrNode node;
+    node.name = name;
+    node.flags = flags;
+    node.tracks = tracks;
+    return node;
+  }
+};
+
+struct JSONChrData {
+  std::vector<JSONChrNode> nodes;
+  std::vector<JSONChrTrack> tracks;
+  std::string name;
+  std::string sourcePath;
+  uint16_t frameDuration;
+  uint32_t wrapMode;
+  uint32_t scaleRule;
+
+  DEFINE_SERIALIZABLE(JSONChrData, nodes, tracks, name, sourcePath,
+                      frameDuration, wrapMode, scaleRule)
+
+  static JSONChrData from(const ChrAnim& anim, JsonWriteCtx& ctx) {
+    JSONChrData jsonAnim;
+    jsonAnim.name = anim.name;
+    jsonAnim.sourcePath = anim.sourcePath;
+    jsonAnim.frameDuration = anim.frameDuration;
+    jsonAnim.wrapMode = static_cast<u32>(anim.wrapMode);
+    jsonAnim.scaleRule = anim.scaleRule;
+
+    for (const auto& node : anim.nodes) {
+      jsonAnim.nodes.push_back(JSONChrNode::from(node));
+    }
+
+    for (const auto& track : anim.tracks) {
+      jsonAnim.tracks.push_back(JSONChrTrack::from(track, ctx));
+    }
+
+    return jsonAnim;
+  }
+
+  ChrAnim to(std::span<const std::vector<u8>> buffers) const {
+    ChrAnim anim;
+    anim.name = name;
+    anim.sourcePath = sourcePath;
+    anim.frameDuration = frameDuration;
+    anim.wrapMode = static_cast<librii::g3d::AnimationWrapMode>(wrapMode);
+    anim.scaleRule = scaleRule;
+
+    for (const auto& jsonNode : nodes) {
+      anim.nodes.push_back(jsonNode.to());
+    }
+
+    for (const auto& jsonTrack : tracks) {
+      anim.tracks.push_back(jsonTrack.to(buffers));
+    }
+
+    return anim;
   }
 };
 
