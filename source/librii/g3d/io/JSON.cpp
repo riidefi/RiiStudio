@@ -86,10 +86,33 @@ template <> struct TypeHandler<glm::vec3> {
     TypeHandler<std::vector<f32>>::from(t, token, serializer);
   }
 };
+template <> struct TypeHandler<glm::vec4> {
+  static inline Error to(glm::vec4& to_type, ParseContext& context) {
+    std::vector<f32> t;
+    auto err = TypeHandler<std::vector<f32>>::to(t, context);
+    if (err != Error::NoError) {
+      return err;
+    }
+    to_type.x = t[0];
+    to_type.y = t[1];
+    to_type.z = t[2];
+    to_type.w = t[3];
+    return Error::NoError;
+  }
+
+  static inline void from(const glm::vec4& vec, Token& token,
+                          Serializer& serializer) {
+    std::vector<f32> t;
+    t.push_back(vec.x);
+    t.push_back(vec.y);
+    t.push_back(vec.z);
+    t.push_back(vec.w);
+    TypeHandler<std::vector<f32>>::from(t, token, serializer);
+  }
+};
 
 } // namespace JS
 
-JS_OBJ_EXT(glm::vec4, x, y, z, w);
 JS_OBJ_EXT(librii::gx::Color, r, g, b, a);
 JS_OBJ_EXT(librii::gx::ColorS10, r, g, b, a);
 namespace JS {
@@ -1819,111 +1842,10 @@ struct JSONArchive {
   }
 };
 
-std::string ModelToJSON(const Model& model) {
-  JsonWriteCtx ctx;
-  JSONModel mdl = JSONModel::from(model, ctx);
-  return JS::serializeStruct(mdl);
-}
-std::string ModelToJSON(const Model& model, JsonWriteCtx& ctx) {
-  JSONModel mdl = JSONModel::from(model, ctx);
-  return JS::serializeStruct(mdl);
-}
-Result<Model> JSONToModel(std::string_view json) {
-  JS::ParseContext context(json.data(), json.size());
-  JSONModel mdl;
-  auto err = context.parseTo(mdl);
-  if (err != JS::Error::NoError) {
-    auto n = magic_enum::enum_name(err);
-    return std::unexpected(
-        std::format("JSONToModel failed: Parse error {}", n));
-  }
-  std::vector<std::vector<u8>> buffers;
-  return mdl.lift(buffers);
-}
-
-std::string MatToJSON(const G3dMaterialData& model) {
-  auto mat = JSONG3dMaterialData::from(model);
-  return JS::serializeStruct(mat);
-}
-Result<G3dMaterialData> JSONToMat(std::string_view json) {
-  JS::ParseContext context(json.data(), json.size());
-  JSONG3dMaterialData mdl;
-  auto err = context.parseTo(mdl);
-  if (err != JS::Error::NoError) {
-    auto n = magic_enum::enum_name(err);
-    return std::unexpected(
-        std::format("JSONToModel failed: Parse error {}", n));
-  }
-  return mdl;
-}
-
-std::string PolyToJSON(const g3d::PolygonData& model, JsonWriteCtx& c) {
-  auto mat = JSONPolygonData::from(model, c);
-  return JS::serializeStruct(mat);
-}
-Result<g3d::PolygonData> JSONToPoly(std::string_view json,
-                                    std::span<const std::vector<u8>> buffers) {
-  JS::ParseContext context(json.data(), json.size());
-  JSONPolygonData mdl;
-  auto err = context.parseTo(mdl);
-  if (err != JS::Error::NoError) {
-    auto n = magic_enum::enum_name(err);
-    return std::unexpected(
-        std::format("JSONToModel failed: Parse error {}", n));
-  }
-  return mdl.to(buffers);
-}
-std::string BoneToJSON(const g3d::BoneData& model) {
-  auto mat = JSONBoneData::from(model);
-  return JS::serializeStruct(mat);
-}
-Result<g3d::BoneData> JSONToBone(std::string_view json) {
-  JS::ParseContext context(json.data(), json.size());
-  JSONBoneData mdl;
-  auto err = context.parseTo(mdl);
-  if (err != JS::Error::NoError) {
-    auto n = magic_enum::enum_name(err);
-    return std::unexpected(
-        std::format("JSONToModel failed: Parse error {}", n));
-  }
-  return mdl;
-}
-
-std::string MtxToJSON(const g3d::DrawMatrix& model) {
-  auto mat = JSONDrawMatrix::from(model);
-  return JS::serializeStruct(mat);
-}
-Result<g3d::DrawMatrix> JSONToMtx(std::string_view json) {
-  JS::ParseContext context(json.data(), json.size());
-  JSONDrawMatrix mdl;
-  auto err = context.parseTo(mdl);
-  if (err != JS::Error::NoError) {
-    auto n = magic_enum::enum_name(err);
-    return std::unexpected(
-        std::format("JSONToModel failed: Parse error {}", n));
-  }
-  return mdl;
-}
-
-std::string InfoToJSON(const g3d::ModelInfo& model) {
-  auto mat = JSONModelInfo::from(model);
-  return JS::serializeStruct(mat);
-}
-Result<g3d::ModelInfo> JSONToInfo(std::string_view json) {
-  JS::ParseContext context(json.data(), json.size());
-  JSONModelInfo mdl;
-  auto err = context.parseTo(mdl);
-  if (err != JS::Error::NoError) {
-    auto n = magic_enum::enum_name(err);
-    return std::unexpected(
-        std::format("JSONToModel failed: Parse error {}", n));
-  }
-  return mdl.to();
-}
-
 std::string ArcToJSON(const g3d::Archive& model, JsonWriteCtx& c) {
   auto mat = JSONArchive::from(model, c);
-  return JS::serializeStruct(mat);
+  return JS::serializeStruct(
+      mat, JS::SerializerOptions(JS::SerializerOptions::Pretty));
 }
 Result<g3d::Archive> JSONToArc(std::string_view json,
                                std::span<const std::vector<u8>> buffers) {
@@ -1932,8 +1854,8 @@ Result<g3d::Archive> JSONToArc(std::string_view json,
   auto err = context.parseTo(mdl);
   if (err != JS::Error::NoError) {
     auto n = magic_enum::enum_name(err);
-    return std::unexpected(
-        std::format("JSONToModel failed: Parse error {}", n));
+    return std::unexpected(std::format("JSONToArc failed: Parse error {} ({})",
+                                       n, context.makeErrorString()));
   }
   return mdl.lift(buffers);
 }

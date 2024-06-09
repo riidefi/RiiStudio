@@ -20,7 +20,6 @@ template <typename T> using Expected = std::expected<T, std::string>;
 struct JsonWriteCtx;
 
 namespace librii::g3d {
-std::string ModelToJSON(const g3d::Model& model, JsonWriteCtx& c);
 std::string ArcToJSON(const g3d::Archive& model, JsonWriteCtx& c);
 Result<g3d::Archive> JSONToArc(std::string_view json,
                                std::span<const std::vector<u8>> buffers);
@@ -102,12 +101,6 @@ struct JsonWriteCtx {
     return save_buffer_with_move(std::move(tmp));
   }
 };
-
-void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
-               const librii::g3d::Model& p) {
-  auto s = librii::g3d::ModelToJSON(p, c);
-  j = nlohmann::json::parse(s);
-}
 
 void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
                const librii::g3d::Archive& archive) {
@@ -230,4 +223,11 @@ Result<librii::g3d::Archive> ReadJsonArc(std::string_view json,
                                          std::span<const u8> buffer) {
   auto buffers = ParseBuffers(buffer);
   return librii::g3d::JSONToArc(json, buffers);
+}
+Result<std::vector<u8>> WriteArchive(std::string_view json,
+                                     std::span<const u8> blob) {
+  auto arc = TRY(ReadJsonArc(json, blob));
+  auto bin = TRY(arc.write());
+
+  return bin;
 }

@@ -31,6 +31,15 @@
 #include <rsl/WriteFile.hpp>
 #include <sstream>
 
+struct DumpResult {
+  std::string jsonData;
+  std::vector<u8> collatedBuffer;
+};
+
+DumpResult DumpJson(const librii::g3d::Archive& archive);
+Result<std::vector<u8>> WriteArchive(std::string_view json,
+                                     std::span<const u8> blob);
+
 namespace riistudio {
 const char* translateString(std::string_view str) { return str.data(); }
 } // namespace riistudio
@@ -918,17 +927,24 @@ static Result<void> brres2json(const CliOptions& m_opt) {
   auto brres = TRY(
       librii::g3d::Archive::fromMemory(*file, std::string(m_opt.from.view())));
 
-  EXPECT(brres.models.size() == 1);
-  auto mdl = brres.models[0];
+  auto dumped = DumpJson(brres);
 
-  auto result = ModelToJSON(mdl);
   std::ofstream stream(m_to);
-  stream << result;
+  stream << dumped.jsonData;
+
+  TRY(rsl::WriteFile(dumped.collatedBuffer, m_to.replace_extension("bin").string()));
 
   return {};
 }
+
 static Result<void> json2brres(const CliOptions& m_opt) {
-  return std::unexpected("Error: json2brres() is unimplemented!");
+  std::filesystem::path m_from = m_opt.from.view();
+  auto file = TRY(ReadFile(m_from.string()));
+  std::string_view json(reinterpret_cast<char*>(file.data()), file.size());
+  auto bin = TRY(ReadFile(m_from.replace_extension("bin").string()));
+  auto converted = TRY(WriteArchive(json, bin));
+  TRY(rsl::WriteFile(converted, m_opt.to.view()));
+  return {};
 }
 
 static Result<void> dumpPresetsG3D(const CliOptions& m_opt) {
