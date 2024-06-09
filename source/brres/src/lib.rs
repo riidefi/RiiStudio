@@ -5,327 +5,14 @@ use std::io::BufReader;
 
 mod buffers;
 mod enums;
+mod json;
 
 use brres_sys::ffi;
 use enums::*;
 
 use bytemuck;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONMatrixWeight {
-    bone_id: u32,
-    weight: f32,
-}
-
-impl Default for JSONMatrixWeight {
-    fn default() -> Self {
-        JSONMatrixWeight {
-            bone_id: 0,
-            weight: 1.0,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONDrawMatrix {
-    weights: Vec<JSONMatrixWeight>,
-}
-
-impl Default for JSONDrawMatrix {
-    fn default() -> Self {
-        JSONDrawMatrix {
-            weights: Vec::new(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONModelInfo {
-    scaling_rule: String,
-    texmtx_mode: String,
-    source_location: String,
-    evpmtx_mode: String,
-    min: [f32; 3],
-    max: [f32; 3],
-}
-
-impl Default for JSONModelInfo {
-    fn default() -> Self {
-        JSONModelInfo {
-            scaling_rule: "Maya".to_string(),
-            texmtx_mode: "Maya".to_string(),
-            source_location: "".to_string(),
-            evpmtx_mode: "Normal".to_string(),
-            min: [0.0, 0.0, 0.0],
-            max: [0.0, 0.0, 0.0],
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct JsonMesh {
-    clr_buffer: Vec<String>,
-    current_matrix: i32,
-    mprims: Vec<JsonPrimitive>,
-    name: String,
-    nrm_buffer: String,
-    pos_buffer: String,
-    uv_buffer: Vec<String>,
-    vcd: i32,
-    visible: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct JsonPrimitive {
-    matrices: Vec<i32>,
-    num_prims: i32,
-    vertexDataBufferId: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct JsonModel {
-    name: String,
-    info: JSONModelInfo,
-    bones: Vec<JSONBoneData>,
-    materials: Vec<JSONMaterial>,
-    matrices: Vec<JSONDrawMatrix>,
-    meshes: Vec<JsonMesh>,
-    positions: Vec<JsonBufferData<[f32; 3]>>,
-    normals: Vec<JsonBufferData<[f32; 3]>>,
-    colors: Vec<JsonBufferData<[u8; 4]>>,
-    texcoords: Vec<JsonBufferData<[f32; 2]>>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct JsonBufferData<T> {
-    dataBufferId: i32,
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    cached_min: Option<T>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    cached_max: Option<T>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct PositionBuffer {
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    data: Vec<[f32; 3]>,
-    cached_minmax: Option<([f32; 3], [f32; 3])>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct NormalBuffer {
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    data: Vec<[f32; 3]>,
-    cached_minmax: Option<([f32; 3], [f32; 3])>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct ColorBuffer {
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    data: Vec<[u8; 4]>,
-    cached_minmax: Option<([u8; 4], [u8; 4])>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct TextureCoordinateBuffer {
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    data: Vec<[f32; 2]>,
-    cached_minmax: Option<([f32; 2], [f32; 2])>,
-}
-
-impl PositionBuffer {
-    fn from_json(buffer_data: JsonBufferData<[f32; 3]>, buffers: &[Vec<u8>]) -> Self {
-        let data = buffers
-            .get(buffer_data.dataBufferId as usize)
-            .expect("Invalid buffer ID");
-        let elem_count = data.len() / std::mem::size_of::<[f32; 3]>();
-        let data: Vec<[f32; 3]> = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 3], elem_count).to_vec()
-        };
-
-        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
-            (buffer_data.cached_min, buffer_data.cached_max)
-        {
-            Some((cached_min, cached_max))
-        } else {
-            None
-        };
-
-        Self {
-            id: buffer_data.id,
-            name: buffer_data.name,
-            q_comp: buffer_data.q_comp,
-            q_divisor: buffer_data.q_divisor,
-            q_stride: buffer_data.q_stride,
-            q_type: buffer_data.q_type,
-            data,
-            cached_minmax,
-        }
-    }
-}
-
-impl NormalBuffer {
-    fn from_json(buffer_data: JsonBufferData<[f32; 3]>, buffers: &[Vec<u8>]) -> Self {
-        let data = buffers
-            .get(buffer_data.dataBufferId as usize)
-            .expect("Invalid buffer ID");
-        let elem_count = data.len() / std::mem::size_of::<[f32; 3]>();
-        let data: Vec<[f32; 3]> = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 3], elem_count).to_vec()
-        };
-
-        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
-            (buffer_data.cached_min, buffer_data.cached_max)
-        {
-            Some((cached_min, cached_max))
-        } else {
-            None
-        };
-
-        Self {
-            id: buffer_data.id,
-            name: buffer_data.name,
-            q_comp: buffer_data.q_comp,
-            q_divisor: buffer_data.q_divisor,
-            q_stride: buffer_data.q_stride,
-            q_type: buffer_data.q_type,
-            data,
-            cached_minmax,
-        }
-    }
-}
-
-impl ColorBuffer {
-    fn from_json(buffer_data: JsonBufferData<[u8; 4]>, buffers: &[Vec<u8>]) -> Self {
-        let data = buffers
-            .get(buffer_data.dataBufferId as usize)
-            .expect("Invalid buffer ID");
-        let elem_count = data.len() / std::mem::size_of::<[u8; 4]>();
-        let data: Vec<[u8; 4]> = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const [u8; 4], elem_count).to_vec()
-        };
-
-        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
-            (buffer_data.cached_min, buffer_data.cached_max)
-        {
-            Some((cached_min, cached_max))
-        } else {
-            None
-        };
-
-        Self {
-            id: buffer_data.id,
-            name: buffer_data.name,
-            q_comp: buffer_data.q_comp,
-            q_divisor: buffer_data.q_divisor,
-            q_stride: buffer_data.q_stride,
-            q_type: buffer_data.q_type,
-            data,
-            cached_minmax,
-        }
-    }
-}
-
-impl TextureCoordinateBuffer {
-    fn from_json(buffer_data: JsonBufferData<[f32; 2]>, buffers: &[Vec<u8>]) -> Self {
-        let data = buffers
-            .get(buffer_data.dataBufferId as usize)
-            .expect("Invalid buffer ID");
-        let elem_count = data.len() / std::mem::size_of::<[f32; 2]>();
-        let data: Vec<[f32; 2]> = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 2], elem_count).to_vec()
-        };
-
-        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
-            (buffer_data.cached_min, buffer_data.cached_max)
-        {
-            Some((cached_min, cached_max))
-        } else {
-            None
-        };
-
-        Self {
-            id: buffer_data.id,
-            name: buffer_data.name,
-            q_comp: buffer_data.q_comp,
-            q_divisor: buffer_data.q_divisor,
-            q_stride: buffer_data.q_stride,
-            q_type: buffer_data.q_type,
-            data,
-            cached_minmax,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct JsonTexture {
-    dataBufferId: i32,
-    format: u32,
-    height: u32,
-    maxLod: f32,
-    minLod: f32,
-    name: String,
-    number_of_images: u32,
-    sourcePath: String,
-    width: u32,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct JsonArchive {
-    chrs: Vec<JSONChrData>,
-    clrs: Vec<serde_json::Value>,
-    models: Vec<JsonModel>,
-    pats: Vec<serde_json::Value>,
-    srts: Vec<JSONSrtData>,
-    textures: Vec<JsonTexture>,
-    viss: Vec<serde_json::Value>,
-}
-
-pub fn read_json(file_path: &str) -> anyhow::Result<JsonArchive> {
-    let file = File::open(file_path)?;
-    let reader = BufReader::new(file);
-    let root: JsonArchive = serde_json::from_reader(reader)?;
-    Ok(root)
-}
-
-#[cfg(test)]
-mod tests3 {
-    use super::*;
-    #[test]
-    fn dummy_json() {
-        let file_path = "dummy.json";
-        match read_json(file_path) {
-            Ok(root) => println!("{:#?}", root),
-            Err(e) => panic!("Error reading JSON file: {}", e),
-        }
-    }
-}
+use json::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Archive {
@@ -349,38 +36,45 @@ pub struct Archive {
     pub viss: Vec<serde_json::Value>,
 }
 
-impl Archive {
-    fn from_json(archive: JsonArchive, buffers: Vec<Vec<u8>>) -> Self {
-        Self {
-            chrs: archive
-                .chrs
-                .into_iter()
-                .map(|m| ChrData::from_json(m, &buffers))
-                .collect(),
-            clrs: archive.clrs,
-            models: archive
-                .models
-                .into_iter()
-                .map(|m| Model::from_json(m, &buffers))
-                .collect(),
-            pats: archive.pats,
-            srts: archive.srts,
-            textures: archive
-                .textures
-                .into_iter()
-                .map(|t| Texture::from_json(t, &buffers))
-                .collect(),
-            viss: archive.viss,
-        }
-    }
+#[derive(Debug, Clone, PartialEq)]
+pub struct Model {
+    pub name: String,
+    pub info: JSONModelInfo,
 
-    fn get_model(&self, name: &str) -> Option<&Model> {
-        self.models.iter().find(|model| model.name == name)
-    }
+    pub bones: Vec<JSONBoneData>,
+    pub materials: Vec<JSONMaterial>,
+    pub meshes: Vec<Mesh>,
 
-    fn get_texture(&self, name: &str) -> Option<&Texture> {
-        self.textures.iter().find(|texture| texture.name == name)
-    }
+    // Vertex buffers
+    pub positions: Vec<PositionBuffer>,
+    pub normals: Vec<NormalBuffer>,
+    pub texcoords: Vec<TextureCoordinateBuffer>,
+    pub colors: Vec<ColorBuffer>,
+
+    /// For skinning
+    pub matrices: Vec<JSONDrawMatrix>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Mesh {
+    pub name: String,
+
+    pub visible: bool,
+
+    // String (for now) references to vertex data arrays in the Model
+    pub clr_buffer: Vec<String>,
+    pub nrm_buffer: String,
+    pub pos_buffer: String,
+    pub uv_buffer: Vec<String>,
+
+    /// Bitfield of attributes (1 << n) for n in GXAttr enum
+    pub vcd: i32,
+
+    /// For unrigged meshes which matrix (in the Model matrices list) are we referencing? (usually 0, bound to the root bone)
+    pub current_matrix: i32,
+
+    /// Actual primitive data
+    pub mprims: Vec<MatrixPrimitive>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -434,117 +128,52 @@ pub struct MatrixPrimitive {
     pub vertex_data_buffer: Vec<u8>,
 }
 
-impl MatrixPrimitive {
-    fn from_json(json_primitive: JsonPrimitive, buffers: &[Vec<u8>]) -> Self {
-        let vertex_data_buffer = buffers
-            .get(json_primitive.vertexDataBufferId as usize)
-            .cloned()
-            .unwrap_or_else(Vec::new);
-
-        Self {
-            matrices: json_primitive.matrices,
-            num_prims: json_primitive.num_prims,
-            vertex_data_buffer,
-        }
-    }
+#[derive(Debug, Clone, PartialEq)]
+struct PositionBuffer {
+    id: i32,
+    name: String,
+    q_comp: i32,
+    q_divisor: i32,
+    q_stride: i32,
+    q_type: i32,
+    data: Vec<[f32; 3]>,
+    cached_minmax: Option<([f32; 3], [f32; 3])>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Mesh {
-    pub name: String,
-
-    pub visible: bool,
-
-    // String (for now) references to vertex data arrays in the Model
-    pub clr_buffer: Vec<String>,
-    pub nrm_buffer: String,
-    pub pos_buffer: String,
-    pub uv_buffer: Vec<String>,
-
-    /// Bitfield of attributes (1 << n) for n in GXAttr enum
-    pub vcd: i32,
-
-    /// For unrigged meshes which matrix (in the Model matrices list) are we referencing? (usually 0, bound to the root bone)
-    pub current_matrix: i32,
-
-    /// Actual primitive data
-    pub mprims: Vec<MatrixPrimitive>,
-}
-
-impl Mesh {
-    fn from_json(json_mesh: JsonMesh, buffers: &[Vec<u8>]) -> Self {
-        Self {
-            clr_buffer: json_mesh.clr_buffer,
-            current_matrix: json_mesh.current_matrix,
-            mprims: json_mesh
-                .mprims
-                .into_iter()
-                .map(|p| MatrixPrimitive::from_json(p, buffers))
-                .collect(),
-            name: json_mesh.name,
-            nrm_buffer: json_mesh.nrm_buffer,
-            pos_buffer: json_mesh.pos_buffer,
-            uv_buffer: json_mesh.uv_buffer,
-            vcd: json_mesh.vcd,
-            visible: json_mesh.visible,
-        }
-    }
+struct NormalBuffer {
+    id: i32,
+    name: String,
+    q_comp: i32,
+    q_divisor: i32,
+    q_stride: i32,
+    q_type: i32,
+    data: Vec<[f32; 3]>,
+    cached_minmax: Option<([f32; 3], [f32; 3])>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Model {
-    pub name: String,
-    pub info: JSONModelInfo,
-
-    pub bones: Vec<JSONBoneData>,
-    pub materials: Vec<JSONMaterial>,
-    pub meshes: Vec<Mesh>,
-
-    // Vertex buffers
-    pub positions: Vec<PositionBuffer>,
-    pub normals: Vec<NormalBuffer>,
-    pub texcoords: Vec<TextureCoordinateBuffer>,
-    pub colors: Vec<ColorBuffer>,
-
-    /// For skinning
-    pub matrices: Vec<JSONDrawMatrix>,
+struct ColorBuffer {
+    id: i32,
+    name: String,
+    q_comp: i32,
+    q_divisor: i32,
+    q_stride: i32,
+    q_type: i32,
+    data: Vec<[u8; 4]>,
+    cached_minmax: Option<([u8; 4], [u8; 4])>,
 }
 
-impl Model {
-    fn from_json(model: JsonModel, buffers: &[Vec<u8>]) -> Self {
-        Self {
-            bones: model.bones,
-            materials: model.materials,
-            matrices: model.matrices,
-            meshes: model
-                .meshes
-                .into_iter()
-                .map(|m| Mesh::from_json(m, buffers))
-                .collect(),
-            name: model.name,
-            info: model.info,
-            positions: model
-                .positions
-                .into_iter()
-                .map(|m| PositionBuffer::from_json(m, buffers))
-                .collect(),
-            normals: model
-                .normals
-                .into_iter()
-                .map(|m| NormalBuffer::from_json(m, buffers))
-                .collect(),
-            colors: model
-                .colors
-                .into_iter()
-                .map(|m| ColorBuffer::from_json(m, buffers))
-                .collect(),
-            texcoords: model
-                .texcoords
-                .into_iter()
-                .map(|m| TextureCoordinateBuffer::from_json(m, buffers))
-                .collect(),
-        }
-    }
+#[derive(Debug, Clone, PartialEq)]
+struct TextureCoordinateBuffer {
+    id: i32,
+    name: String,
+    q_comp: i32,
+    q_divisor: i32,
+    q_stride: i32,
+    q_type: i32,
+    data: Vec<[f32; 2]>,
+    cached_minmax: Option<([f32; 2], [f32; 2])>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -632,381 +261,38 @@ pub struct Texture {
     pub max_lod: f32,
 }
 
-impl Texture {
-    fn from_json(texture: JsonTexture, buffers: &[Vec<u8>]) -> Self {
-        let data = buffers
-            .get(texture.dataBufferId as usize)
-            .map(|buffer| buffer.clone())
-            .unwrap_or_else(Vec::new);
-
-        Self {
-            data,
-            format: texture.format,
-            height: texture.height,
-            max_lod: texture.maxLod,
-            min_lod: texture.minLod,
-            name: texture.name,
-            number_of_images: texture.number_of_images,
-            width: texture.width,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONDrawCall {
-    material: u32,
-    poly: u32,
-    prio: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONBoneData {
+#[derive(Debug, Clone, PartialEq)]
+struct ChrData {
+    nodes: Vec<ChrNode>,
+    tracks: Vec<ChrTrack>,
     name: String,
-    ssc: bool,
-    visible: bool,
-    billboard_type: u32,
-    scale: [f32; 3],
-    rotate: [f32; 3],
-    translate: [f32; 3],
-    volume_min: [f32; 3],
-    volume_max: [f32; 3],
-    parent: i32,
-    children: Vec<i32>,
-    display_matrix: bool,
-    draw_calls: Vec<JSONDrawCall>,
-    force_display_matrix: bool,
-    omit_from_node_mix: bool,
+    source_path: String,
+    frame_duration: u16,
+    wrap_mode: u32,
+    scale_rule: u32,
 }
 
-impl Default for JSONBoneData {
-    fn default() -> Self {
-        JSONBoneData {
-            name: "Untitled Bone".to_string(),
-            ssc: false,
-            visible: true,
-            billboard_type: 0,
-            scale: [1.0, 1.0, 1.0],
-            rotate: [0.0, 0.0, 0.0],
-            translate: [0.0, 0.0, 0.0],
-            volume_min: [0.0, 0.0, 0.0],
-            volume_max: [0.0, 0.0, 0.0],
-            parent: -1,
-            children: Vec::new(),
-            display_matrix: true,
-            draw_calls: Vec::new(),
-            force_display_matrix: false,
-            omit_from_node_mix: false,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct ColorS10 {
-    r: i16,
-    g: i16,
-    b: i16,
-    a: i16,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONColorStage {
-    constantSelection: TevKColorSel,
-    a: TevColorArg,
-    b: TevColorArg,
-    c: TevColorArg,
-    d: TevColorArg,
-    formula: TevColorOp,
-    bias: TevBias,
-    scale: TevScale,
-    clamp: bool,
-    out: TevReg,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONAlphaStage {
-    a: TevAlphaArg,
-    b: TevAlphaArg,
-    c: TevAlphaArg,
-    d: TevAlphaArg,
-    formula: TevAlphaOp,
-    constantSelection: TevKAlphaSel,
-    bias: TevBias,
-    scale: TevScale,
-    clamp: bool,
-    out: TevReg,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONIndirectStageTev {
-    indStageSel: u8,
-    format: IndTexFormat,
-    bias: IndTexBiasSel,
-    matrix: IndTexMtxID,
-    wrapU: IndTexWrap,
-    wrapV: IndTexWrap,
-    addPrev: bool,
-    utcLod: bool,
-    alpha: IndTexAlphaSel,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONTevStage {
-    rasOrder: ColorSelChanApi,
-    texMap: u8,
-    texCoord: u8,
-    rasSwap: u8,
-    texMapSwap: u8,
-    colorStage: JSONColorStage,
-    alphaStage: JSONAlphaStage,
-    indirectStage: JSONIndirectStageTev,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONTexMatrix {
-    projection: TexGenType,
-    scale: (f32, f32),
-    rotate: f32,
-    translate: (f32, f32),
-    effectMatrix: [f32; 16],
-    transformModel: CommonTransformModel,
-    method: CommonMappingMethod,
-    option: CommonMappingOption,
-    camIdx: i8,
-    lightIdx: i8,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONSamplerData {
-    mTexture: String,
-    mPalette: String,
-    mWrapU: TextureWrapMode,
-    mWrapV: TextureWrapMode,
-    bEdgeLod: bool,
-    bBiasClamp: bool,
-    mMaxAniso: AnisotropyLevel,
-    mMinFilter: TextureFilter,
-    mMagFilter: TextureFilter,
-    mLodBias: f32,
-    btiId: u16,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONChannelControl {
-    enabled: bool,
-    Ambient: ColorSource,
-    Material: ColorSource,
-    lightMask: LightID,
-    diffuseFn: DiffuseFunction,
-    attenuationFn: AttenuationFunction,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONChannelData {
-    matColor: Color,
-    ambColor: Color,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONTexCoordGen {
-    func: TexGenType,
-    sourceParam: TexGenSrc,
-    matrix: TexMatrix,
-    normalize: bool,
-    postMatrix: PostTexMatrix,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONMaterial {
-    flag: u32,
-    id: u32,
-    lightSetIndex: i8,
-    fogIndex: i8,
-    name: String,
-    texMatrices: Vec<JSONTexMatrix>, // MAX 10
-    samplers: Vec<JSONSamplerData>,  // MAX 8
-    cullMode: CullMode,
-    chanData: Vec<JSONChannelData>,             // Max 2
-    colorChanControls: Vec<JSONChannelControl>, // Max 4
-    texGens: Vec<JSONTexCoordGen>,              // Max 8
-    tevKonstColors: [Color; 4],
-    tevColors: [ColorS10; 4],
-    earlyZComparison: bool,
-    zMode: JSONZMode,
-    alphaCompare: JSONAlphaComparison,
-    blendMode: JSONBlendMode,
-    dstAlpha: JSONDstAlpha,
-    xlu: bool,
-    indirectStages: Vec<JSONIndirectStage>, // Max 4
-    mIndMatrices: Vec<JSONIndirectMatrix>,  // Max 3
-    mSwapTable: JSONSwapTable,
-    mStages: Vec<JSONTevStage>, // Max 16
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONSwapTableEntry {
-    r: ColorComponent,
-    g: ColorComponent,
-    b: ColorComponent,
-    a: ColorComponent,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONSwapTable {
-    entries: [JSONSwapTableEntry; 4],
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONIndOrder {
-    refMap: u8,
-    refCoord: u8,
-}
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONIndirectTextureScalePair {
-    U: IndirectTextureScalePairSelection,
-    V: IndirectTextureScalePairSelection,
-}
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONIndirectStage {
-    scale: JSONIndirectTextureScalePair,
-    order: JSONIndOrder,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONIndirectMatrix {
-    scale: (f32, f32),
-    rotate: f32,
-    trans: (f32, f32),
-    quant: i32,
-    method: IndirectMatrixMethod,
-    refLight: i8,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONZMode {
-    compare: bool,
-    function: Comparison,
-    update: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONAlphaComparison {
-    compLeft: Comparison,
-    refLeft: u8,
-    op: AlphaOp,
-    compRight: Comparison,
-    refRight: u8,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONBlendMode {
-    #[serde(rename = "type")]
-    type_: BlendModeType,
-    source: BlendModeFactor,
-    dest: BlendModeFactor,
-    logic: LogicOp,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct JSONDstAlpha {
-    enabled: bool,
-    alpha: u8,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-struct JSONSrtKeyFrame {
-    frame: f32,
-    value: f32,
-    tangent: f32,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-struct JSONSrtTrack {
-    keyframes: Vec<JSONSrtKeyFrame>,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-struct JSONSrtMatrix {
-    scaleX: JSONSrtTrack,
-    scaleY: JSONSrtTrack,
-    rot: JSONSrtTrack,
-    transX: JSONSrtTrack,
-    transY: JSONSrtTrack,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-struct JSONSrtTarget {
-    materialName: String,
-    indirect: bool,
-    matrixIndex: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-struct JSONSrtTargetedMtx {
-    target: JSONSrtTarget,
-    matrix: JSONSrtMatrix,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-struct JSONSrtData {
-    matrices: Vec<JSONSrtTargetedMtx>,
-    name: String,
-    sourcePath: String,
-    frameDuration: u16,
-    xformModel: u32,
-    wrapMode: AnimationWrapMode,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-enum AnimationWrapMode {
-    Clamp,  // One-shot
-    Repeat, // Loop
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
-enum ChrQuantization {
-    Track32,
-    Track48,
-    Track96,
-    BakedTrack8,
-    BakedTrack16,
-    BakedTrack32,
-    Const,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-struct JSONChrTrack {
-    quant: ChrQuantization,
-    scale: f32,
-    offset: f32,
-    step: f32,
-    framesDataBufferId: u32,
-    numKeyFrames: u32,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-struct JSONChrNode {
+#[derive(Debug, Clone, PartialEq)]
+struct ChrNode {
     name: String,
     flags: u32,
     tracks: Vec<u32>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-struct JSONChrData {
-    nodes: Vec<JSONChrNode>,
-    tracks: Vec<JSONChrTrack>,
-    name: String,
-    sourcePath: String,
-    frameDuration: u16,
-    wrapMode: u32,
-    scaleRule: u32,
+#[derive(Debug, Clone, PartialEq)]
+struct ChrTrack {
+    quant: ChrQuantization,
+    scale: f32,
+    offset: f32,
+    step: f32,
+    frames_data: Vec<ChrFrame>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct ChrFrame {
+    frame: f64,
+    value: f64,
+    slope: f64,
 }
 
 struct JsonWriteCtx {
@@ -1030,79 +316,400 @@ impl JsonWriteCtx {
         self.save_buffer_with_move(tmp)
     }
 }
-#[derive(Debug, Clone, PartialEq)]
-struct ChrTrack {
-    quant: ChrQuantization,
-    scale: f32,
-    offset: f32,
-    step: f32,
-    frames_data: Vec<ChrFrame>,
-}
 
-impl ChrTrack {
-    fn from_json(json_track: JSONChrTrack, buffers: &[Vec<u8>]) -> Self {
-        let data = buffers
-            .get(json_track.framesDataBufferId as usize)
-            .expect("Invalid buffer ID");
-        let frames_data = ChrFramePacker::unpack(data, json_track.numKeyFrames as usize);
-
+impl Archive {
+    fn from_json(archive: JsonArchive, buffers: Vec<Vec<u8>>) -> Self {
         Self {
-            quant: json_track.quant,
-            scale: json_track.scale,
-            offset: json_track.offset,
-            step: json_track.step,
-            frames_data,
+            chrs: archive
+                .chrs
+                .into_iter()
+                .map(|m| ChrData::from_json(m, &buffers))
+                .collect(),
+            clrs: archive.clrs,
+            models: archive
+                .models
+                .into_iter()
+                .map(|m| Model::from_json(m, &buffers))
+                .collect(),
+            pats: archive.pats,
+            srts: archive.srts,
+            textures: archive
+                .textures
+                .into_iter()
+                .map(|t| Texture::from_json(t, &buffers))
+                .collect(),
+            viss: archive.viss,
         }
     }
 
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JSONChrTrack {
-        let buffer_id = ctx.save_buffer_with_move(ChrFramePacker::pack(&self.frames_data));
+    fn get_model(&self, name: &str) -> Option<&Model> {
+        self.models.iter().find(|model| model.name == name)
+    }
 
-        JSONChrTrack {
-            quant: self.quant,
-            scale: self.scale,
-            offset: self.offset,
-            step: self.step,
-            framesDataBufferId: buffer_id as u32,
-            numKeyFrames: self.frames_data.len() as u32,
+    fn get_texture(&self, name: &str) -> Option<&Texture> {
+        self.textures.iter().find(|texture| texture.name == name)
+    }
+}
+
+impl Archive {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonArchive {
+        JsonArchive {
+            chrs: self.chrs.iter().map(|c| c.to_json(ctx)).collect(),
+            clrs: self.clrs.clone(),
+            models: self.models.iter().map(|m| m.to_json(ctx)).collect(),
+            pats: self.pats.clone(),
+            srts: self.srts.clone(),
+            textures: self.textures.iter().map(|t| t.to_json(ctx)).collect(),
+            viss: self.viss.clone(),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-struct ChrNode {
-    name: String,
-    flags: u32,
-    tracks: Vec<u32>,
-}
-
-impl ChrNode {
-    fn from_json(json_node: JSONChrNode) -> Self {
+impl Model {
+    fn from_json(model: JsonModel, buffers: &[Vec<u8>]) -> Self {
         Self {
-            name: json_node.name,
-            flags: json_node.flags,
-            tracks: json_node.tracks,
+            bones: model.bones,
+            materials: model.materials,
+            matrices: model.matrices,
+            meshes: model
+                .meshes
+                .into_iter()
+                .map(|m| Mesh::from_json(m, buffers))
+                .collect(),
+            name: model.name,
+            info: model.info,
+            positions: model
+                .positions
+                .into_iter()
+                .map(|m| PositionBuffer::from_json(m, buffers))
+                .collect(),
+            normals: model
+                .normals
+                .into_iter()
+                .map(|m| NormalBuffer::from_json(m, buffers))
+                .collect(),
+            colors: model
+                .colors
+                .into_iter()
+                .map(|m| ColorBuffer::from_json(m, buffers))
+                .collect(),
+            texcoords: model
+                .texcoords
+                .into_iter()
+                .map(|m| TextureCoordinateBuffer::from_json(m, buffers))
+                .collect(),
         }
     }
+}
 
-    fn to_json(&self) -> JSONChrNode {
-        JSONChrNode {
+impl Model {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonModel {
+        JsonModel {
             name: self.name.clone(),
-            flags: self.flags,
-            tracks: self.tracks.clone(),
+            info: self.info.clone(),
+            bones: self.bones.clone(),
+            materials: self.materials.clone(),
+            matrices: self.matrices.clone(),
+            meshes: self.meshes.iter().map(|m| m.to_json(ctx)).collect(),
+            positions: self.positions.iter().map(|p| p.to_json(ctx)).collect(),
+            normals: self.normals.iter().map(|n| n.to_json(ctx)).collect(),
+            colors: self.colors.iter().map(|c| c.to_json(ctx)).collect(),
+            texcoords: self.texcoords.iter().map(|t| t.to_json(ctx)).collect(),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-struct ChrData {
-    nodes: Vec<ChrNode>,
-    tracks: Vec<ChrTrack>,
-    name: String,
-    source_path: String,
-    frame_duration: u16,
-    wrap_mode: u32,
-    scale_rule: u32,
+impl Mesh {
+    fn from_json(json_mesh: JsonMesh, buffers: &[Vec<u8>]) -> Self {
+        Self {
+            clr_buffer: json_mesh.clr_buffer,
+            current_matrix: json_mesh.current_matrix,
+            mprims: json_mesh
+                .mprims
+                .into_iter()
+                .map(|p| MatrixPrimitive::from_json(p, buffers))
+                .collect(),
+            name: json_mesh.name,
+            nrm_buffer: json_mesh.nrm_buffer,
+            pos_buffer: json_mesh.pos_buffer,
+            uv_buffer: json_mesh.uv_buffer,
+            vcd: json_mesh.vcd,
+            visible: json_mesh.visible,
+        }
+    }
+}
+
+impl Mesh {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonMesh {
+        JsonMesh {
+            clr_buffer: self.clr_buffer.clone(),
+            current_matrix: self.current_matrix,
+            mprims: self.mprims.iter().map(|p| p.to_json(ctx)).collect(),
+            name: self.name.clone(),
+            nrm_buffer: self.nrm_buffer.clone(),
+            pos_buffer: self.pos_buffer.clone(),
+            uv_buffer: self.uv_buffer.clone(),
+            vcd: self.vcd,
+            visible: self.visible,
+        }
+    }
+}
+
+impl MatrixPrimitive {
+    fn from_json(json_primitive: JsonPrimitive, buffers: &[Vec<u8>]) -> Self {
+        let vertex_data_buffer = buffers
+            .get(json_primitive.vertexDataBufferId as usize)
+            .cloned()
+            .unwrap_or_else(Vec::new);
+
+        Self {
+            matrices: json_primitive.matrices,
+            num_prims: json_primitive.num_prims,
+            vertex_data_buffer,
+        }
+    }
+}
+
+impl MatrixPrimitive {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonPrimitive {
+        let buffer_id = ctx.save_buffer_with_copy(&self.vertex_data_buffer);
+
+        JsonPrimitive {
+            matrices: self.matrices.clone(),
+            num_prims: self.num_prims,
+            vertexDataBufferId: buffer_id as i32,
+        }
+    }
+}
+
+impl PositionBuffer {
+    fn from_json(buffer_data: JsonBufferData<[f32; 3]>, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<[f32; 3]>();
+        let data: Vec<[f32; 3]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 3], elem_count).to_vec()
+        };
+
+        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
+            (buffer_data.cached_min, buffer_data.cached_max)
+        {
+            Some((cached_min, cached_max))
+        } else {
+            None
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+            cached_minmax,
+        }
+    }
+}
+impl PositionBuffer {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
+        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
+
+        JsonBufferData {
+            dataBufferId: buffer_id as i32,
+            id: self.id,
+            name: self.name.clone(),
+            q_comp: self.q_comp,
+            q_divisor: self.q_divisor,
+            q_stride: self.q_stride,
+            q_type: self.q_type,
+            cached_min: self.cached_minmax.map(|(min, _)| min),
+            cached_max: self.cached_minmax.map(|(_, max)| max),
+        }
+    }
+}
+
+impl NormalBuffer {
+    fn from_json(buffer_data: JsonBufferData<[f32; 3]>, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<[f32; 3]>();
+        let data: Vec<[f32; 3]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 3], elem_count).to_vec()
+        };
+
+        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
+            (buffer_data.cached_min, buffer_data.cached_max)
+        {
+            Some((cached_min, cached_max))
+        } else {
+            None
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+            cached_minmax,
+        }
+    }
+}
+impl NormalBuffer {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
+        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
+
+        JsonBufferData {
+            dataBufferId: buffer_id as i32,
+            id: self.id,
+            name: self.name.clone(),
+            q_comp: self.q_comp,
+            q_divisor: self.q_divisor,
+            q_stride: self.q_stride,
+            q_type: self.q_type,
+            cached_min: self.cached_minmax.map(|(min, _)| min),
+            cached_max: self.cached_minmax.map(|(_, max)| max),
+        }
+    }
+}
+
+impl ColorBuffer {
+    fn from_json(buffer_data: JsonBufferData<[u8; 4]>, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<[u8; 4]>();
+        let data: Vec<[u8; 4]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [u8; 4], elem_count).to_vec()
+        };
+
+        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
+            (buffer_data.cached_min, buffer_data.cached_max)
+        {
+            Some((cached_min, cached_max))
+        } else {
+            None
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+            cached_minmax,
+        }
+    }
+}
+impl ColorBuffer {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[u8; 4]> {
+        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
+
+        JsonBufferData {
+            dataBufferId: buffer_id as i32,
+            id: self.id,
+            name: self.name.clone(),
+            q_comp: self.q_comp,
+            q_divisor: self.q_divisor,
+            q_stride: self.q_stride,
+            q_type: self.q_type,
+            cached_min: self.cached_minmax.map(|(min, _)| min),
+            cached_max: self.cached_minmax.map(|(_, max)| max),
+        }
+    }
+}
+
+impl TextureCoordinateBuffer {
+    fn from_json(buffer_data: JsonBufferData<[f32; 2]>, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<[f32; 2]>();
+        let data: Vec<[f32; 2]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 2], elem_count).to_vec()
+        };
+
+        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
+            (buffer_data.cached_min, buffer_data.cached_max)
+        {
+            Some((cached_min, cached_max))
+        } else {
+            None
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+            cached_minmax,
+        }
+    }
+}
+impl TextureCoordinateBuffer {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 2]> {
+        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
+
+        JsonBufferData {
+            dataBufferId: buffer_id as i32,
+            id: self.id,
+            name: self.name.clone(),
+            q_comp: self.q_comp,
+            q_divisor: self.q_divisor,
+            q_stride: self.q_stride,
+            q_type: self.q_type,
+            cached_min: self.cached_minmax.map(|(min, _)| min),
+            cached_max: self.cached_minmax.map(|(_, max)| max),
+        }
+    }
+}
+
+impl Texture {
+    fn from_json(texture: JsonTexture, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(texture.dataBufferId as usize)
+            .map(|buffer| buffer.clone())
+            .unwrap_or_else(Vec::new);
+
+        Self {
+            data,
+            format: texture.format,
+            height: texture.height,
+            max_lod: texture.maxLod,
+            min_lod: texture.minLod,
+            name: texture.name,
+            number_of_images: texture.number_of_images,
+            width: texture.width,
+        }
+    }
+}
+
+impl Texture {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonTexture {
+        let buffer_id = ctx.save_buffer_with_copy(&self.data);
+
+        JsonTexture {
+            dataBufferId: buffer_id as i32,
+            format: self.format,
+            height: self.height,
+            maxLod: self.max_lod,
+            minLod: self.min_lod,
+            name: self.name.clone(),
+            number_of_images: self.number_of_images,
+            width: self.width,
+            sourcePath: "".to_string(),
+        }
+    }
 }
 
 impl ChrData {
@@ -1145,11 +752,52 @@ impl ChrData {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct ChrFrame {
-    frame: f64,
-    value: f64,
-    slope: f64,
+impl ChrNode {
+    fn from_json(json_node: JSONChrNode) -> Self {
+        Self {
+            name: json_node.name,
+            flags: json_node.flags,
+            tracks: json_node.tracks,
+        }
+    }
+
+    fn to_json(&self) -> JSONChrNode {
+        JSONChrNode {
+            name: self.name.clone(),
+            flags: self.flags,
+            tracks: self.tracks.clone(),
+        }
+    }
+}
+
+impl ChrTrack {
+    fn from_json(json_track: JSONChrTrack, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(json_track.framesDataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let frames_data = ChrFramePacker::unpack(data, json_track.numKeyFrames as usize);
+
+        Self {
+            quant: json_track.quant,
+            scale: json_track.scale,
+            offset: json_track.offset,
+            step: json_track.step,
+            frames_data,
+        }
+    }
+
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JSONChrTrack {
+        let buffer_id = ctx.save_buffer_with_move(ChrFramePacker::pack(&self.frames_data));
+
+        JSONChrTrack {
+            quant: self.quant,
+            scale: self.scale,
+            offset: self.offset,
+            step: self.step,
+            framesDataBufferId: buffer_id as u32,
+            numKeyFrames: self.frames_data.len() as u32,
+        }
+    }
 }
 
 struct ChrFramePacker;
@@ -1181,155 +829,6 @@ impl ChrFramePacker {
             });
         }
         frames
-    }
-}
-
-impl PositionBuffer {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
-        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
-
-        JsonBufferData {
-            dataBufferId: buffer_id as i32,
-            id: self.id,
-            name: self.name.clone(),
-            q_comp: self.q_comp,
-            q_divisor: self.q_divisor,
-            q_stride: self.q_stride,
-            q_type: self.q_type,
-            cached_min: self.cached_minmax.map(|(min, _)| min),
-            cached_max: self.cached_minmax.map(|(_, max)| max),
-        }
-    }
-}
-
-impl NormalBuffer {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
-        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
-
-        JsonBufferData {
-            dataBufferId: buffer_id as i32,
-            id: self.id,
-            name: self.name.clone(),
-            q_comp: self.q_comp,
-            q_divisor: self.q_divisor,
-            q_stride: self.q_stride,
-            q_type: self.q_type,
-            cached_min: self.cached_minmax.map(|(min, _)| min),
-            cached_max: self.cached_minmax.map(|(_, max)| max),
-        }
-    }
-}
-
-impl ColorBuffer {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[u8; 4]> {
-        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
-
-        JsonBufferData {
-            dataBufferId: buffer_id as i32,
-            id: self.id,
-            name: self.name.clone(),
-            q_comp: self.q_comp,
-            q_divisor: self.q_divisor,
-            q_stride: self.q_stride,
-            q_type: self.q_type,
-            cached_min: self.cached_minmax.map(|(min, _)| min),
-            cached_max: self.cached_minmax.map(|(_, max)| max),
-        }
-    }
-}
-
-impl TextureCoordinateBuffer {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 2]> {
-        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
-
-        JsonBufferData {
-            dataBufferId: buffer_id as i32,
-            id: self.id,
-            name: self.name.clone(),
-            q_comp: self.q_comp,
-            q_divisor: self.q_divisor,
-            q_stride: self.q_stride,
-            q_type: self.q_type,
-            cached_min: self.cached_minmax.map(|(min, _)| min),
-            cached_max: self.cached_minmax.map(|(_, max)| max),
-        }
-    }
-}
-
-impl MatrixPrimitive {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonPrimitive {
-        let buffer_id = ctx.save_buffer_with_copy(&self.vertex_data_buffer);
-
-        JsonPrimitive {
-            matrices: self.matrices.clone(),
-            num_prims: self.num_prims,
-            vertexDataBufferId: buffer_id as i32,
-        }
-    }
-}
-
-impl Mesh {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonMesh {
-        JsonMesh {
-            clr_buffer: self.clr_buffer.clone(),
-            current_matrix: self.current_matrix,
-            mprims: self.mprims.iter().map(|p| p.to_json(ctx)).collect(),
-            name: self.name.clone(),
-            nrm_buffer: self.nrm_buffer.clone(),
-            pos_buffer: self.pos_buffer.clone(),
-            uv_buffer: self.uv_buffer.clone(),
-            vcd: self.vcd,
-            visible: self.visible,
-        }
-    }
-}
-
-impl Model {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonModel {
-        JsonModel {
-            name: self.name.clone(),
-            info: self.info.clone(),
-            bones: self.bones.clone(),
-            materials: self.materials.clone(),
-            matrices: self.matrices.clone(),
-            meshes: self.meshes.iter().map(|m| m.to_json(ctx)).collect(),
-            positions: self.positions.iter().map(|p| p.to_json(ctx)).collect(),
-            normals: self.normals.iter().map(|n| n.to_json(ctx)).collect(),
-            colors: self.colors.iter().map(|c| c.to_json(ctx)).collect(),
-            texcoords: self.texcoords.iter().map(|t| t.to_json(ctx)).collect(),
-        }
-    }
-}
-
-impl Texture {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonTexture {
-        let buffer_id = ctx.save_buffer_with_copy(&self.data);
-
-        JsonTexture {
-            dataBufferId: buffer_id as i32,
-            format: self.format,
-            height: self.height,
-            maxLod: self.max_lod,
-            minLod: self.min_lod,
-            name: self.name.clone(),
-            number_of_images: self.number_of_images,
-            width: self.width,
-            sourcePath: "".to_string(),
-        }
-    }
-}
-
-impl Archive {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonArchive {
-        JsonArchive {
-            chrs: self.chrs.iter().map(|c| c.to_json(ctx)).collect(),
-            clrs: self.clrs.clone(),
-            models: self.models.iter().map(|m| m.to_json(ctx)).collect(),
-            pats: self.pats.clone(),
-            srts: self.srts.clone(),
-            textures: self.textures.iter().map(|t| t.to_json(ctx)).collect(),
-            viss: self.viss.clone(),
-        }
     }
 }
 

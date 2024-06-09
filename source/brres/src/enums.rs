@@ -478,3 +478,9 @@ pub enum IndirectMatrixMethod {
     NormalMapSpec,
     Fur,
 }
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub enum AnimationWrapMode {
+    Clamp,  // One-shot
+    Repeat, // Loop
+}
