@@ -1,5 +1,3 @@
-use serde::Deserialize;
-use serde::Serialize;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -14,9 +12,13 @@ use bytemuck;
 
 use json::*;
 
+/// Corresponds to a single `.brres` file
 #[derive(Debug, Clone, PartialEq)]
 pub struct Archive {
+    /// 3D model data. Typically one per Archive, but multiple may appear here. For instance, a normal model, a LOD (low resolution) model and a shadow model.
     pub models: Vec<Model>,
+
+    /// Textures shared by all models in the Archive.
     pub textures: Vec<Texture>,
 
     // Animation data
@@ -36,6 +38,7 @@ pub struct Archive {
     pub viss: Vec<serde_json::Value>,
 }
 
+/// Corresponds to a single MDL0 file
 #[derive(Debug, Clone, PartialEq)]
 pub struct Model {
     pub name: String,
@@ -46,15 +49,16 @@ pub struct Model {
     pub meshes: Vec<Mesh>,
 
     // Vertex buffers
-    pub positions: Vec<PositionBuffer>,
-    pub normals: Vec<NormalBuffer>,
-    pub texcoords: Vec<TextureCoordinateBuffer>,
-    pub colors: Vec<ColorBuffer>,
+    pub positions: Vec<VertexPositionBuffer>,
+    pub normals: Vec<VertexNormalBuffer>,
+    pub texcoords: Vec<VertexTextureCoordinateBuffer>,
+    pub colors: Vec<VertexColorBuffer>,
 
     /// For skinning
     pub matrices: Vec<JSONDrawMatrix>,
 }
 
+/// Holds triangle data
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh {
     pub name: String,
@@ -73,10 +77,11 @@ pub struct Mesh {
     /// For unrigged meshes which matrix (in the Model matrices list) are we referencing? (usually 0, bound to the root bone)
     pub current_matrix: i32,
 
-    /// Actual primitive data
+    /// Actual primitive data. In unrigged models, there will only be one MatrixPrimitive per Mesh.
     pub mprims: Vec<MatrixPrimitive>,
 }
 
+/// A group of triangles sharing the same skinning information. In unrigged models, there will only be one MatrixPrimitive per Mesh.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MatrixPrimitive {
     /// Indices into a `Model`'s `matrices` list.
@@ -128,8 +133,9 @@ pub struct MatrixPrimitive {
     pub vertex_data_buffer: Vec<u8>,
 }
 
+/// Holds positions of vertices in 3D space.
 #[derive(Debug, Clone, PartialEq)]
-struct PositionBuffer {
+pub struct VertexPositionBuffer {
     id: i32,
     name: String,
     q_comp: i32,
@@ -137,11 +143,13 @@ struct PositionBuffer {
     q_stride: i32,
     q_type: i32,
     data: Vec<[f32; 3]>,
+    /// Only here to make unit tests simple (1:1 matching)
     cached_minmax: Option<([f32; 3], [f32; 3])>,
 }
 
+/// Holds normal vectors of vertices in 3D space.
 #[derive(Debug, Clone, PartialEq)]
-struct NormalBuffer {
+pub struct VertexNormalBuffer {
     id: i32,
     name: String,
     q_comp: i32,
@@ -149,11 +157,13 @@ struct NormalBuffer {
     q_stride: i32,
     q_type: i32,
     data: Vec<[f32; 3]>,
+    /// Only here to make unit tests simple (1:1 matching)
     cached_minmax: Option<([f32; 3], [f32; 3])>,
 }
 
+/// Holds vertex colors.
 #[derive(Debug, Clone, PartialEq)]
-struct ColorBuffer {
+pub struct VertexColorBuffer {
     id: i32,
     name: String,
     q_comp: i32,
@@ -161,11 +171,13 @@ struct ColorBuffer {
     q_stride: i32,
     q_type: i32,
     data: Vec<[u8; 4]>,
+    /// Only here to make unit tests simple (1:1 matching)
     cached_minmax: Option<([u8; 4], [u8; 4])>,
 }
 
+/// Holds vertex UV coordinates.
 #[derive(Debug, Clone, PartialEq)]
-struct TextureCoordinateBuffer {
+pub struct VertexTextureCoordinateBuffer {
     id: i32,
     name: String,
     q_comp: i32,
@@ -173,11 +185,14 @@ struct TextureCoordinateBuffer {
     q_stride: i32,
     q_type: i32,
     data: Vec<[f32; 2]>,
+    /// Only here to make unit tests simple (1:1 matching)
     cached_minmax: Option<([f32; 2], [f32; 2])>,
 }
 
+/// Holds a hardware-encoded image. Potentially may store multiple mip levels in a hierarchy. See https://en.wikipedia.org/wiki/Mipmap#Mechanism
 #[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
+    /// Name of this resource.
     pub name: String,
 
     /// Valid in range `[1, 1024]`. Hardware register is only 10 bits--you cannot exceed this limitation, even on emulator.
@@ -261,40 +276,65 @@ pub struct Texture {
     pub max_lod: f32,
 }
 
+/// Bone (character motion) animation
 #[derive(Debug, Clone, PartialEq)]
-struct ChrData {
-    nodes: Vec<ChrNode>,
-    tracks: Vec<ChrTrack>,
+pub struct ChrData {
+    /// Name of this resource.
     name: String,
+
+    /// Bones/Joints/Nodes that are being animated. Specifies which attributes of a Bone are animated.
+    nodes: Vec<ChrNode>,
+
+    /// Actual animation curve data.
+    tracks: Vec<ChrTrack>,
+
     source_path: String,
     frame_duration: u16,
     wrap_mode: u32,
     scale_rule: u32,
 }
 
+/// Describes the animations being applied to a single Bone.
 #[derive(Debug, Clone, PartialEq)]
-struct ChrNode {
+pub struct ChrNode {
+    /// Name of the Bone to link to.
     name: String,
+
+    /// TODO: Should not be exposed to the user.
     flags: u32,
+
+    /// You'll need to interpret `flags` to determine which track indices correspond to which attributes, for now.
     tracks: Vec<u32>,
 }
 
+/// Animation curve data.
 #[derive(Debug, Clone, PartialEq)]
-struct ChrTrack {
+pub struct ChrTrack {
+    /// How is this curve being stored? Different formats offer different (lossy) compression.
+    /// ChrQuantization::Constant is special--when specified only a single keyframe is permitted.
     quant: ChrQuantization,
+    /// For some animation formats, you will need to compute an optimal scale/offset affine transform that reduces the signed area of the curve.
     scale: f32,
+    /// For some animation formats, you will need to compute an optimal scale/offset affine transform that reduces the signed area of the curve.
     offset: f32,
+    /// This *should* be recomputed--we have this here for unit tests with BrawlBox. Should be made Optional.
     step: f32,
+    /// Keyframes for the Curve data.
     frames_data: Vec<ChrFrame>,
 }
 
+/// Hermine spline point in an animation curve. We use f64 because the quantized fixed-point numbers have far more precision than f32 allows (and without this, we wouldn't currently support 1:1 matching on encode-decode.)
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct ChrFrame {
+pub struct ChrFrame {
+    /// x: Position of the current keyframe (in time)
     frame: f64,
+    /// f(x): Curve evaluated at the frame
     value: f64,
+    /// f'(x): Slope of curve at the frame
     slope: f64,
 }
 
+// Useful structure for dumping blobs and keeping track of indices.
 struct JsonWriteCtx {
     buffers: Vec<Vec<u8>>,
 }
@@ -349,9 +389,7 @@ impl Archive {
     fn get_texture(&self, name: &str) -> Option<&Texture> {
         self.textures.iter().find(|texture| texture.name == name)
     }
-}
 
-impl Archive {
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonArchive {
         JsonArchive {
             chrs: self.chrs.iter().map(|c| c.to_json(ctx)).collect(),
@@ -381,28 +419,26 @@ impl Model {
             positions: model
                 .positions
                 .into_iter()
-                .map(|m| PositionBuffer::from_json(m, buffers))
+                .map(|m| VertexPositionBuffer::from_json(m, buffers))
                 .collect(),
             normals: model
                 .normals
                 .into_iter()
-                .map(|m| NormalBuffer::from_json(m, buffers))
+                .map(|m| VertexNormalBuffer::from_json(m, buffers))
                 .collect(),
             colors: model
                 .colors
                 .into_iter()
-                .map(|m| ColorBuffer::from_json(m, buffers))
+                .map(|m| VertexColorBuffer::from_json(m, buffers))
                 .collect(),
             texcoords: model
                 .texcoords
                 .into_iter()
-                .map(|m| TextureCoordinateBuffer::from_json(m, buffers))
+                .map(|m| VertexTextureCoordinateBuffer::from_json(m, buffers))
                 .collect(),
         }
     }
-}
 
-impl Model {
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonModel {
         JsonModel {
             name: self.name.clone(),
@@ -437,9 +473,7 @@ impl Mesh {
             visible: json_mesh.visible,
         }
     }
-}
 
-impl Mesh {
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonMesh {
         JsonMesh {
             clr_buffer: self.clr_buffer.clone(),
@@ -468,9 +502,7 @@ impl MatrixPrimitive {
             vertex_data_buffer,
         }
     }
-}
 
-impl MatrixPrimitive {
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonPrimitive {
         let buffer_id = ctx.save_buffer_with_copy(&self.vertex_data_buffer);
 
@@ -482,7 +514,7 @@ impl MatrixPrimitive {
     }
 }
 
-impl PositionBuffer {
+impl VertexPositionBuffer {
     fn from_json(buffer_data: JsonBufferData<[f32; 3]>, buffers: &[Vec<u8>]) -> Self {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
@@ -511,8 +543,7 @@ impl PositionBuffer {
             cached_minmax,
         }
     }
-}
-impl PositionBuffer {
+
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
 
@@ -530,7 +561,7 @@ impl PositionBuffer {
     }
 }
 
-impl NormalBuffer {
+impl VertexNormalBuffer {
     fn from_json(buffer_data: JsonBufferData<[f32; 3]>, buffers: &[Vec<u8>]) -> Self {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
@@ -559,8 +590,7 @@ impl NormalBuffer {
             cached_minmax,
         }
     }
-}
-impl NormalBuffer {
+
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
 
@@ -578,7 +608,7 @@ impl NormalBuffer {
     }
 }
 
-impl ColorBuffer {
+impl VertexColorBuffer {
     fn from_json(buffer_data: JsonBufferData<[u8; 4]>, buffers: &[Vec<u8>]) -> Self {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
@@ -607,8 +637,7 @@ impl ColorBuffer {
             cached_minmax,
         }
     }
-}
-impl ColorBuffer {
+
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[u8; 4]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
 
@@ -626,7 +655,7 @@ impl ColorBuffer {
     }
 }
 
-impl TextureCoordinateBuffer {
+impl VertexTextureCoordinateBuffer {
     fn from_json(buffer_data: JsonBufferData<[f32; 2]>, buffers: &[Vec<u8>]) -> Self {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
@@ -655,8 +684,7 @@ impl TextureCoordinateBuffer {
             cached_minmax,
         }
     }
-}
-impl TextureCoordinateBuffer {
+
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 2]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
 
@@ -692,9 +720,7 @@ impl Texture {
             width: texture.width,
         }
     }
-}
 
-impl Texture {
     fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonTexture {
         let buffer_id = ctx.save_buffer_with_copy(&self.data);
 
