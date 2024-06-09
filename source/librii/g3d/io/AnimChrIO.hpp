@@ -17,6 +17,8 @@ struct CHR0Frame32 {
   // S6.5
   s32 slope; //: 12;
 
+  f32 slope_decoded() const { return static_cast<f32>(slope) / 32.0f; }
+
   bool operator==(const CHR0Frame32&) const = default;
 
   static Result<CHR0Frame32> read(rsl::SafeReader& reader) {
@@ -46,6 +48,9 @@ struct CHR0Frame48 {
   u16 value;
   // S7.8
   s16 slope;
+
+  f32 frame_decoded() const { return static_cast<f32>(frame) / 32.0f; }
+  f32 slope_decoded() const { return static_cast<f32>(slope) / 256.0f; }
 
   bool operator==(const CHR0Frame48&) const = default;
 
@@ -590,10 +595,92 @@ struct BinaryChr {
   Result<void> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
 
-// Disabled for now: We do not convert offsets to indices yet..
-#if 0
   void mergeIdenticalTracks();
-#endif
+};
+
+// Higher-level structure
+
+enum class ChrQuantization {
+  Track32,
+  Track48,
+  Track96,
+  BakedTrack8,
+  BakedTrack16,
+  BakedTrack32,
+  Const,
+};
+
+struct ChrFrame {
+  // We actually need 64 bits of precision currently to get a match. We should
+  // be able to finesse byte-matching output while keeping f32 output given the
+  // data was originally 32-bit precision?
+  f64 frame, value, slope;
+  bool operator==(const ChrFrame&) const = default;
+};
+
+struct ChrTrack {
+  ChrQuantization quant{ChrQuantization::Track96};
+  // These are only quantization settings. Do not consider scale/offset when
+  // interpreting `frames`
+  float scale{1.0f};
+  float offset{0.0f};
+
+  // Cached value for BrawlBox compatibility
+  float step{0.0f};
+
+  std::vector<ChrFrame> frames;
+
+  bool operator==(const ChrTrack&) const = default;
+
+  static ChrTrack from(const CHR0Track32& track);
+  static ChrTrack from(const CHR0Track48& track);
+  static ChrTrack from(const CHR0Track96& track);
+  static ChrTrack from(const CHR0BakedTrack8& track);
+  static ChrTrack from(const CHR0BakedTrack16& track);
+  static ChrTrack from(const CHR0BakedTrack32& track);
+  static ChrTrack from(f32 const_value);
+
+  static ChrTrack
+  fromVariant(std::variant<CHR0Track32, CHR0Track48, CHR0Track96> variant);
+  static ChrTrack
+  fromVariant(std::variant<CHR0BakedTrack8, CHR0BakedTrack16, CHR0BakedTrack32>
+                  variant);
+
+  static ChrTrack fromAny(const CHR0AnyTrack& any);
+
+  std::variant<CHR0Track32, CHR0Track48, CHR0Track96, CHR0BakedTrack8,
+               CHR0BakedTrack16, CHR0BakedTrack32>
+  to() const;
+  std::variant<CHR0AnyTrack, f32> to_any() const;
+};
+
+struct ChrNode {
+  std::string name;
+  u32 flags;
+  // All indices
+  std::vector<u32> tracks;
+
+  bool operator==(const ChrNode&) const = default;
+};
+
+struct ChrAnim {
+  std::vector<ChrNode> nodes;
+  // All existing tracks + extra tracks (to be trimmed) for Const values.
+  std::vector<ChrTrack> tracks;
+  // TODO: User data
+  std::string name;
+  std::string sourcePath;
+  u16 frameDuration{};
+  AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
+  u32 scaleRule = 0;
+
+  static ChrAnim from(const BinaryChr& binaryChr);
+  BinaryChr to() const;
+
+  Result<void> read(oishii::BinaryReader& reader);
+  void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
+
+  bool operator==(const ChrAnim&) const = default;
 };
 
 } // namespace librii::g3d

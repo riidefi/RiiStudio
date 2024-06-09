@@ -1666,15 +1666,15 @@ struct JSONChrData {
 
   std::string name;
 
-  static JSONChrData from(const librii::g3d::BinaryChr& chr,
+  static JSONChrData from(const librii::g3d::ChrAnim& chr,
                           JsonWriteCtx& ctx) {
     JSONChrData json;
     json.name = chr.name;
     return json;
   }
 
-  librii::g3d::BinaryChr to(std::span<const std::vector<u8>> buffers) const {
-    librii::g3d::BinaryChr chr;
+  librii::g3d::ChrAnim to(std::span<const std::vector<u8>> buffers) const {
+    librii::g3d::ChrAnim chr;
     chr.name = name;
     return chr;
   }

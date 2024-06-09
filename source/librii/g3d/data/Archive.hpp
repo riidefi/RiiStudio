@@ -12,7 +12,7 @@ struct LightIOTransaction;
 
 namespace librii::g3d {
 
-struct BinaryChr;
+struct ChrAnim;
 struct SrtAnim;
 struct BinaryVis;
 struct BinaryTexPat;
@@ -23,7 +23,7 @@ struct BinaryArchive;
 struct Archive {
   std::vector<Model> models;
   std::vector<TextureData> textures;
-  std::vector<librii::g3d::BinaryChr> chrs;
+  std::vector<ChrAnim> chrs;
   std::vector<BinaryClr> clrs;
   std::vector<BinaryTexPat> pats;
   std::vector<librii::g3d::SrtAnim> srts;
