@@ -1,5 +1,7 @@
 use std::vec;
 
+const RBUF_ALIGN : u32 = 64;
+
 pub fn collate_buffers(buffers: &[Vec<u8>]) -> Vec<u8> {
     let mut result = Vec::new();
 
@@ -12,12 +14,12 @@ pub fn collate_buffers(buffers: &[Vec<u8>]) -> Vec<u8> {
     };
 
     let mut size = 16 + 8 * buffers.len() as u32;
-    let mut buffer_cursor = round_up(size, 64);
+    let mut buffer_cursor = round_up(size, RBUF_ALIGN);
     for buf in buffers {
-        size = round_up(size, 64);
+        size = round_up(size, RBUF_ALIGN);
         size += buf.len() as u32;
     }
-    size = round_up(size, 64);
+    size = round_up(size, RBUF_ALIGN);
     result.resize(size as usize, 0);
 
     write_u32_at(
@@ -35,16 +37,16 @@ pub fn collate_buffers(buffers: &[Vec<u8>]) -> Vec<u8> {
         write_u32_at(buf.len() as u32, cursor + 4, &mut result);
         cursor += 8;
         buffer_cursor += buf.len() as u32;
-        buffer_cursor = round_up(buffer_cursor, 64);
+        buffer_cursor = round_up(buffer_cursor, RBUF_ALIGN);
     }
 
     assert!(buffer_cursor == size);
 
-    buffer_cursor = round_up(16 + 8 * buffers.len() as u32, 64);
+    buffer_cursor = round_up(16 + 8 * buffers.len() as u32, RBUF_ALIGN);
     for buf in buffers {
         result[buffer_cursor as usize..(buffer_cursor as usize + buf.len())].copy_from_slice(buf);
         buffer_cursor += buf.len() as u32;
-        buffer_cursor = round_up(buffer_cursor, 64);
+        buffer_cursor = round_up(buffer_cursor, RBUF_ALIGN);
     }
 
     result
