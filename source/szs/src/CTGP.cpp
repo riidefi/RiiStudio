@@ -14,6 +14,8 @@ using WRITE_FN =
     std::function<size_t(const void* buffer, size_t size, size_t count)>;
 
 struct Yaz_file_struct {
+  u16 DAT_80ad1160[HASH_MAP_SIZE];
+
   WRITE_FN file_write;
   u32 _0x4;
   int iteration;
@@ -68,13 +70,11 @@ Result<std::vector<u8>> encodeCTGP(std::span<const u8> buf) {
   // Validate
   {
     if (getExpandedSize(result).value_or(0) != buf.size()) {
-      return tl::unexpected(
-          "encodeCTGP: Failed to produce a valid SZS header");
+      return tl::unexpected("encodeCTGP: Failed to produce a valid SZS header");
     }
     std::vector<u8> out(buf.size());
     if (!decode(out, result)) {
-      return tl::unexpected(
-          "encodeCTGP: Failed to produce a valid SZS stream");
+      return tl::unexpected("encodeCTGP: Failed to produce a valid SZS stream");
     }
     if (memcmp(out.data(), buf.data(), out.size())) {
       return tl::unexpected("encodeCTGP: Produced a corrupt file");
@@ -82,9 +82,7 @@ Result<std::vector<u8>> encodeCTGP(std::span<const u8> buf) {
   }
   return result;
 }
-} // namespace librii::szs
-
-static u16 DAT_80ad1160[HASH_MAP_SIZE];
+} // namespace rlibrii::szs
 
 u32 hash1(u32 value) {
   assert(!(value & 0xff000000));
@@ -237,7 +235,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
     LAB_807eb550:
       file->field7_0x1018 = uVar9;
       if (0x555 < uVar9) {
-        memset(&DAT_80ad1160, 0xff, 0x8000);
+        memset(&file->DAT_80ad1160, 0xff, 0x8000);
         uVar2 = 0x0;
         puVar13 = puVar18;
         do {
@@ -250,7 +248,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
             } while ((short)puVar18[uVar17] < 0x0);
             do {
               *puVar14 = 0x0;
-              DAT_80ad1160[uVar11] = 0xffff;
+              file->DAT_80ad1160[uVar11] = 0xffff;
               uVar9 = uVar17;
               do {
                 do {
@@ -270,13 +268,13 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
                     ASSERT_FAIL();
                   }
                 } while ((res & 0x4000) == 0x0);
-                hh = DAT_80ad1160[uVar9];
+                hh = file->DAT_80ad1160[uVar9];
                 if (hh == 0xffff) {
                   hh = hash1((u32)file->backBuffer[res + 0x1 & 0xfff] << 0x8 |
                              (u32)file->backBuffer[res + 0x2 & 0xfff] << 0x10 |
                              (u32)file->backBuffer[res & 0xfff]);
                   hh = hh & 0xffff;
-                  DAT_80ad1160[uVar9] = (short)hh;
+                  file->DAT_80ad1160[uVar9] = (short)hh;
                 }
                 if (0x3fff < hh) {
                   // WARNING: Subroutine does not return
@@ -284,9 +282,9 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
                 }
               } while ((uVar9 - hh & 0x3fff) < (uVar11 - hh & 0x3fff));
               *puVar14 = *puVar15;
-              DAT_80ad1160[uVar11] = DAT_80ad1160[uVar9];
+              file->DAT_80ad1160[uVar11] = file->DAT_80ad1160[uVar9];
               *puVar15 = 0x8000;
-              DAT_80ad1160[uVar9] = 0xffff;
+              file->DAT_80ad1160[uVar9] = 0xffff;
               puVar14 = puVar15;
               uVar11 = uVar9;
               if ((*puVar15 & 0x4000) != 0x0) {
@@ -559,7 +557,9 @@ LAB_807eb200:
 }
 
 bool Yaz_open(Yaz_file_struct* file, WRITE_FN fptr) {
-  memset(DAT_80ad1160, 0xff, sizeof(DAT_80ad1160));
+  assert(file != nullptr);
+  assert(fptr != nullptr);
+  memset(file->DAT_80ad1160, 0xff, sizeof(file->DAT_80ad1160));
   memset(file, 0, sizeof(*file));
 
   file->file_write = fptr;
