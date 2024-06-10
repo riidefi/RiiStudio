@@ -139,10 +139,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
             file->codeBufferLocation = '\x01';
           }
           uVar17 = file->copyDistance;
-          if ((uVar17 & 0xfffff000) != 0x0) {
-            // WARNING: Subroutine does not return
-            ASSERT_FAIL();
-          }
+          assert((uVar17 & 0xfffff000) == 0);
           bVar5 = (u8)(uVar17 >> 0x8);
           if (uVar2 < 0x112) {
             if (0x11 < uVar2)
@@ -193,24 +190,15 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
            (u32)file->backBuffer[uVar2 + 0x2 & 0xfff] << 0x10 |
            (u32)file->backBuffer[uVar2];
       uVar11 = hash1(hh);
-      if (0x3fff < uVar11) {
-        // WARNING: Subroutine does not return
-        ASSERT_FAIL();
-      }
+      assert(uVar11 <= 0x3fff);
       iVar7 = 0x4001;
       res = file->hashMap[uVar11];
       while (true) {
-        if ((res & 0x8000) == 0x0) {
-          // WARNING: Subroutine does not return
-          ASSERT_FAIL();
-        }
+        assert((res & 0x8000) != 0);
         if (((res & 0x4000) != 0x0) && (uVar2 == (res & 0x3fff)))
           break;
         iVar7 = iVar7 + -0x1;
-        if (iVar7 == 0x0) {
-          // WARNING: Subroutine does not return
-          ASSERT_FAIL();
-        }
+        assert(iVar7 != 0);
         uVar11 = uVar11 + 0x1 & 0x3fff;
         res = puVar18[uVar11];
       }
@@ -254,19 +242,12 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
                 do {
                   uVar9 = uVar9 - 0x1 & 0x3fff;
                   if (uVar11 == uVar9) {
-                    if (*puVar14 != 0x0) {
-                      // WARNING: Subroutine does not
-                      // return
-                      ASSERT_FAIL();
-                    }
+                    assert(*puVar14 == 0x0);
                     goto LAB_807eb594;
                   }
                   res = puVar18[uVar9];
                   puVar15 = puVar18 + uVar9;
-                  if ((res & 0x8000) == 0x0) {
-                    // WARNING: Subroutine does not return
-                    ASSERT_FAIL();
-                  }
+                  assert((res & 0x8000) != 0x0);
                 } while ((res & 0x4000) == 0x0);
                 hh = file->DAT_80ad1160[uVar9];
                 if (hh == 0xffff) {
@@ -276,10 +257,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
                   hh = hh & 0xffff;
                   file->DAT_80ad1160[uVar9] = (short)hh;
                 }
-                if (0x3fff < hh) {
-                  // WARNING: Subroutine does not return
-                  ASSERT_FAIL();
-                }
+                assert(hh <= 0x3fff);
               } while ((uVar9 - hh & 0x3fff) < (uVar11 - hh & 0x3fff));
               *puVar14 = *puVar15;
               file->DAT_80ad1160[uVar11] = file->DAT_80ad1160[uVar9];
@@ -287,10 +265,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
               file->DAT_80ad1160[uVar9] = 0xffff;
               puVar14 = puVar15;
               uVar11 = uVar9;
-              if ((*puVar15 & 0x4000) != 0x0) {
-                // WARNING: Subroutine does not return
-                ASSERT_FAIL();
-              }
+              assert((*puVar15 & 0x4000) == 0);
             } while (true);
           }
         LAB_807eb594:
@@ -319,10 +294,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
         iVar7 = iVar7 + -0x1;
       } while (iVar7 != 0x0);
       uVar17 = hash1(uVar11);
-      if (0x3fff < uVar17) {
-        // WARNING: Subroutine does not return
-        ASSERT_FAIL();
-      }
+      assert(uVar17 <= 0x3fff);
       res = file->hashMap[uVar17];
       if ((res & 0x4000) != 0x0) {
         iVar7 = 0x4000;
@@ -332,10 +304,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
           if ((res & 0x4000) == 0x0)
             break;
           iVar7 = iVar7 + -0x1;
-          if (iVar7 == 0x0) {
-            // WARNING: Subroutine does not return
-            ASSERT_FAIL();
-          }
+          assert(iVar7 != 0);
         }
       }
       file->hashMap[uVar17] = (u16)uVar2 | 0xc000;
@@ -354,10 +323,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
         uVar17 = iVar7 + 0x1U & 0xfff;
         file->copyLocation = uVar17;
         file->copyLength = file->copyLength + 0x1;
-        if (file->copyDistance != ((uVar2 - 0x1) - uVar17 & 0xfff)) {
-          // WARNING: Subroutine does not return
-          ASSERT_FAIL();
-        }
+        assert(file->copyDistance == ((uVar2 - 0x1) - uVar17 & 0xfff));
         return value;
       }
       goto LAB_807eaf78;
@@ -367,10 +333,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
 LAB_807eb1a8:
   while (uVar2 != 0x0) {
     while (true) {
-      if (file->copyLocation == -0x1) {
-        // WARNING: Subroutine does not return
-        ASSERT_FAIL();
-      }
+      assert(file->copyLocation != -1);
       if (file->codeBufferIndex == '\0') {
         file->codeBuffer[0x0] = '\0';
         uVar17 = 0x7;
@@ -455,10 +418,7 @@ LAB_807eb200:
       iVar7 = Yaz_buffer_putcode_r(reent, (u8*)file);
     } while (iVar7 == 0x0);
   } else {
-    if (file->byteShifterRemaining != 0x3) {
-      // WARNING: Subroutine does not return
-      ASSERT_FAIL();
-    }
+    assert(file->byteShifterRemaining == 3);
     uVar17 = file->field5_0x1010;
     uVar2 = file->backBufferLocation;
     uVar6 = (u8)(uVar17 >> 0x8);
@@ -505,18 +465,12 @@ LAB_807eb200:
     } else {
       uVar11 = hash1(uVar17 >> 0x8);
       iVar7 = 0x4001;
-      if (0x3fff < uVar11) {
-        // WARNING: Subroutine does not return
-        ASSERT_FAIL();
-      }
+      assert(uVar11 <= 0x3fff);
       uVar9 = (u32)file->hashMap[uVar11];
       if ((file->hashMap[uVar11] & 0x4000) == 0x0)
         goto LAB_807eb408;
       while (true) {
-        if ((uVar9 & 0x8000) == 0x0) {
-          // WARNING: Subroutine does not return
-          ASSERT_FAIL();
-        }
+        assert((uVar9 & 0x8000) != 0);
         hh = uVar9 & 0xfff;
         if (uVar17 >> 0x8 ==
             ((u32)file->backBuffer[uVar9 + 0x1 & 0xfff] << 0x8 |
@@ -525,10 +479,7 @@ LAB_807eb200:
           break;
         while (true) {
           iVar7 = iVar7 + -0x1;
-          if (iVar7 == 0x0) {
-            // WARNING: Subroutine does not return
-            ASSERT_FAIL();
-          }
+          assert(iVar7 != 0);
           uVar11 = uVar11 + 0x1 & 0x3fff;
           uVar9 = (u32)file->hashMap[uVar11];
           if ((file->hashMap[uVar11] & 0x4000) != 0x0)
@@ -539,14 +490,8 @@ LAB_807eb200:
         }
       }
       uVar17 = uVar2 - 0x1 & 0xfff;
-      if (file->backBuffer[uVar17] != file->backBuffer[hh]) {
-        // WARNING: Subroutine does not return
-        ASSERT_FAIL();
-      }
-      if (uVar17 == hh) {
-        // WARNING: Subroutine does not return
-        ASSERT_FAIL();
-      }
+      assert(file->backBuffer[uVar17] == file->backBuffer[hh]);
+      assert(uVar17 != hh);
       uVar17 = hh + 0x1 & 0xfff;
       file->copyLength = 0x1;
       file->copyLocation = uVar17;
