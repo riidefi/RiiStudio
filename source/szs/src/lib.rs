@@ -2,6 +2,7 @@ use core::ffi::c_char;
 use core::slice;
 use std::convert::TryInto;
 
+mod algo_mkw;
 mod szs_to_szp;
 
 #[allow(non_upper_case_globals)]
@@ -183,6 +184,8 @@ pub enum EncodeAlgo {
     /// Speed: A+
     /// Compression Rate: B+
     MK8,
+
+    MKW_Rust,
 }
 
 impl EncodeAlgo {
@@ -251,6 +254,10 @@ impl std::error::Error for Error {}
 /// }
 /// ```
 pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, Error> {
+    if algo == EncodeAlgo::MKW_Rust {
+        return Ok(algo_mkw::encode_boyer_moore_horspool(src, dst) as u32);
+    }
+
     let mut used_len: u32 = 0;
 
     let result = unsafe {
@@ -820,6 +827,17 @@ mod tests {
             EncodeAlgo::MKW,
             "b6d8d06846a29b966f8fc19779f886f3bcae906d492df9d75ac1ba055c6592e2",
             true,
+        );
+    }
+
+    #[test]
+    fn test_encode_mkw_Rust() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::MKW_Rust,
+            "4671c3aeb8e6c50237043af870bd1ed8cae20a56c9f44a5e793caa677f656774",
+            false,
         );
     }
 

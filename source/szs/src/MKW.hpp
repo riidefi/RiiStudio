@@ -129,6 +129,7 @@ static inline void findMatch(EGGContext* ctx, const u8* src, int srcPos,
   *matchSize = windowSize > 3 ? windowSize - 1 : 0;
 }
 
+#if 1
 static int searchWindow(EGGContext* ctx, const u8* needle, int needleSize,
                         const u8* haystack, int haystackSize) {
   int itHaystack; // r8
@@ -167,6 +168,55 @@ static int searchWindow(EGGContext* ctx, const u8* needle, int needleSize,
   }
   return itHaystack + 1;
 }
+#else
+static int searchWindow(EGGContext* ctx, const u8* needle, int needleSize,
+                        const u8* haystack, int haystackSize) {
+  int itHaystack; // r8
+  int itNeedle;   // r9
+
+  if (needleSize > haystackSize)
+    return haystackSize;
+  computeSkipTable(ctx, needle, needleSize);
+
+  // Scan forwards for the last character in the needle
+  itHaystack = needleSize - 1;
+  while (true) {
+    while (needle[needleSize - 1] != haystack[itHaystack]) {
+      itHaystack += ctx->sSkipTable[haystack[itHaystack]];
+    }
+    --itHaystack;
+    itNeedle = needleSize - 2;
+
+    // Scan backwards for the first difference
+    int remainingBytes = itNeedle;
+    int j;
+    for (j = 0; j <= remainingBytes; ++j) {
+      if (haystack[itHaystack] != needle[itNeedle]) {
+        break;
+      }
+      --itHaystack;
+      if (itNeedle == 0) {
+        //printf("Delta: %i\n", (remainingBytes - j));
+        continue;
+	  }
+      assert(itNeedle != 0);
+      --itNeedle;
+    }
+
+    if (j > remainingBytes) {
+      // The entire needle was found
+      return itHaystack + 1;
+    }
+
+    // The entire needle was not found, continue search
+    int skip = ctx->sSkipTable[haystack[itHaystack]];
+    if (needleSize - itNeedle > skip) {
+      skip = needleSize - itNeedle;
+    }
+    itHaystack += skip;
+  }
+}
+#endif
 
 static void computeSkipTable(EGGContext* ctx, const u8* needle,
                              int needleSize) {

@@ -30,3 +30,7 @@ criterion = "0.5.1"
 [[bench]]
 name = "deinterlace_bench"
 harness = false
+
+[[bench]]
+name = "mkw_bench"
+harness = false
