@@ -131,14 +131,28 @@ pub enum EncodeAlgo {
     /// Compression Rate: F
     WorstCaseEncoding = 0,
 
-    /// Uses the `MKW` algorithm.
+    /// Reference matching decompilation impl. You probably don't want this. It's slightly slower and has fewer safety guarantees.
     ///
-    /// Use Case: Matching decompilation projects.
-    /// Description: This is the Mario Kart Wii compression algorithm reverse-engineered. In practice it's a Boyer-moore-horspool search with a second opinion mechanism.
+    /// Benchmark results comparing C (Clang) and Rust implementations.
     ///
-    /// Speed: F
-    /// Compression Rate: A
-    MKW,
+    /// - Ran on old_koopa_64.szs sample data.
+    /// - Both use the same LLVM version (17.0.6)
+    /// - i9-13900K, Windows 11
+    ///
+    /// ```txt
+    ///      Running benches\mkw_bench.rs (target\release\deps\mkw_bench-83198710c2ecf8a9.exe)
+    /// Benchmarking C encoder: Warming up for 3.0000 s
+    /// Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 419.8s, or reduce sample /// count to 10.
+    /// C encoder               time:   [4.5949 s 4.6555 s 4.7145 s]
+    /// 
+    /// Benchmarking Rust encoder: Warming up for 3.0000 s
+    /// Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 451.2s, or reduce sample /// count to 10.
+    /// Rust encoder            time:   [4.3288 s 4.3696 s 4.4075 s]
+    /// Found 18 outliers among 100 measurements (18.00%)
+    ///   14 (14.00%) low severe
+    ///   4 (4.00%) low mild
+    /// ```
+    MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION,
 
     /// Uses the `MkwSp` algorithm.
     ///
@@ -155,14 +169,11 @@ pub enum EncodeAlgo {
 
     /// Uses the `Haroohie` algorithm.
     ///
-    ///
     /// Speed: B+
     /// Compression Rate: B+
     Haroohie,
 
     /// Uses the `CTLib` algorithm.
-    ///
-    /// Use Case: `MEDIUM` preset.
     ///
     /// Speed: A-
     /// Compression Rate: B+
@@ -185,7 +196,14 @@ pub enum EncodeAlgo {
     /// Compression Rate: B+
     MK8,
 
-    MKW_Rust,
+    /// Uses the `MKW` algorithm.
+    ///
+    /// Use Case: Matching decompilation projects.
+    /// Description: This is the Mario Kart Wii compression algorithm reverse-engineered. In practice it's a Boyer-moore-horspool search with a second opinion mechanism.
+    ///
+    /// Speed: F
+    /// Compression Rate: A
+    MKW,
 }
 
 impl EncodeAlgo {
@@ -254,7 +272,7 @@ impl std::error::Error for Error {}
 /// }
 /// ```
 pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, Error> {
-    if algo == EncodeAlgo::MKW_Rust {
+    if algo == EncodeAlgo::MKW {
         return Ok(algo_mkw::encode_boyer_moore_horspool(src, dst) as u32);
     }
 
@@ -831,11 +849,11 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_mkw_Rust() {
+    fn test_encode_mkw_C() {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::MKW_Rust,
+            EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION,
             "4671c3aeb8e6c50237043af870bd1ed8cae20a56c9f44a5e793caa677f656774",
             false,
         );

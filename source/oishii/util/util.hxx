@@ -35,8 +35,10 @@ struct Console {
   static Console sInstance;
   static Console& getInstance();
 
+#ifdef _MSC_VER
   Console();
   ~Console();
+#endif
 };
 
 #ifndef _MSC_VER

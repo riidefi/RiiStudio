@@ -118,7 +118,7 @@ impl EGGContext {
 }
 
 pub fn encode_boyer_moore_horspool(src: &[u8], dst: &mut [u8]) -> usize {
-    let mut src_size = src.len();
+    let src_size = src.len();
 
     let mut src_pos;
     let mut group_header_pos;

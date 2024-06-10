@@ -62,7 +62,7 @@ public static void Main(string[] args)
 | `EncodeAlgo::CTGP`              | CTGP work                | CTGP (Reverse engineered. 1:1 matching) |
 | `EncodeAlgo::WorstCaseEncoding` | `INSTANT` preset.        | Worst case |
 | `EncodeAlgo::Haroohie`          |                          | Haroohie (credit @Gericom, adapted from MarioKartToolbox) |
-| `EncodeAlgo::CTLib`             | `MEDIUM` preset.         | CTLib (credit @narahiero, adapted from CTLib) |
+| `EncodeAlgo::CTLib`             |                          | CTLib (credit @narahiero, adapted from CTLib) |
 | `EncodeAlgo::LibYaz0`           | `ULTRA` preset.          | libyaz0 (Based on wszst. credit @aboood40091) |
 
 Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
