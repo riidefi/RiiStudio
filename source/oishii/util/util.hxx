@@ -13,47 +13,32 @@ static_assert(__cpp_lib_byteswap >= 202110L, "Depends on std::byteswap");
 
 #include <core/common.h>
 
+struct _CONSOLE_SCREEN_BUFFER_INFO;
+
 namespace oishii {
 // Console colors
 
 #ifdef _MSC_VER
 #define IF_WIN(x) x
-#include <Windows.h>
 #else
 #define IF_WIN(x)
 #endif
 
 struct Console {
-  IF_WIN(HANDLE handle);
-  IF_WIN(CONSOLE_SCREEN_BUFFER_INFO prior_state);
-  IF_WIN(uint16_t last); // last attribute
+  IF_WIN(void* handle);
+  IF_WIN(std::unique_ptr<_CONSOLE_SCREEN_BUFFER_INFO> prior_state);
+  IF_WIN(uint16_t last);
 
-  void restoreFirstColorState() {
-    IF_WIN(SetConsoleTextAttribute(handle, prior_state.wAttributes));
-  }
+  void restoreFirstColorState();
+  void setColorState(uint16_t attrib);
 
-  // Note: last is a single value, not a stack -- cannot nest
-  // for this reason, deprecated
-
-  //	void restoreLastColorState()
-  //	{
-  //		setColorState(last);
-  //	}
-  void setColorState(uint16_t attrib) {
-    IF_WIN(last = attrib);
-    IF_WIN(SetConsoleTextAttribute(handle, attrib));
-  }
-
-#ifdef _MSC_VER
-  Console() : handle(GetStdHandle(STD_OUTPUT_HANDLE)) {
-    GetConsoleScreenBufferInfo(handle, &prior_state);
-    last = prior_state.wAttributes;
-  }
-  ~Console() { restoreFirstColorState(); }
-#endif
   static Console sInstance;
-  static Console& getInstance() { return sInstance; }
+  static Console& getInstance();
+
+  Console();
+  ~Console();
 };
+
 #ifndef _MSC_VER
 struct ScopedFormatter {
   ScopedFormatter(uint16_t) {}
@@ -62,14 +47,10 @@ struct ScopedFormatter {
 struct ScopedFormatter {
   uint16_t last;
 
-  ScopedFormatter(uint16_t attrib) {
-    last = Console::getInstance().last;
-    Console::getInstance().setColorState(attrib);
-  }
-  ~ScopedFormatter() { Console::getInstance().setColorState(last); }
+  ScopedFormatter(uint16_t attrib);
+  ~ScopedFormatter();
 };
 #endif
-
 
 std::expected<std::vector<u8>, std::string> UtilReadFile(std::string_view path);
 using FlushFileHandler = void (*)(std::span<const uint8_t> buf,
