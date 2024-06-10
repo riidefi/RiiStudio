@@ -2,6 +2,8 @@ use core::ffi::c_char;
 use core::slice;
 use std::convert::TryInto;
 
+mod szs_to_szp;
+
 #[allow(non_upper_case_globals)]
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
@@ -600,33 +602,40 @@ pub fn deinterlaced_upper_bound(len: u32) -> u32 {
 /// let mut dst: [u8; 512] = [0; 512];
 /// let src = b"some interlaced data";
 ///
-/// match szs::deinterlace_into(&mut dst, src) {
+/// match szs::deinterlace_into(&mut dst, src, false) {
 ///     Ok(deinterlaced_len) => println!("Deinterlaced {} bytes", deinterlaced_len),
 ///     Err(err) => println!("Deinterlacing error: {}", err),
 /// }
 /// ```
-pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, Error> {
+pub fn deinterlace_into(dst: &mut [u8], src: &[u8], use_c_version: bool) -> Result<u32, Error> {
     let mut used_len: u32 = 0;
 
-    let result = unsafe {
-        bindings::impl_rii_deinterlace(
-            dst.as_mut_ptr() as *mut _,
-            dst.len() as u32,
-            src.as_ptr() as *const _,
-            src.len() as u32,
-            &mut used_len,
-        )
-    };
-
-    if result.is_null() {
-        Ok(used_len)
-    } else {
-        let error_msg = unsafe {
-            std::ffi::CStr::from_ptr(result)
-                .to_string_lossy()
-                .into_owned()
+    if use_c_version {
+        let result = unsafe {
+            bindings::impl_rii_deinterlace(
+                dst.as_mut_ptr() as *mut _,
+                dst.len() as u32,
+                src.as_ptr() as *const _,
+                src.len() as u32,
+                &mut used_len,
+            )
         };
-        Err(Error::Error(error_msg))
+
+        if result.is_null() {
+            Ok(used_len)
+        } else {
+            let error_msg = unsafe {
+                std::ffi::CStr::from_ptr(result)
+                    .to_string_lossy()
+                    .into_owned()
+            };
+            Err(Error::Error(error_msg))
+        }
+    } else {
+        match szs_to_szp::szs_to_szp_c(dst, src) {
+            Ok(u) => Ok(u),
+            Err(e) => Err(Error::Error(e)),
+        }
     }
 }
 
@@ -650,19 +659,19 @@ pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, Error> {
 /// ```
 /// let src = b"some interlaced data";
 ///
-/// match szs::deinterlace(src) {
+/// match szs::deinterlace(src, false) {
 ///     Ok(deinterlaced_data) => println!("Deinterlaced data length: {}", deinterlaced_data.len()),
 ///     Err(err) => println!("Deinterlacing error: {}", err),
 /// }
 /// ```
-pub fn deinterlace(src: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn deinterlace(src: &[u8], use_c_version: bool) -> Result<Vec<u8>, Error> {
     // Calculate the upper bound for conversion.
     let max_len = deinterlaced_upper_bound(src.len() as u32);
 
     // Allocate a buffer based on the calculated upper bound.
     let mut dst: Vec<u8> = vec![0; max_len as usize];
 
-    match deinterlace_into(&mut dst, src) {
+    match deinterlace_into(&mut dst, src, use_c_version) {
         Ok(encoded_len) => {
             // Shrink the dst to the actual size.
             dst.truncate(encoded_len as usize);
@@ -736,7 +745,7 @@ pub fn encode_yay0_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<
         ));
     }
 
-    deinterlace_into(dst, &temp_encoded)
+    deinterlace_into(dst, &temp_encoded, false)
 }
 
 /// Encodes and deinterlaces the source slice into YAY0 format using the given encoding algorithm and returns the result.
@@ -766,7 +775,7 @@ pub fn encode_yay0(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, Error> {
     let temp_encoded = encode(src, algo)?;
     let mut dst: Vec<u8> = vec![0; deinterlaced_upper_bound(temp_encoded.len() as u32) as usize];
 
-    match deinterlace_into(&mut dst, &temp_encoded) {
+    match deinterlace_into(&mut dst, &temp_encoded, false) {
         Ok(deinterlaced_len) => {
             dst.truncate(deinterlaced_len as usize);
             Ok(dst)
@@ -1156,7 +1165,7 @@ pub mod c_api {
         let dst_slice = unsafe { std::slice::from_raw_parts_mut(dst, dst_len as usize) };
         let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
 
-        match deinterlace_into(dst_slice, src_slice) {
+        match deinterlace_into(dst_slice, src_slice, false) {
             Ok(used_len) => {
                 unsafe {
                     *result = used_len;

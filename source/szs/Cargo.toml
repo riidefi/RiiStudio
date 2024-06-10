@@ -25,3 +25,8 @@ cc = { version = "1.0", features = ["parallel"] }
 
 [dev-dependencies]
 sha2 = "0.10.8"
+criterion = "0.5.1"
+
+[[bench]]
+name = "deinterlace_bench"
+harness = false
