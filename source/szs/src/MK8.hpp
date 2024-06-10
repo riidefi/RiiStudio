@@ -23,38 +23,40 @@ public:
 
 private:
   enum {
-    cWorkNum1 = 0x8000,
-    cWorkNum2 = 0x1000,
+    cSearchWindowSize = 0x1000,
+    cMatchLenMax = 0x111,
 
-	// In-game: 1x (~8KB)
-	// Official tooling: 10x presumably
-	// Better results attained with 100x (~1MB)
-    cWorkSize0 = 0x2000 * 100,
-    cWorkSize1 = cWorkNum1 * sizeof(s32),
-    cWorkSize2 = cWorkNum2 * sizeof(s32)
+    cPosTempBufferNum = 0x8000,
+    cSearchPosBufferNum = cSearchWindowSize,
+
+    // In-game: 1x (~8KB)
+    // Official tooling: 10x presumably
+    // Better results attained with 100x (~1MB)
+    cDataBufferSize = 0x2000 * 100,
+    cPosTempBufferSize = cPosTempBufferNum * sizeof(s32),
+    cSearchPosBufferSize = cSearchPosBufferNum * sizeof(s32),
+
+    cWorkSize = cDataBufferSize + cPosTempBufferSize + cSearchPosBufferSize
   };
 
-  struct Context {
-    u8* p_buffer;
-    u32 _4;
-    s32* p_work_1;
-    s32* p_work_2;
-    s32 buffer_size;
+  struct Work {
+    u8 data_buffer[cDataBufferSize];
+    s32 pos_temp_buffer[cPosTempBufferNum];
+    s32 search_pos_buffer[cSearchPosBufferNum];
   };
+  static_assert(sizeof(Work) == cWorkSize);
 
   struct Match {
     s32 len;
     s32 pos;
   };
 
-  class PosIndex {
+  class PosTempBufferIndex {
   public:
-    PosIndex() : mValue(0) {}
+    PosTempBufferIndex() : mValue(0) {}
 
     void pushBack(u32 value) {
-      mValue <<= 5;
-      mValue ^= value;
-      mValue &= 0x7fff;
+      mValue = ((mValue << 5) ^ value) % cPosTempBufferNum;
     }
 
     u32 value() const { return mValue; }
@@ -63,54 +65,54 @@ private:
     u32 mValue;
   };
 
-  static /* inline */ bool search(Match& match, s32 pos,
-                                  const Context& context);
+  static inline bool search(Match& match, s32 search_pos, const u32 data_pos,
+                            const s32 data_buffer_size, const Work& work);
 };
 
-u32 CompressorFast::getRequiredMemorySize() {
-  return cWorkSize0 + cWorkSize1 + cWorkSize2;
-}
+u32 CompressorFast::getRequiredMemorySize() { return cWorkSize; }
 
-bool CompressorFast::search(Match& match, s32 pos, const Context& context) {
-  const u8* cmp2 = context.p_buffer + context._4;
+bool CompressorFast::search(Match& match, s32 search_pos, const u32 data_pos,
+                            const s32 data_buffer_size, const Work& work) {
+  const u8* cmp2 = work.data_buffer + data_pos;
 
-  s32 v0 = context._4 > 0x1000 ? s32(context._4 - 0x1000) : -1;
+  s32 search_pos_min =
+      data_pos > cSearchWindowSize ? s32(data_pos - cSearchWindowSize) : -1;
 
-  s32 cmp_pos = 2;
-  match.len = cmp_pos;
+  s32 match_len = 2;
+  match.len = match_len;
 
-  if (context._4 - pos <= 0x1000) {
-    for (u32 i = 0; i < 0x1000; i++) {
-      const u8* cmp1 = context.p_buffer + pos;
+  if (data_pos - search_pos <= cSearchWindowSize) {
+    for (u32 i = 0; i < cSearchWindowSize; i++) {
+      const u8* cmp1 = work.data_buffer + search_pos;
       if (cmp1[0] == cmp2[0] && cmp1[1] == cmp2[1] &&
-          cmp1[cmp_pos] == cmp2[cmp_pos]) {
-        s32 len;
+          cmp1[match_len] == cmp2[match_len]) {
+        s32 len_local;
 
-        for (len = 2; len < 0x111; len++)
-          if (cmp1[len] != cmp2[len])
+        for (len_local = 2; len_local < cMatchLenMax; len_local++)
+          if (cmp1[len_local] != cmp2[len_local])
             break;
 
-        if (len > cmp_pos) {
-          match.len = len;
+        if (len_local > match_len) {
+          match.len = len_local;
           match.pos = cmp2 - cmp1;
 
-          cmp_pos = context.buffer_size;
-          if (len <= cmp_pos)
-            cmp_pos = match.len;
+          match_len = data_buffer_size;
+          if (match.len <= match_len)
+            match_len = match.len;
           else
-            match.len = cmp_pos;
+            match.len = match_len;
 
-          if (len >= 0x111)
+          if (len_local >= cMatchLenMax)
             break;
         }
       }
 
-      pos = context.p_work_2[pos & 0xfff];
-      if (pos <= v0)
+      search_pos = work.search_pos_buffer[search_pos % cSearchPosBufferNum];
+      if (search_pos <= search_pos_min)
         break;
     }
 
-    if (cmp_pos >= 3)
+    if (match_len >= 3)
       return true;
   }
 
@@ -119,24 +121,21 @@ bool CompressorFast::search(Match& match, s32 pos, const Context& context) {
 
 u32 CompressorFast::encode(u8* p_dst, const u8* p_src, u32 src_size,
                            u8* p_work) {
+  Work& work = *reinterpret_cast<Work*>(p_work);
   u8 temp_buffer[24];
   u32 temp_size = 0;
 
-  s32 pos = -1;
-  s32 v1 = 0;
+  s32 search_pos = -1;
+  bool found_next_match = false;
   s32 bit = 8;
 
-  Context context;
+  u32 data_pos;
+  s32 data_buffer_size;
 
-  context.p_buffer = p_work;
+  memset(work.pos_temp_buffer, u8(-1), cPosTempBufferSize);
+  memset(work.search_pos_buffer, u8(-1), cSearchPosBufferSize);
 
-  context.p_work_1 = (s32*)(p_work + cWorkSize0);
-  memset(context.p_work_1, u8(-1), cWorkSize1);
-
-  context.p_work_2 = (s32*)(p_work + (cWorkSize0 + cWorkSize1));
-  memset(context.p_work_2, u8(-1), cWorkSize2);
-
-  context._4 = 0;
+  data_pos = 0;
 
   u32 out_size = 0x10; // Header size
   u32 flag = 0;
@@ -148,50 +147,55 @@ u32 CompressorFast::encode(u8* p_dst, const u8* p_src, u32 src_size,
   p_dst[7] = (src_size >> 0) & 0xff;
   memset(p_dst + 8, 0, 0x10); // They probably meant to put 8 in the size here?
 
-  PosIndex v2;
+  PosTempBufferIndex pos_temp_buffer_idx;
 
-  context.buffer_size = seadMathMin<u32>(cWorkSize0, src_size);
-  memcpy(context.p_buffer, p_src, context.buffer_size);
+  data_buffer_size = seadMathMin<u32>(cDataBufferSize, src_size);
+  memcpy(work.data_buffer, p_src, data_buffer_size);
 
-  v2.pushBack(context.p_buffer[0]);
-  v2.pushBack(context.p_buffer[1]);
+  pos_temp_buffer_idx.pushBack(work.data_buffer[0]);
+  pos_temp_buffer_idx.pushBack(work.data_buffer[1]);
 
   Match match, next_match;
   match.len = 2;
 
-  s32 buffer_size_0 = context.buffer_size;
-  s32 buffer_size_1;
+  s32 current_read_end_pos = data_buffer_size;
+  s32 next_read_end_pos;
 
-  while (context.buffer_size > 0) {
+  while (data_buffer_size > 0) {
     while (true) {
-      if (v1 == 0) {
-        v2.pushBack(context.p_buffer[context._4 + 2]);
+      if (!found_next_match) {
+        pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
 
-        context.p_work_2[context._4 & 0xfff] = context.p_work_1[v2.value()];
-        context.p_work_1[v2.value()] = context._4;
+        work.search_pos_buffer[data_pos % cSearchPosBufferNum] =
+            work.pos_temp_buffer[pos_temp_buffer_idx.value()];
+        work.pos_temp_buffer[pos_temp_buffer_idx.value()] = data_pos;
 
-        pos = context.p_work_2[context._4 & 0xfff];
+        search_pos = work.search_pos_buffer[data_pos % cSearchPosBufferNum];
       } else {
-        v1 = 0;
+        found_next_match = false;
       }
 
-      if (pos != -1) {
-        search(match, pos, context);
-        if (2 < match.len && match.len < 0x111) {
-          context._4++;
-          context.buffer_size--;
+      if (search_pos != -1) {
+        search(match, search_pos, data_pos, data_buffer_size, work);
 
-          v2.pushBack(context.p_buffer[context._4 + 2]);
+        if (2 < match.len && match.len < cMatchLenMax) {
+          data_pos++;
+          data_buffer_size--;
 
-          context.p_work_2[context._4 & 0xfff] = context.p_work_1[v2.value()];
-          context.p_work_1[v2.value()] = context._4;
+          pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
 
-          pos = context.p_work_2[context._4 & 0xfff];
-          search(next_match, pos, context);
+          work.search_pos_buffer[data_pos % cSearchPosBufferNum] =
+              work.pos_temp_buffer[pos_temp_buffer_idx.value()];
+          work.pos_temp_buffer[pos_temp_buffer_idx.value()] = data_pos;
+
+          search_pos = work.search_pos_buffer[data_pos % cSearchPosBufferNum];
+
+          search(next_match, search_pos, data_pos, data_buffer_size, work);
+
           if (match.len < next_match.len)
             match.len = 2;
 
-          v1 = 1;
+          found_next_match = true;
         }
       }
 
@@ -210,31 +214,33 @@ u32 CompressorFast::encode(u8* p_dst, const u8* p_src, u32 src_size,
           temp_buffer[temp_size++] = u8(match.len) - 18;
         }
 
-        context.buffer_size -= match.len - v1;
-        match.len -= v1 + 1;
+        data_buffer_size -= match.len - s32(found_next_match);
+        match.len -= s32(found_next_match) + 1;
 
         do {
-          context._4++;
+          data_pos++;
 
-          v2.pushBack(context.p_buffer[context._4 + 2]);
+          pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
 
-          context.p_work_2[context._4 & 0xfff] = context.p_work_1[v2.value()];
-          context.p_work_1[v2.value()] = context._4;
+          work.search_pos_buffer[data_pos % cSearchPosBufferNum] =
+              work.pos_temp_buffer[pos_temp_buffer_idx.value()];
+          work.pos_temp_buffer[pos_temp_buffer_idx.value()] = data_pos;
 
-          pos = context.p_work_2[context._4 & 0xfff];
+          search_pos = work.search_pos_buffer[data_pos % cSearchPosBufferNum];
         } while (--match.len != 0);
 
-        context._4++;
-        v1 = 0;
+        data_pos++;
+        found_next_match = false;
         match.len = 0;
       } else {
         flag = (flag & 0x7f) << 1 | 1;
 
-        temp_buffer[temp_size++] = context.p_buffer[context._4 - v1];
+        temp_buffer[temp_size++] =
+            work.data_buffer[data_pos - s32(found_next_match)];
 
-        if (v1 == 0) {
-          context._4++;
-          context.buffer_size--;
+        if (!found_next_match) {
+          data_pos++;
+          data_buffer_size--;
         }
       }
 
@@ -249,37 +255,43 @@ u32 CompressorFast::encode(u8* p_dst, const u8* p_src, u32 src_size,
         bit = 8;
       }
 
-      if (context.buffer_size < 0x111 + 2)
+      if (data_buffer_size < cMatchLenMax + 2)
         break;
     }
 
-    s32 v3 = context._4 - 0x1000;
-    s32 v4 = cWorkSize0 - v3;
+    s32 copy_pos =
+        data_pos - cSearchWindowSize; // For search window for compression of
+                                      // next src read portion
+    s32 copy_size = cDataBufferSize - copy_pos;
 
-    buffer_size_1 = buffer_size_0;
+    next_read_end_pos = current_read_end_pos;
 
-    if (context._4 >= 0x1000 + 14 * 0x111) {
-      memcpy(context.p_buffer, context.p_buffer + v3, v4);
+    if (data_pos >= cSearchWindowSize + 14 * cMatchLenMax) {
+      memcpy(work.data_buffer, work.data_buffer + copy_pos, copy_size);
 
-      s32 v5 = cWorkSize0 - v4;
-      buffer_size_1 = buffer_size_0 + v5;
-      if (src_size < u32(buffer_size_1)) {
-        v5 = src_size - buffer_size_0;
-        buffer_size_1 = src_size;
+      s32 next_read_size = cDataBufferSize - copy_size;
+      next_read_end_pos = current_read_end_pos + next_read_size;
+      if (src_size < u32(next_read_end_pos)) {
+        next_read_size = src_size - current_read_end_pos;
+        next_read_end_pos = src_size;
       }
-      memcpy(context.p_buffer + v4, p_src + buffer_size_0, v5);
-      context.buffer_size += v5;
-      context._4 -= v3;
+      memcpy(work.data_buffer + copy_size, p_src + current_read_end_pos,
+             next_read_size);
+      data_buffer_size += next_read_size;
+      data_pos -= copy_pos;
 
-      for (u32 i = 0; i < cWorkNum1; i++)
-        context.p_work_1[i] =
-            context.p_work_1[i] >= v3 ? context.p_work_1[i] - v3 : -1;
+      for (u32 i = 0; i < cPosTempBufferNum; i++)
+        work.pos_temp_buffer[i] = work.pos_temp_buffer[i] >= copy_pos
+                                      ? work.pos_temp_buffer[i] - copy_pos
+                                      : -1;
 
-      for (u32 i = 0; i < cWorkNum2; i++)
-        context.p_work_2[i] =
-            context.p_work_2[i] >= v3 ? context.p_work_2[i] - v3 : -1;
+      for (u32 i = 0; i < cSearchPosBufferNum; i++)
+        work.search_pos_buffer[i] = work.search_pos_buffer[i] >= copy_pos
+                                        ? work.search_pos_buffer[i] - copy_pos
+                                        : -1;
     }
-    buffer_size_0 = buffer_size_1;
+
+    current_read_end_pos = next_read_end_pos;
   }
 
   p_dst[out_size++] = flag << (bit & 0x3f);
