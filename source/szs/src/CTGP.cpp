@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include <optional>
+
 // Adapted from work from wit and Palapeli
 
 #define BACK_BUF_SIZE 0x1000
@@ -24,6 +26,33 @@ struct Yaz_file_struct {
     return hashMap[index];
   }
 
+  void writeDoubleToCodeBuf(u32 upper4Bits, u32 lower12Bits) {
+    codeBuffer[codeBufferLocation] = (upper4Bits << 4) | (lower12Bits >> 0x8);
+    codeBuffer[(codeBufferLocation + 1) % 256] = (u8)lower12Bits;
+    codeBufferLocation += 2;
+    codeBufferIndex -= 1;
+  }
+  void writeTripToCodeBuf(u32 first16Bits, u32 second8Bits) {
+    codeBuffer[codeBufferLocation] = (first16Bits >> 0x8);
+    codeBuffer[(codeBufferLocation + 1) % 256] = (u8)first16Bits;
+    codeBuffer[(codeBufferLocation + 2) % 256] = second8Bits;
+    codeBufferLocation += 3;
+	codeBufferIndex -= 1;
+  }
+
+  u32 writeSzsMatchToCodeBufWithTruncation(u32 copyDistance, u32 copyLen) {
+    if (copyLen <= MAX_SZS_SMALL_RUNLENGTH) {
+      writeDoubleToCodeBuf((char)copyLen - 2, copyDistance);
+      return copyLen;
+    }
+
+    if (copyLen > MAX_SZS_RUNLENGTH) {
+      copyLen = MAX_SZS_RUNLENGTH;
+    }
+    writeTripToCodeBuf(copyDistance, (char)copyLen - 18);
+    return copyLen;
+  }
+
   WRITE_FN file_write;
   u32 _0x4;
   int iteration;
@@ -38,8 +67,8 @@ struct Yaz_file_struct {
   u32 copyLength;
   u32 field12_0x9028;
   u8 field13_0x902c[0x922C - 0x902C];
-  u8 codeBufferLocation;          // 922c
-  u8 codeBufferIndex;             // 922d
+  u8 codeBufferLocation; // 922c
+  u8 codeBufferIndex;    // 922d
   u8 codeBuffer[256];
 };
 
@@ -106,9 +135,214 @@ int Yaz_buffer_putcode_r(int* reent, u8* file2) {
   return 0;
 }
 
-#define ASSERT_FAIL(...) assert(false)
+static int WriteMatchToFile(Yaz_file_struct* file, int* reent) {
+  // TODO: Should this be while(copyLen > 3)?
+  if (file->copyLength > 3) {
+    while (file->copyLength > 2) {
+      if (file->codeBufferIndex == 0) {
+        file->codeBufferIndex = 8;
+        file->codeBuffer[0x0] = 0;
+        file->codeBufferLocation = 1;
+      }
+      // 12-bit
+      assert(file->copyDistance < BACK_BUF_SIZE);
+      u32 written = file->writeSzsMatchToCodeBufWithTruncation(
+          file->copyDistance, file->copyLength);
+      if ((file->codeBufferIndex == 0) &&
+          Yaz_buffer_putcode_r(reent, (u8*)file)) {
+        return -1;
+      }
+      file->copyLength -= written;
+    }
+  }
+  return 0;
+}
 
-int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
+static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int* reent,
+                                             int value) {
+  bool bVar1;
+  u32 copyLen;
+  u8 bVar4;
+  u32 uVar3;
+  u32 hh;
+  u8 bVar5;
+  u8 uVar6;
+  int iVar7;
+  short sVar8;
+  u32 uVar9;
+  int iVar10;
+  u32 uVar11;
+  u32 uVar12;
+  u16* puVar13;
+  u16* puVar14;
+  u16* puVar15;
+  u32 uVar16;
+  u32 uVar17;
+  u16* puVar18;
+  u16 res;
+  copyLen = file->byteShifterRemaining + 1;
+  iVar7 = file->iteration;
+  uVar17 = iVar7 + 1;
+  file->iteration = uVar17;
+  file->byteShifterRemaining = copyLen;
+  file->field5_0x1010 = value << 0x18 | file->field5_0x1010 >> 0x8;
+  if (copyLen < 0x3) {
+    return value;
+  }
+  if (0x6 < iVar7 + -0xffe) {
+    puVar18 = file->hashMap;
+    uVar9 = file->field7_0x1018;
+    copyLen = file->backBufferLocation + 0x1 & 0xfff;
+    hh = (u32)file->backBuffer[copyLen + 0x1 & 0xfff] << 0x8 |
+         (u32)file->backBuffer[copyLen + 0x2 & 0xfff] << 0x10 |
+         (u32)file->backBuffer[copyLen];
+    uVar11 = hash1(hh);
+    assert(uVar11 <= 0x3fff);
+    iVar7 = 0x4001;
+    res = file->hashMap[uVar11];
+    while (true) {
+      assert((res & 0x8000) != 0);
+      if (((res & 0x4000) != 0x0) && (copyLen == (res & 0x3fff)))
+        break;
+      iVar7 = iVar7 + -1;
+      assert(iVar7 != 0);
+      uVar11 = uVar11 + 1 & 0x3fff;
+      res = puVar18[uVar11];
+    }
+    sVar8 = 1;
+    iVar7 = 0x4;
+    uVar16 = copyLen;
+    do {
+      uVar12 = uVar16 + 0x2;
+      uVar3 = uVar16 + 0x3;
+      uVar16 = uVar16 + 0x1;
+      if (hh == ((u32)file->backBuffer[uVar12 & 0xfff] << 0x8 |
+                 (u32)file->backBuffer[uVar3 & 0xfff] << 0x10 |
+                 (u32)file->backBuffer[uVar16 & 0xfff])) {
+        file->hashMap[uVar11] = ((short)copyLen + sVar8 & 0xfffU) | 0xc000;
+        goto LAB_807eb550;
+      }
+      sVar8 = sVar8 + 0x1;
+      iVar7 = iVar7 + -0x1;
+    } while (iVar7 != 0x0);
+    uVar9 = uVar9 + 0x1;
+    file->hashMap[uVar11] = 0x8000;
+  LAB_807eb550:
+    file->field7_0x1018 = uVar9;
+    if (0x555 < uVar9) {
+      memset(&file->DAT_80ad1160, 0xff, 0x8000);
+      copyLen = 0x0;
+      puVar13 = puVar18;
+      do {
+        if (((*puVar13 & 0x8000) != 0x0) &&
+            (uVar17 = copyLen, (*puVar13 & 0x4000) == 0x0)) {
+          do {
+            uVar17 = uVar17 + 1 & 0x3fff;
+            puVar14 = puVar13;
+            uVar11 = copyLen;
+          } while ((short)puVar18[uVar17] < 0x0);
+          do {
+            *puVar14 = 0x0;
+            file->DAT_80ad1160[uVar11] = 0xffff;
+            uVar9 = uVar17;
+            do {
+              do {
+                uVar9 = (uVar9 - 1) % HASH_MAP_SIZE;
+                if (uVar11 == uVar9) {
+                  assert(*puVar14 == 0x0);
+                  goto LAB_807eb594;
+                }
+                res = puVar18[uVar9];
+                puVar15 = puVar18 + uVar9;
+                assert((res & 0x8000) != 0x0);
+              } while ((res & 0x4000) == 0x0);
+              hh = file->DAT_80ad1160[uVar9];
+              if (hh == 0xffff) {
+                hh = hash1(
+                    (u32)file->backBuffer[(res + 1) % BACK_BUF_SIZE] << 0x8 |
+                    (u32)file->backBuffer[(res + 2) % BACK_BUF_SIZE] << 0x10 |
+                    (u32)file->backBuffer[res % BACK_BUF_SIZE]);
+                hh = hh & 0xffff;
+                file->DAT_80ad1160[uVar9] = (short)hh;
+              }
+              assert(hh < HASH_MAP_SIZE);
+            } while (((uVar9 - hh) % HASH_MAP_SIZE) <
+                     ((uVar11 - hh) % HASH_MAP_SIZE));
+            *puVar14 = *puVar15;
+            file->DAT_80ad1160[uVar11] = file->DAT_80ad1160[uVar9];
+            *puVar15 = 0x8000;
+            file->DAT_80ad1160[uVar9] = 0xffff;
+            puVar14 = puVar15;
+            uVar11 = uVar9;
+            assert((*puVar15 & 0x4000) == 0);
+          } while (true);
+        }
+      LAB_807eb594:
+        bVar1 = copyLen != 0x3fff;
+        puVar13 = puVar13 + 1;
+        copyLen = copyLen + 1;
+      } while (bVar1);
+      uVar17 = file->iteration;
+      file->field7_0x1018 = 0x0;
+    }
+  }
+  if (0x9 < uVar17) {
+    uVar9 = file->field7_0x1018;
+    copyLen = file->backBufferLocation - 3 & 0xfff;
+    uVar11 = (u32)file->backBuffer[(copyLen + 1) % BACK_BUF_SIZE] << 0x8 |
+             (u32)file->backBuffer[(copyLen + 2) % BACK_BUF_SIZE] << 0x10 |
+             (u32)file->backBuffer[copyLen];
+    iVar7 = 0x4;
+    uVar17 = copyLen;
+    do {
+      if (uVar11 == ((u32)file->backBuffer[uVar17 - 0x3 & 0xfff] << 0x8 |
+                     (u32)file->backBuffer[uVar17 - 0x2 & 0xfff] << 0x10 |
+                     (u32)file->backBuffer[uVar17 - 0x4 & 0xfff]))
+        goto LAB_807eb78c;
+      uVar17 = uVar17 + 1;
+      iVar7 = iVar7 + -1;
+    } while (iVar7 != 0x0);
+    uVar17 = hash1(uVar11);
+    assert(uVar17 < HASH_MAP_SIZE);
+    res = file->hashMap[uVar17];
+    if ((res & 0x4000) != 0x0) {
+      iVar7 = 0x4000;
+      while (true) {
+        uVar17 = uVar17 + 1 & 0x3fff;
+        res = file->hashMap[uVar17];
+        if ((res & 0x4000) == 0x0)
+          break;
+        iVar7 = iVar7 + -1;
+        assert(iVar7 != 0);
+      }
+    }
+    file->hashMap[uVar17] = (u16)copyLen | 0xc000;
+    uVar9 = uVar9 - (res >> 0xf);
+  LAB_807eb78c:
+    file->field7_0x1018 = uVar9;
+  }
+  iVar7 = file->copyLocation;
+  if (iVar7 != -1) {
+    if ((file->field5_0x1010 >> 0x8 & 0xff) == (u32)file->backBuffer[iVar7]) {
+      copyLen = file->backBufferLocation;
+      file->backBuffer[copyLen] = (u8)(file->field5_0x1010 >> 0x8);
+      copyLen = copyLen + 1 & 0xfff;
+      file->backBufferLocation = copyLen;
+      file->byteShifterRemaining = file->byteShifterRemaining - 1;
+      uVar17 = iVar7 + 1U & 0xfff;
+      file->copyLocation = uVar17;
+      file->copyLength = file->copyLength + 1;
+      assert(file->copyDistance == ((copyLen - 1) - uVar17 & 0xfff));
+      return value;
+    }
+    if (WriteMatchToFile(file, reent) != 0) {
+      return -1;
+    }
+  }
+  return std::nullopt;
+}
+
+static std::optional<int> HandleResidue(Yaz_file_struct* file, int* reent) {
   bool bVar1;
   u32 copyLen;
   u8 bVar4;
@@ -130,211 +364,7 @@ int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
   u16* puVar18;
   u16 res;
 
-  if (value == -1) {
-    if (file->copyLocation != -1) {
-    LAB_807eaf78:
-      copyLen = file->copyLength;
-      if (copyLen > 3) {
-        while (copyLen > 2) {
-          if (file->codeBufferIndex == 0) {
-            file->codeBufferIndex = 8;
-            file->codeBuffer[0x0] = 0;
-            file->codeBufferLocation = 1;
-          }
-          uVar17 = file->copyDistance;
-          assert(uVar17 <= 0xfff);
-          bVar5 = (u8)(uVar17 >> 0x8);
-          if (copyLen <= MAX_SZS_SMALL_RUNLENGTH) {
-            bVar4 = file->codeBufferLocation;
-            file->codeBuffer[bVar4] = ((char)copyLen - 2) * 16 | bVar5;
-            file->codeBuffer[bVar4 + 1 & 0xff] = (u8)uVar17;
-            file->codeBufferLocation = bVar4 + 2;
-            uVar6 = file->codeBufferIndex + 0xff;
-            file->codeBufferIndex = uVar6;
-          } else {
-            if (copyLen > MAX_SZS_RUNLENGTH) {
-              copyLen = MAX_SZS_RUNLENGTH;
-			}
-            bVar4 = file->codeBufferLocation;
-            uVar11 = (u32)bVar4;
-            file->codeBuffer[uVar11] = bVar5;
-            file->codeBuffer[uVar11 + 1 & 0xff] = (u8)uVar17;
-            file->codeBuffer[uVar11 + 0x2 & 0xff] = (char)copyLen + 0xee;
-            file->codeBufferLocation = bVar4 + 0x3;
-            uVar6 = file->codeBufferIndex + 0xff;
-            file->codeBufferIndex = uVar6;
-          }
-          if ((uVar6 == '\0') &&
-              (iVar7 = Yaz_buffer_putcode_r(reent, (u8*)file), iVar7 != 0x0)) {
-            return -1;
-          }
-          copyLen = file->copyLength - copyLen;
-          file->copyLength = copyLen;
-        }
-      }
-      goto LAB_807eb1a8;
-    }
-  } else {
-    copyLen = file->byteShifterRemaining + 1;
-    iVar7 = file->iteration;
-    uVar17 = iVar7 + 1;
-    file->iteration = uVar17;
-    file->byteShifterRemaining = copyLen;
-    file->field5_0x1010 = value << 0x18 | file->field5_0x1010 >> 0x8;
-    if (copyLen < 0x3) {
-      return value;
-    }
-    if (0x6 < iVar7 + -0xffe) {
-      puVar18 = file->hashMap;
-      uVar9 = file->field7_0x1018;
-      copyLen = file->backBufferLocation + 0x1 & 0xfff;
-      hh = (u32)file->backBuffer[copyLen + 0x1 & 0xfff] << 0x8 |
-           (u32)file->backBuffer[copyLen + 0x2 & 0xfff] << 0x10 |
-           (u32)file->backBuffer[copyLen];
-      uVar11 = hash1(hh);
-      assert(uVar11 <= 0x3fff);
-      iVar7 = 0x4001;
-      res = file->hashMap[uVar11];
-      while (true) {
-        assert((res & 0x8000) != 0);
-        if (((res & 0x4000) != 0x0) && (copyLen == (res & 0x3fff)))
-          break;
-        iVar7 = iVar7 + -1;
-        assert(iVar7 != 0);
-        uVar11 = uVar11 + 1 & 0x3fff;
-        res = puVar18[uVar11];
-      }
-      sVar8 = 1;
-      iVar7 = 0x4;
-      uVar16 = copyLen;
-      do {
-        uVar12 = uVar16 + 0x2;
-        uVar3 = uVar16 + 0x3;
-        uVar16 = uVar16 + 0x1;
-        if (hh == ((u32)file->backBuffer[uVar12 & 0xfff] << 0x8 |
-                   (u32)file->backBuffer[uVar3 & 0xfff] << 0x10 |
-                   (u32)file->backBuffer[uVar16 & 0xfff])) {
-          file->hashMap[uVar11] = ((short)copyLen + sVar8 & 0xfffU) | 0xc000;
-          goto LAB_807eb550;
-        }
-        sVar8 = sVar8 + 0x1;
-        iVar7 = iVar7 + -0x1;
-      } while (iVar7 != 0x0);
-      uVar9 = uVar9 + 0x1;
-      file->hashMap[uVar11] = 0x8000;
-    LAB_807eb550:
-      file->field7_0x1018 = uVar9;
-      if (0x555 < uVar9) {
-        memset(&file->DAT_80ad1160, 0xff, 0x8000);
-        copyLen = 0x0;
-        puVar13 = puVar18;
-        do {
-          if (((*puVar13 & 0x8000) != 0x0) &&
-              (uVar17 = copyLen, (*puVar13 & 0x4000) == 0x0)) {
-            do {
-              uVar17 = uVar17 + 1 & 0x3fff;
-              puVar14 = puVar13;
-              uVar11 = copyLen;
-            } while ((short)puVar18[uVar17] < 0x0);
-            do {
-              *puVar14 = 0x0;
-              file->DAT_80ad1160[uVar11] = 0xffff;
-              uVar9 = uVar17;
-              do {
-                do {
-                  uVar9 = (uVar9 - 1) % HASH_MAP_SIZE;
-                  if (uVar11 == uVar9) {
-                    assert(*puVar14 == 0x0);
-                    goto LAB_807eb594;
-                  }
-                  res = puVar18[uVar9];
-                  puVar15 = puVar18 + uVar9;
-                  assert((res & 0x8000) != 0x0);
-                } while ((res & 0x4000) == 0x0);
-                hh = file->DAT_80ad1160[uVar9];
-                if (hh == 0xffff) {
-                  hh = hash1(
-                      (u32)file->backBuffer[(res + 1) % BACK_BUF_SIZE] << 0x8 |
-                      (u32)file->backBuffer[(res + 2) % BACK_BUF_SIZE] << 0x10 |
-                      (u32)file->backBuffer[res % BACK_BUF_SIZE]);
-                  hh = hh & 0xffff;
-                  file->DAT_80ad1160[uVar9] = (short)hh;
-                }
-                assert(hh < HASH_MAP_SIZE);
-              } while (((uVar9 - hh) % HASH_MAP_SIZE) <
-                       ((uVar11 - hh) % HASH_MAP_SIZE));
-              *puVar14 = *puVar15;
-              file->DAT_80ad1160[uVar11] = file->DAT_80ad1160[uVar9];
-              *puVar15 = 0x8000;
-              file->DAT_80ad1160[uVar9] = 0xffff;
-              puVar14 = puVar15;
-              uVar11 = uVar9;
-              assert((*puVar15 & 0x4000) == 0);
-            } while (true);
-          }
-        LAB_807eb594:
-          bVar1 = copyLen != 0x3fff;
-          puVar13 = puVar13 + 1;
-          copyLen = copyLen + 1;
-        } while (bVar1);
-        uVar17 = file->iteration;
-        file->field7_0x1018 = 0x0;
-      }
-    }
-    if (0x9 < uVar17) {
-      uVar9 = file->field7_0x1018;
-      copyLen = file->backBufferLocation - 3 & 0xfff;
-      uVar11 = (u32)file->backBuffer[(copyLen + 1) % BACK_BUF_SIZE] << 0x8 |
-               (u32)file->backBuffer[(copyLen + 2) % BACK_BUF_SIZE] << 0x10 |
-               (u32)file->backBuffer[copyLen];
-      iVar7 = 0x4;
-      uVar17 = copyLen;
-      do {
-        if (uVar11 == ((u32)file->backBuffer[uVar17 - 0x3 & 0xfff] << 0x8 |
-                       (u32)file->backBuffer[uVar17 - 0x2 & 0xfff] << 0x10 |
-                       (u32)file->backBuffer[uVar17 - 0x4 & 0xfff]))
-          goto LAB_807eb78c;
-        uVar17 = uVar17 + 1;
-        iVar7 = iVar7 + -1;
-      } while (iVar7 != 0x0);
-      uVar17 = hash1(uVar11);
-      assert(uVar17 < HASH_MAP_SIZE);
-      res = file->hashMap[uVar17];
-      if ((res & 0x4000) != 0x0) {
-        iVar7 = 0x4000;
-        while (true) {
-          uVar17 = uVar17 + 1 & 0x3fff;
-          res = file->hashMap[uVar17];
-          if ((res & 0x4000) == 0x0)
-            break;
-          iVar7 = iVar7 + -1;
-          assert(iVar7 != 0);
-        }
-      }
-      file->hashMap[uVar17] = (u16)copyLen | 0xc000;
-      uVar9 = uVar9 - (res >> 0xf);
-    LAB_807eb78c:
-      file->field7_0x1018 = uVar9;
-    }
-    iVar7 = file->copyLocation;
-    if (iVar7 != -1) {
-      if ((file->field5_0x1010 >> 0x8 & 0xff) == (u32)file->backBuffer[iVar7]) {
-        copyLen = file->backBufferLocation;
-        file->backBuffer[copyLen] = (u8)(file->field5_0x1010 >> 0x8);
-        copyLen = copyLen + 1 & 0xfff;
-        file->backBufferLocation = copyLen;
-        file->byteShifterRemaining = file->byteShifterRemaining - 1;
-        uVar17 = iVar7 + 1U & 0xfff;
-        file->copyLocation = uVar17;
-        file->copyLength = file->copyLength + 1;
-        assert(file->copyDistance == ((copyLen - 1) - uVar17 & 0xfff));
-        return value;
-      }
-      goto LAB_807eaf78;
-    }
-  }
   copyLen = file->copyLength;
-LAB_807eb1a8:
   while (copyLen != 0x0) {
     while (true) {
       assert(file->copyLocation != -1);
@@ -365,10 +395,54 @@ LAB_807eb1a8:
       }
       copyLen = file->copyLength;
       if (copyLen == 0x0)
-        goto LAB_807eb200;
+        return std::nullopt;
     }
   }
-LAB_807eb200:
+
+  return std::nullopt;
+}
+
+int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
+  bool bVar1;
+  u32 copyLen;
+  u8 bVar4;
+  u32 uVar3;
+  u32 hh;
+  u8 bVar5;
+  u8 uVar6;
+  int iVar7;
+  short sVar8;
+  u32 uVar9;
+  int iVar10;
+  u32 uVar11;
+  u32 uVar12;
+  u16* puVar13;
+  u16* puVar14;
+  u16* puVar15;
+  u32 uVar16;
+  u32 uVar17;
+  u16* puVar18;
+  u16 res;
+
+  if (value == -1) {
+    if (file->copyLocation != -1) {
+      if (WriteMatchToFile(file, reent) != 0) {
+        return -1;
+      }
+    }
+  } else {
+    auto res = HandleNewInputByte(file, reent, value);
+    if (res.has_value()) {
+      return *res;
+    }
+  }
+
+  auto t = HandleResidue(file, reent);
+
+  if (t.has_value()) {
+    return *t;
+  }
+
   if (value == -1) {
     do {
       uVar17 = file->byteShifterRemaining;
@@ -395,7 +469,8 @@ LAB_807eb200:
         }
         file->backBuffer[file->backBufferLocation] =
             (u8)(file->field5_0x1010 >> iVar10);
-        file->backBufferLocation = (file->backBufferLocation + 1) % BACK_BUF_SIZE;
+        file->backBufferLocation =
+            (file->backBufferLocation + 1) % BACK_BUF_SIZE;
         if (bVar1) {
           file->codeBuffer[0x0] = (u8)copyLen;
           bVar5 = 0x80;
