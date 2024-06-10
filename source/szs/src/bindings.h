@@ -14,9 +14,6 @@ SZS_EXPORT uint32_t impl_rii_worst_encoding_size(uint32_t len);
 SZS_EXPORT const char* impl_rii_encodeAlgo(void* dst, uint32_t dst_len,
                                            const void* src, uint32_t src_len,
                                            uint32_t* used_len, uint32_t algo);
-SZS_EXPORT const char* impl_rii_deinterlace(void* dst, uint32_t dst_len,
-                                            const void* src, uint32_t src_len,
-                                            uint32_t* used_len);
 
 #ifdef __cplusplus
 } // extern "C"

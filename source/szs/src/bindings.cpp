@@ -1,7 +1,6 @@
 #include "bindings.h"
 
 #include "SZS.hpp"
-#include "SZSToSZP.hpp"
 #include <string.h>
 
 #define RMIN(x, y) (x < y ? x : y)
@@ -51,17 +50,3 @@ const char* impl_rii_encodeAlgo(void* dst, uint32_t dst_len, const void* src,
   return nullptr;
 }
 
-const char* impl_rii_deinterlace(void* dst, uint32_t dst_len, const void* src,
-                                 uint32_t src_len, uint32_t* used_len) {
-  if (!used_len) {
-    return my_strdup("used_len was NULL");
-  }
-  std::span<u8> s_dst((u8*)dst, dst_len);
-  std::span<const u8> s_src((const u8*)src, src_len);
-  auto size = SZSToSZP_C(s_dst, s_src);
-  if (!size) {
-    return my_strdup(size.error().c_str());
-  }
-  *used_len = *size;
-  return nullptr;
-}
