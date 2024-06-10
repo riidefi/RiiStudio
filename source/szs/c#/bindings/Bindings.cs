@@ -33,13 +33,14 @@ public static class szs_native
   public enum RiiszsEncodeAlgo
   {
     WorstCaseEncoding,
-    Nintendo,
+    Nintendo_ReferenceCImplementation,
     MkwSP,
     CTGP,
     Haroohie,
     CTlib,
     LibYaz0,
     MK8,
+    Nintendo,
   }
 
   [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]

@@ -86,41 +86,54 @@ Generally, the `mk8` algorithm gets acceptable compression the fastest. For case
 ### Benchmarks
 <img src="asset/small_file_comparison.png"/>
 
-#### Small file comparison
-**Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
-| Method              | Time Taken             | Compression Rate |
-|---------------------|------------------------|------------------|
-| lib-yaz0            | 2.03s                  |       **56.65%** |
-| nintendo            | 5.93s                  |           56.87% |
-| mkw-sp              | 3.76s                  |           57.23% |
-| Haroohie            | 0.58s                  |           57.23% |
-| CTLib               | 0.32s                  |           57.24% |
-| MK8 (Small memory footprint mode)     | 0.09s                  |           57.59% |
-| ctgp                | 0.31s                  |           71.41% |
-| worst-case-encoding | **0s**                 |          112.50% |
-| **Comparison with other libraries:** |       |                  |
-| Haroohie (C#)       | 0.71s                  |           57.23% |
-| wszst (fast)        | **0.387s** (via shell) |           65.78% |
-| wszst (standard)    | 1.776s (via shell)     |           57.23% |
-| wszst (ultra)       | 2.727s (via shell)     |       **56.65%** |
-| yaz0-rs             | 11.34s (via shell)     |           56.87% |
-
-*\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
-
 #### Large file comparison
 NSMBU 8-43 (63.9 MB decompressed)
-| Method               | Time (Avg 3 runs) | Compression Rate | File Size |
-|----------------------|-------------------|------------------|-----------|
-| lib-yaz0             |            15.24s |           29.32% |  18.74 MB |
-| mkw                  |            62.04s |           29.40% |  18.79 MB |
-| mkw-sp               |            26.73s |           29.74% |  19.01 MB |
-| haroohie             |             5.84s |           29.74% |  19.01 MB |
-| ct-lib               |             2.91s |           29.74% |  19.01 MB |
-| mk8                  |             1.34s |           29.43% |  18.81 MB |
-| ctgp                 |             5.22s |           40.91% |  26.14 MB |
-| worst-case-encoding  |             0.03s |          112.50% |  71.90 MB |
+| Method              | Time (Avg 3 runs) | Compression Rate | File Size |
+|---------------------|-------------------|------------------|-----------|
+| worst-case-encoding |             0.03s |          112.50% |  71.90 MB |
+| mk8                 |             1.37s |           29.43% |  18.81 MB |
+| ct-lib              |             3.01s |           29.74% |  19.01 MB |
+| haroohie            |             5.79s |           29.74% |  19.01 MB |
+| ctgp                |             9.23s |           40.91% |  26.14 MB |
+| lib-yaz0            |            16.09s |           29.32% |  18.74 MB |
+| mkw-sp              |            36.77s |           29.74% |  19.01 MB |
+| mkw                 |            55.00s |           29.40% |  18.79 MB |
+| mkw (C++)           |            63.34s |           29.40% |  18.79 MB |
+| **Comparison with other libraries:** |    |                  |           |
+| oead default        |         **0.61s** |           30.09% | 19.23 MB  |
+| oead max level      |             0.99s |           29.96% | 19.15 MB  |
+| wszst fast          |             1.77s |           35.62% | 22.76 MB  |
+| wszst standard      |            11.95s |           29.74% | 19.01 MB  |
+| wszst ultra         |            25.06s |       **29.32%** | **18.74 MB**  |
+
 
 *\* Average of 3 runs; x64 Clang (17.0.6) build tested on an Intel i9-13900KF on Windows 11*
+
+#### Small file comparison
+**Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
+| Method              | Time (Avg 3 runs) | Compression Rate | File Size |
+|---------------------|-------------------|------------------|-----------|
+| worst-case-encoding |         **0.00s** |          112.50% |   2.76 MB |
+| mk8                 |             0.07s |           56.75% |   1.39 MB |
+| ct-lib              |             0.19s |           57.24% |   1.41 MB |
+| ctgp                |             0.21s |           71.41% |   1.75 MB |
+| haroohie            |             0.31s |           57.23% |   1.41 MB |
+| lib-yaz0            |             1.09s |       **56.65%** |**1.39 MB**|
+| mkw-sp              |             1.47s |           57.23% |   1.41 MB |
+| mkw                 |             3.91s |           56.87% |   1.40 MB |
+| mkw (C++)           |             4.27s |           56.87% |   1.40 MB |
+| **Comparison with other libraries:** |       |                  | |
+| oead default        |         **0.03s** |           57.63% |   1.41 MB |
+| oead max level      |             0.05s |           57.52% |   1.41 MB |
+| wszst (fast)        | 0.197s (via shell)|           65.78% | 1.61MB |
+| wszst (standard)    | 0.946 (via shell) |         57.23%   | 1.40MB |
+| wszst (ultra)       | 1.418s (via shell)|       **56.65%** | 1.38MB |
+| yaz0-rs             | 4.88s (via shell) |           56.87% | 1.39MB |
+
+*\* Average of 3 runs; x64 Clang (17.0.6) build tested on an Intel i9-13900KF on Windows 11*
+
+
+
 
 Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
 

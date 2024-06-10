@@ -17,9 +17,10 @@ struct Args {
     input: PathBuf,
 }
 
-pub const SZS_ALGOS: [EncodeAlgo; 8] = [
+pub const SZS_ALGOS: [EncodeAlgo; 9] = [
     EncodeAlgo::WorstCaseEncoding,
     EncodeAlgo::MKW,
+    EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION,
     EncodeAlgo::MkwSp,
     EncodeAlgo::CTGP,
     EncodeAlgo::Haroohie,
@@ -32,6 +33,7 @@ pub fn szs_algo_from_str(s: &str) -> Result<EncodeAlgo> {
     match s {
         "worst-case-encoding" => Ok(EncodeAlgo::WorstCaseEncoding),
         "mkw" => Ok(EncodeAlgo::MKW),
+        "mkw (C++)" => Ok(EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION),
         "mkw-sp" => Ok(EncodeAlgo::MkwSp),
         "ctgp" => Ok(EncodeAlgo::CTGP),
         "haroohie" => Ok(EncodeAlgo::Haroohie),
@@ -55,6 +57,7 @@ pub fn szs_algo_to_str(algo: EncodeAlgo) -> &'static str {
         EncodeAlgo::CTLib => "ct-lib",
         EncodeAlgo::LibYaz0 => "lib-yaz0",
         EncodeAlgo::MK8 => "mk8",
+        EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION => "mkw (C++)",
         // _ => "invalid",
     }
 }
@@ -120,7 +123,7 @@ fn main() {
         .title(vec![
             "Method".cell(),
             format!("Time (Avg {} runs)", RUNS).cell(),
-            format!("Compression Rate (Avg {} runs)", RUNS).cell(),
+            format!("Compression Rate").cell(),
             "File Size".to_string().cell(),
         ])
         .border(
