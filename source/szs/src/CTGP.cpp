@@ -53,6 +53,19 @@ struct Yaz_file_struct {
     return copyLen;
   }
 
+  void writeSzsDirectByteCopyToCodeBuf(u8 val) {
+    codeBuffer[codeBufferLocation] = val;
+    codeBufferLocation += 1;
+    codeBufferIndex -= 1;
+
+    codeBuffer[0] |= (u8)(1 << codeBufferIndex);
+  }
+
+  void pushBackBuf(u8 val) {
+    backBuffer[backBufferLocation] = val;
+    backBufferLocation = (backBufferLocation + 1) % BACK_BUF_SIZE;
+  }
+
   WRITE_FN file_write;
   u32 _0x4;
   int iteration;
@@ -397,73 +410,43 @@ static std::optional<int> HandleResidue(Yaz_file_struct* file, int* reent) {
 }
 
 static int FinalizeSimple(Yaz_file_struct* file, int* reent, int value) {
-  bool bVar1;
-  u32 copyLen;
   u8 bVar5;
   int iVar7;
   int iVar10;
-  u32 uVar17;
 
-  iVar7 = 0;
-  while (iVar7 == 0) {
-    uVar17 = file->byteShifterRemaining;
-    copyLen = (u32)file->codeBufferIndex;
-    iVar7 = uVar17 + 1;
-    bVar1 = copyLen == 0;
-    iVar10 = uVar17 * -8 + 0x20;
-    while (true) {
-      iVar7 -= 1;
-      if (iVar7 == 0) {
-        if ((!bVar1) &&
-            (iVar7 = Yaz_buffer_putcode_r(reent, (u8*)file), iVar7 != 0x0)) {
-          return -1;
-        }
-        if (file->field12_0x9028 == 0x0) {
-          return 0;
-        }
-        copyLen =
-            file->file_write(file->field13_0x902c, 1, file->field12_0x9028);
-        if (copyLen == file->field12_0x9028) {
-          return 0;
-        }
-        return -1;
-      }
-      file->backBuffer[file->backBufferLocation] =
-          (u8)(file->field5_0x1010 >> iVar10);
-      file->backBufferLocation = (file->backBufferLocation + 1) % BACK_BUF_SIZE;
-      if (bVar1) {
-        file->codeBuffer[0] = (u8)copyLen;
-        bVar5 = 0x80;
-        copyLen = 0x7;
-        // Copied
-        uVar17 = uVar17 - 1;
-        iVar10 = iVar10 + 0x8;
-        file->codeBuffer[1] = (u8)(file->field5_0x1010 >>
-                                   file->byteShifterRemaining * (-0x8 + 0x20));
-        file->codeBufferLocation = 2;
-        file->codeBufferIndex = (u8)copyLen;
-        file->codeBuffer[0] |= bVar5;
-        file->byteShifterRemaining = uVar17;
-      } else {
-        copyLen = copyLen - 1 & 0xff;
-        bVar5 = (u8)(1 << copyLen);
-        // Copied
-        uVar17 = uVar17 - 1;
-        iVar10 = iVar10 + 0x8;
-        file->codeBuffer[(u32)file->codeBufferLocation] =
-            (u8)(file->field5_0x1010 >>
-                 file->byteShifterRemaining * (-0x8 + 0x20));
-        file->codeBufferLocation += 1;
-        file->codeBufferIndex = (u8)copyLen;
-        file->codeBuffer[0] |= bVar5;
-        file->byteShifterRemaining = uVar17;
-      }
+  while (true) {
+  START:
 
-      if (copyLen == 0) {
-        break;
+    iVar10 = file->byteShifterRemaining * -8 + 0x20;
+    for (iVar7 = file->byteShifterRemaining; iVar7 != 0; --iVar7) {
+      file->pushBackBuf(file->field5_0x1010 >> iVar10);
+      iVar10 += 8;
+      if (file->codeBufferIndex == 0) {
+        file->codeBufferIndex = 8;
+        file->codeBufferLocation = 1;
+        file->codeBuffer[0] = 0;
+      }
+      file->writeSzsDirectByteCopyToCodeBuf(
+          file->field5_0x1010 >> file->byteShifterRemaining * (-8 + 0x20));
+      file->byteShifterRemaining -= 1;
+      if (file->codeBufferIndex == 0) {
+        if (Yaz_buffer_putcode_r(reent, (u8*)file) != 0) {
+          return value;
+        }
+        goto START;
       }
     }
-    iVar7 = Yaz_buffer_putcode_r(reent, (u8*)file);
+    if (file->codeBufferIndex != 0 && Yaz_buffer_putcode_r(reent, (u8*)file)) {
+      return -1;
+    }
+    if (file->field12_0x9028 == 0) {
+      return 0;
+    }
+    if (file->file_write(file->field13_0x902c, 1, file->field12_0x9028) ==
+        file->field12_0x9028) {
+      return 0;
+    }
+    return -1;
   }
   return value;
 }
