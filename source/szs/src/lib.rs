@@ -775,6 +775,236 @@ pub fn encode_yay0(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, Error> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sha2::{Digest, Sha256};
+    use std::fs;
+    use std::path::Path;
+
+    fn calculate_hash(data: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(data);
+        format!("{:x}", hasher.finalize())
+    }
+
+    fn test_encode_helper(src: &[u8], algo: EncodeAlgo, expected_hash: &str, is_yay0: bool) {
+        let encoded = if is_yay0 {
+            encode_yay0(src, algo).unwrap()
+        } else {
+            encode(src, algo).unwrap()
+        };
+        let hash = calculate_hash(&encoded);
+        assert_eq!(hash, expected_hash);
+    }
+
+    fn read_file(path: &str) -> Vec<u8> {
+        fs::read(path).expect("Unable to read file")
+    }
+
+    #[test]
+    fn test_encode_worst_case_szs() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::WorstCaseEncoding,
+            "f13a115669f980c7ffde6373c42233c2a9eb2a86f14f75e6747604cddc2d161e",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_worst_case_szp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::WorstCaseEncoding,
+            "e2143bd7477ab063c5cf76e35efd75c9b5cdc03dc87af7f3f73f7f392d734832",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_encode_mkw() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::MKW,
+            "4671c3aeb8e6c50237043af870bd1ed8cae20a56c9f44a5e793caa677f656774",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_mkw_szp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::MKW,
+            "b6d8d06846a29b966f8fc19779f886f3bcae906d492df9d75ac1ba055c6592e2",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_encode_mkw_sp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::MkwSp,
+            "1e69f92435555c89e092208685480f7b4a1aa3c033fdcdb953397bd24c45a181",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_mkw_sp_szp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::MkwSp,
+            "0f4ded82b8a5718d0f82c98ba935ed662c8e85c50b9fb0dc3e63f89186328e1a",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_encode_ctgp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::CTGP,
+            "423e6d6b89842350f2e825cfaed439f253f597a43d67dedf74c27f432d82abd5",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_ctgp_szp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::CTGP,
+            "7fa1c8b791f9009638edf8f4cca14480281114002004c8fb987bbf6c6c18c864",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_encode_haroohie() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::Haroohie,
+            "e1042ca2e8a138c6b39b45b2c6e7aba794f949949f73eaa11a739248ad67e969",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_haroohie_szp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::Haroohie,
+            "ef7dc6f5ddb3141841b6b85f0dfc34a206f973c7c458fc69bbb0c72f05439880",
+            true,
+        );
+    }
+    #[test]
+    fn test_encode_ctlib() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::CTLib,
+            "1e66fd9b33361b07df33442268b0c2e36120538515a528edd7484889767032ad",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_ctlib_szp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::CTLib,
+            "38896b86b05b8329bdda5447927efa594b9d149522105c9e051cfd9c9e628c0c",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_encode_libyaz0() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::LibYaz0,
+            "fb8a40ee24422c79cdb8f6525a05d463232830fc39bc29f2db6dfc6902b54827",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_libyaz0_szp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::LibYaz0,
+            "7ac44e628252a4d252c0f9c21ba7e28480ff825b6e6b43fb1f06093d0106e486",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_encode_mk8() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::MK8,
+            "13388da38a6f09cf95a2372a8b0a93f1b87b72bf2f1ff0e898e9d3afa7a5999d",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_mk8_szp() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::MK8,
+            "17db5fa76ceb987b706a87fe1a0392edfc81915c605c674306614ead48b5efe8",
+            true,
+        );
+    }
+
+    #[test]
+    fn test_decode_yaz0_mk8() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let encoded = encode(&src, EncodeAlgo::MK8).unwrap();
+        let decoded = decode(&encoded).unwrap();
+        let hash = calculate_hash(&decoded);
+        assert_eq!(hash, calculate_hash(&src));
+    }
+
+    #[test]
+    fn test_decode_yay0_mk8() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let encoded = encode_yay0(&src, EncodeAlgo::MK8).unwrap();
+        let decoded = decode_yay0(&encoded).unwrap();
+        let hash = calculate_hash(&decoded);
+        assert_eq!(hash, calculate_hash(&src));
+    }
+
+    #[test]
+    fn test_decode_yaz0_mkw() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let encoded = encode(&src, EncodeAlgo::Nintendo).unwrap();
+        let decoded = decode(&encoded).unwrap();
+        let hash = calculate_hash(&decoded);
+        assert_eq!(hash, calculate_hash(&src));
+    }
+    #[test]
+    fn test_decode_yay0_mkw() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let encoded = encode_yay0(&src, EncodeAlgo::Nintendo).unwrap();
+        let decoded = decode_yay0(&encoded).unwrap();
+        let hash = calculate_hash(&decoded);
+        assert_eq!(hash, calculate_hash(&src));
+    }
+}
+
 //--------------------------------------------------------
 //
 // C BINDINGS BEGIN
