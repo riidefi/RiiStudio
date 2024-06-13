@@ -123,11 +123,7 @@ fn main() {
         build
             .include(".")
             .include("./src/")
-            .include("../../../librii/g3d")
-            .include("../../../")
-            .include("../../../vendor")
-            .include("../../../plate/include")
-            .include("../../../plate/vendor")
+            .include("./src/vendor/")
             .file("./src/librii/g3d/io/TextureIO.cpp")
             .file("./src/librii/g3d/io/AnimIO.cpp")
             .file("./src/librii/g3d/io/TevIO.cpp")
