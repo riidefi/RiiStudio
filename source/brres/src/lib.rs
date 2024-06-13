@@ -29,7 +29,7 @@ pub struct Archive {
     pub srts: Vec<JSONSrtData>,
 
     /// Texture data (pattern) animation (e.g. like a GIF)
-    pub pats: Vec<serde_json::Value>,
+    pub pats: Vec<JSONPatAnim>,
 
     /// GPU uniform (color) animation
     pub clrs: Vec<serde_json::Value>,
@@ -1081,5 +1081,10 @@ mod tests4 {
     #[test]
     fn test_validate_binary_is_lossless_fur_rabbits_chr0() {
         test_validate_binary_is_lossless("../../tests/samples/fur_rabbits-chr0.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_luigi_circuit() {
+        // PAT0
+        test_validate_binary_is_lossless("../../tests/samples/luigi_circuit.brres", true)
     }
 }

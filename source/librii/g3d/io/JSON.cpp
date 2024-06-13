@@ -1828,22 +1828,128 @@ struct JSONClrData {
   }
 };
 
-struct JSONPatData {
-  DEFINE_SERIALIZABLE(JSONPatData, name)
+struct JSONPatKeyFrame {
+  float frame;
+  u16 texture;
+  u16 palette;
 
+  DEFINE_SERIALIZABLE(JSONPatKeyFrame, frame, texture, palette)
+
+  static JSONPatKeyFrame from(float frame, const PAT0KeyFrame& keyFrame) {
+    return {frame, keyFrame.texture, keyFrame.palette};
+  }
+
+  PAT0KeyFrame to() const { return {texture, palette}; }
+};
+
+struct JSONPatTrack {
+  std::vector<JSONPatKeyFrame> keyframes;
+  u16 reserved;
+  float progressPerFrame;
+
+  DEFINE_SERIALIZABLE(JSONPatTrack, keyframes, reserved, progressPerFrame)
+
+  static JSONPatTrack from(const PAT0Track& track) {
+    JSONPatTrack jsonTrack;
+    for (const auto& [frame, keyFrame] : track.keyframes) {
+      jsonTrack.keyframes.push_back(JSONPatKeyFrame::from(frame, keyFrame));
+    }
+    jsonTrack.reserved = track.reserved;
+    jsonTrack.progressPerFrame = track.progressPerFrame;
+    return jsonTrack;
+  }
+
+  PAT0Track to() const {
+    PAT0Track track;
+    for (const auto& frame : keyframes) {
+      track.keyframes[frame.frame] = frame.to();
+    }
+    track.reserved = reserved;
+    track.progressPerFrame = progressPerFrame;
+    return track;
+  }
+};
+
+struct JSONPatSampler {
   std::string name;
+  u32 flags;
+  std::vector<u32> tracks;
 
-  static JSONPatData from(const librii::g3d::BinaryTexPat& pat,
-                          JsonWriteCtx& ctx) {
-    JSONPatData json;
-    json.name = pat.name;
+  DEFINE_SERIALIZABLE(JSONPatSampler, name, flags, tracks)
+
+  static JSONPatSampler from(const PatMaterial& material) {
+    JSONPatSampler jsonSampler;
+    jsonSampler.name = material.name;
+    jsonSampler.flags = material.flags;
+    for (const auto& track : material.samplers) {
+      jsonSampler.tracks.push_back(track);
+    }
+    return jsonSampler;
+  }
+
+  PatMaterial to() const {
+    PatMaterial material;
+    material.name = name;
+    material.flags = flags;
+    for (const auto& jsonTrack : tracks) {
+      material.samplers.push_back(jsonTrack);
+    }
+    return material;
+  }
+};
+
+struct JSONPatAnim {
+  std::vector<JSONPatSampler> samplers;
+  std::vector<JSONPatTrack> tracks;
+  std::vector<std::string> textureNames;
+  std::vector<std::string> paletteNames;
+  std::vector<u32> runtimeTextures;
+  std::vector<u32> runtimePalettes;
+  std::string name;
+  std::string sourcePath;
+  u16 frameDuration;
+  AnimationWrapMode wrapMode;
+
+  DEFINE_SERIALIZABLE(JSONPatAnim, samplers, tracks, textureNames, paletteNames,
+                      runtimeTextures, runtimePalettes, name, sourcePath,
+                      frameDuration, wrapMode)
+
+  static JSONPatAnim from(const PatAnim& anim) {
+    JSONPatAnim json;
+    json.textureNames = anim.textureNames;
+    json.paletteNames = anim.paletteNames;
+    json.runtimeTextures = anim.runtimeTextures;
+    json.runtimePalettes = anim.runtimePalettes;
+    json.name = anim.name;
+    json.sourcePath = anim.sourcePath;
+    json.frameDuration = anim.frameDuration;
+    json.wrapMode = anim.wrapMode;
+    for (const auto& sampler : anim.materials) {
+      json.samplers.push_back(JSONPatSampler::from(sampler));
+    }
+    for (const auto& track : anim.tracks) {
+      json.tracks.push_back(JSONPatTrack::from(track));
+    }
     return json;
   }
 
-  librii::g3d::BinaryTexPat to(std::span<const std::vector<u8>> buffers) const {
-    librii::g3d::BinaryTexPat pat;
-    pat.name = name;
-    return pat;
+  PatAnim to() const {
+    PatAnim anim;
+    anim.textureNames = textureNames;
+    anim.paletteNames = paletteNames;
+    anim.runtimeTextures = runtimeTextures;
+    anim.runtimePalettes = runtimePalettes;
+    anim.name = name;
+    anim.sourcePath = sourcePath;
+    anim.frameDuration = frameDuration;
+    anim.wrapMode = wrapMode;
+    for (const auto& jsonSampler : samplers) {
+      anim.materials.push_back(jsonSampler.to());
+    }
+    for (const auto& jsonTrack : tracks) {
+      anim.tracks.push_back(jsonTrack.to());
+    }
+    return anim;
   }
 };
 
@@ -1874,7 +1980,7 @@ struct JSONArchive {
   std::vector<JSONTextureData> textures;
   std::vector<JSONChrData> chrs;
   std::vector<JSONClrData> clrs;
-  std::vector<JSONPatData> pats;
+  std::vector<JSONPatAnim> pats;
   std::vector<JSONSrtData> srts;
   std::vector<JSONVisData> viss;
 
@@ -1899,7 +2005,7 @@ struct JSONArchive {
     }
 
     for (const auto& pat : original.pats) {
-      archive.pats.emplace_back(JSONPatData::from(pat, c));
+      archive.pats.emplace_back(JSONPatAnim::from(pat));
     }
 
     for (const auto& srt : original.srts) {
@@ -1933,7 +2039,7 @@ struct JSONArchive {
     }
 
     for (const auto& jsonPat : pats) {
-      result.pats.push_back(jsonPat.to(buffers));
+      result.pats.push_back(jsonPat.to());
     }
 
     for (const auto& jsonSrt : srts) {

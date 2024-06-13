@@ -109,7 +109,7 @@ pub struct JsonArchive {
     pub chrs: Vec<JSONChrData>,
     pub clrs: Vec<serde_json::Value>,
     pub models: Vec<JsonModel>,
-    pub pats: Vec<serde_json::Value>,
+    pub pats: Vec<JSONPatAnim>,
     pub srts: Vec<JSONSrtData>,
     pub textures: Vec<JsonTexture>,
     pub viss: Vec<serde_json::Value>,
@@ -463,6 +463,41 @@ pub struct JSONSrtData {
     pub sourcePath: String,
     pub frameDuration: u16,
     pub xformModel: u32,
+    pub wrapMode: AnimationWrapMode,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONPatKeyFrame {
+    pub frame: f32,
+    pub texture: u16,
+    pub palette: u16,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONPatTrack {
+    pub keyframes: Vec<JSONPatKeyFrame>,
+    pub reserved: u16,
+    pub progressPerFrame: f32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONPatSampler {
+    pub name: String,
+    pub flags: u32,
+    pub tracks: Vec<u32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONPatAnim {
+    pub samplers: Vec<JSONPatSampler>,
+    pub tracks: Vec<JSONPatTrack>,
+    pub textureNames: Vec<String>,
+    pub paletteNames: Vec<String>,
+    pub runtimeTextures: Vec<u32>,
+    pub runtimePalettes: Vec<u32>,
+    pub name: String,
+    pub sourcePath: String,
+    pub frameDuration: u16,
     pub wrapMode: AnimationWrapMode,
 }
 

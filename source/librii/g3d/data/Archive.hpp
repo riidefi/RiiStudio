@@ -15,7 +15,7 @@ namespace librii::g3d {
 struct ChrAnim;
 struct SrtAnim;
 struct BinaryVis;
-struct BinaryTexPat;
+struct PatAnim;
 struct BinaryClr;
 
 struct BinaryArchive;
@@ -25,7 +25,7 @@ struct Archive {
   std::vector<TextureData> textures;
   std::vector<ChrAnim> chrs;
   std::vector<BinaryClr> clrs;
-  std::vector<BinaryTexPat> pats;
+  std::vector<PatAnim> pats;
   std::vector<librii::g3d::SrtAnim> srts;
   std::vector<librii::g3d::BinaryVis> viss;
 

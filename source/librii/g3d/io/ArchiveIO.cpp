@@ -480,7 +480,9 @@ Result<Archive> Archive::from(const BinaryArchive& archive,
   tmp.textures = archive.textures;
   tmp.chrs = archive.chrs;
   tmp.clrs = archive.clrs;
-  tmp.pats = archive.pats;
+  for (auto& pat : archive.pats) {
+    tmp.pats.push_back(TRY(PatAnim::from(pat)));
+  }
 
   for (auto& srt : archive.srts) {
     auto srt_warn = [&](std::string_view msg) {
@@ -507,7 +509,9 @@ Result<BinaryArchive> Archive::binary() const {
   tmp.textures = textures;
   tmp.chrs = chrs;
   tmp.clrs = clrs;
-  tmp.pats = pats;
+  for (auto& pat : pats) {
+    tmp.pats.push_back(pat.to());
+  }
   for (auto& srt : srts) {
     // TODO: Actually bind to the proper model?
     tmp.srts.emplace_back(

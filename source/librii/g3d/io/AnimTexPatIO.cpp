@@ -224,4 +224,114 @@ void BinaryTexPat::mergeIdenticalTracks() {
   tracks = std::move(compacted.uniqueElements);
 }
 
+Result<PatAnim> PatAnim::from(const BinaryTexPat& binaryTexPat) {
+  PatAnim anim;
+  anim.textureNames = binaryTexPat.textureNames;
+  anim.paletteNames = binaryTexPat.paletteNames;
+  anim.runtimeTextures = binaryTexPat.runtimeTextures;
+  anim.runtimePalettes = binaryTexPat.runtimePalettes;
+  anim.name = binaryTexPat.name;
+  anim.sourcePath = binaryTexPat.sourcePath;
+  anim.frameDuration = binaryTexPat.frameDuration;
+  anim.wrapMode = binaryTexPat.wrapMode;
+
+  // Add tracks first
+  for (const auto& track : binaryTexPat.tracks) {
+    // Else we can't distinguish from const.
+    EXPECT(track.keyframes.size() >= 2);
+    anim.tracks.push_back(track);
+  }
+
+  // Add nodes with track indices
+  for (const auto& material : binaryTexPat.materials) {
+    PatMaterial patNode;
+    patNode.name = material.name;
+    patNode.flags = material.flags;
+    for (const auto& sampler : material.samplers) {
+      if (std::holds_alternative<u32>(sampler)) {
+        patNode.samplers.push_back(std::get<u32>(sampler));
+      } else {
+        const PAT0KeyFrame& keyframe = std::get<PAT0KeyFrame>(sampler);
+        // Add a new Const track
+        PAT0Track constTrack;
+        constTrack.keyframes[0.0f] = keyframe;
+        anim.tracks.push_back(constTrack);
+        patNode.samplers.push_back(anim.tracks.size() - 1);
+      }
+    }
+    anim.materials.push_back(patNode);
+  }
+
+  return anim;
+}
+
+BinaryTexPat PatAnim::to() const {
+  BinaryTexPat binaryTexPat;
+  binaryTexPat.textureNames = textureNames;
+  binaryTexPat.paletteNames = paletteNames;
+  binaryTexPat.runtimeTextures = runtimeTextures;
+  binaryTexPat.runtimePalettes = runtimePalettes;
+  binaryTexPat.name = name;
+  binaryTexPat.sourcePath = sourcePath;
+  binaryTexPat.frameDuration = frameDuration;
+  binaryTexPat.wrapMode = wrapMode;
+
+  // NOTE: ASSUMES CONST TRACKS ARE AT THE END!
+
+  bool is_const_mode = false;
+  for (const auto& track : tracks) {
+    if (track.keyframes.size() == 1) {
+      is_const_mode = true;
+      continue;
+    }
+    if (is_const_mode) {
+      assert(false && "Invalid track ordering. CONST tracks must be "
+                      "contiguous and final");
+      exit(1);
+    }
+    binaryTexPat.tracks.push_back(track);
+  }
+
+  // Convert and add nodes
+  for (const auto& node : materials) {
+    PAT0Material pat0Material;
+    pat0Material.name = node.name;
+    pat0Material.flags = node.flags;
+
+    for (const auto& trackIndex : node.samplers) {
+      if (trackIndex >= tracks.size()) {
+        assert(false && "Track index out of bounds");
+        exit(1);
+      }
+      const auto& track = tracks[trackIndex];
+      if (track.keyframes.size() == 1 &&
+          track.keyframes.begin()->first == 0.0f) {
+        pat0Material.samplers.push_back(track.keyframes.begin()->second);
+      } else {
+        pat0Material.samplers.push_back(trackIndex);
+      }
+    }
+
+    binaryTexPat.materials.push_back(pat0Material);
+  }
+
+  return binaryTexPat;
+}
+
+Result<void> PatAnim::read(oishii::BinaryReader& reader) {
+  BinaryTexPat tmp;
+  TRY(tmp.read(reader));
+  *this = TRY(PatAnim::from(tmp));
+
+  return {};
+}
+
+Result<void> PatAnim::write(oishii::Writer& writer, NameTable& names,
+                            u32 addrBrres) const {
+  auto bin = to();
+  TRY(bin.write(writer, names, addrBrres));
+
+  return {};
+}
+
 } // namespace librii::g3d

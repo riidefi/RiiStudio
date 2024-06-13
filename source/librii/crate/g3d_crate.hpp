@@ -70,7 +70,7 @@ struct CrateAnimation {
   std::vector<g3d::TextureData> tex;  // All valid .tex0s
   std::vector<g3d::SrtAnim> srt;      // All valid .srt archives
   std::vector<g3d::BinaryClr> clr;    // .clr0
-  std::vector<g3d::BinaryTexPat> pat; // .pat0
+  std::vector<g3d::PatAnim> pat; // .pat0
 
   std::string metadata;
   nlohmann::json metadata_json{

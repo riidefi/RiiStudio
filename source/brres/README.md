@@ -27,11 +27,12 @@ Implements a Rust layer on top of `librii::g3d`'s JSON export-import layer. Impo
 | MDL0   | Yes       |
 | TEX0   | Yes       |
 | SRT0   | Yes       |
-| PAT0   | No        |
+| PAT0   | Yes*      |
 | CLR0   | No        |
-| CHR0   | Yes       |
+| CHR0   | Yes*      |
 | VIS0   | No        |
 
+* Restrictions on track ordering when editing.
 
 ## Tests
 Unit tests are being used to validate correctness. Run the suite with `cargo test`

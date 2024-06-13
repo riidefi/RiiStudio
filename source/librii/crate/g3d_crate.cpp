@@ -364,19 +364,9 @@ Result<void> RetargetCrateAnimation(CrateAnimation& preset) {
   return {};
 }
 
-struct SimpleTransaction {
-  SimpleTransaction() {
-    trans.callback = [](...) {};
-  }
-
-  kpi::LightIOTransaction trans;
-};
-
 std::unique_ptr<librii::g3d::Archive> ReadBRRES(const std::vector<u8>& buf,
                                                 std::string path) {
-  SimpleTransaction trans;
-
-  auto arc = librii::g3d::Archive::fromMemory(buf, path, trans.trans);
+  auto arc = librii::g3d::Archive::fromMemory(buf, path);
   if (!arc) {
     return nullptr;
   }
@@ -523,25 +513,31 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
     }
   }
   for (auto& pat : scene->pats) {
-    librii::g3d::BinaryTexPat mut = pat;
+    librii::g3d::PatAnim mut = pat;
     std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
 
     std::vector<u32> referenced;
     for (auto& mat : mut.materials) {
       for (auto& s : mat.samplers) {
+#if 0
         if (auto* u = std::get_if<u32>(&s)) {
-          EXPECT(*u < mut.tracks.size());
-          auto& track = mut.tracks[*u];
-          for (auto& [idx, f] : track.keyframes) {
-            // For now, force palette to 0 as BrawlBox sets it to some other
-            // value
-            f.palette = 0;
-            EXPECT(f.palette == 0, "PAT0: Palettes are not supported; each "
-                                   "keyframe should have paletteIdx of 0");
-            EXPECT(f.texture < mut.textureNames.size());
-            referenced.emplace_back(f.texture);
-          }
-        } else if (auto* f = std::get_if<librii::g3d::PAT0KeyFrame>(&s)) {
+#else
+        std::optional<u32> u = s;
+#endif
+        EXPECT(*u < mut.tracks.size());
+        auto& track = mut.tracks[*u];
+        for (auto& [idx, f] : track.keyframes) {
+          // For now, force palette to 0 as BrawlBox sets it to some other
+          // value
+          f.palette = 0;
+          EXPECT(f.palette == 0, "PAT0: Palettes are not supported; each "
+                                 "keyframe should have paletteIdx of 0");
+          EXPECT(f.texture < mut.textureNames.size());
+          referenced.emplace_back(f.texture);
+        }
+#if 0
+        }
+		else if (auto* f = std::get_if<librii::g3d::PAT0KeyFrame>(&s)) {
           // For now, force palette to 0 as BrawlBox sets it to some other value
           f->palette = 0;
           EXPECT(f->palette == 0, "PAT0: Palettes are not supported; each "
@@ -550,6 +546,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
         } else {
           return std::unexpected("Invalid PAT0");
         }
+#endif
       }
     }
 
