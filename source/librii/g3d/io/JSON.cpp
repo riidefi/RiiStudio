@@ -26,6 +26,9 @@
 #endif
 #include <rsl/EnumCast.hpp>
 
+// Prevent conflicts with other users of the library
+#define JS LIBRII_G3D_IO_JSON_JS
+
 #define JS_STL_ARRAY
 #define JS_STD_OPTIONAL
 #include <vendor/json_struct.h>
