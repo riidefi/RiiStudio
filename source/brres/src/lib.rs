@@ -1111,4 +1111,9 @@ mod tests4 {
     fn test_validate_binary_is_lossless_brvia() {
         test_validate_binary_is_lossless("../../tests/samples/brvia.brres", true)
     }
+    #[test]
+    fn test_driver_model() {
+        // Bunch of CHR0
+        test_validate_binary_is_lossless("../../tests/samples/driver_model.brres", true)
+    }
 }
