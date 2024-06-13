@@ -9,9 +9,22 @@
 #include <rsl/ArrayUtil.hpp>
 #include <rsl/WriteFile.hpp>
 
-#include <brres/lib/brres-sys/include/brres_sys.h>
+const char GIT_TAG[] __attribute__((weak)) = "`brres` pre-release";
+const char RII_TIME_STAMP[] __attribute__((weak)) = "`brres` pre-release";
 
 namespace librii::crate {
+
+Result<g3d::G3dMaterialData> ReadMDL0Mat(std::span<const u8> file) {
+  oishii::BinaryReader reader(file, "Unknown MDL0Mat", std::endian::big);
+
+  g3d::G3dMaterialData mat;
+  const bool ok = g3d::readMaterial(mat, reader, /* ignore_tev */ true);
+  if (!ok) {
+    return std::unexpected("Failed to read MDL0Mat file");
+  }
+
+  return mat;
+}
 
 Result<std::vector<u8>> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
   oishii::Writer writer(std::endian::big);
@@ -58,6 +71,38 @@ Result<std::vector<u8>> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
   linker.resolve();
   linker.printLabels();
   return writer.takeBuf();
+}
+
+Result<g3d::G3dShader> ReadMDL0Shade(std::span<const u8> file) {
+  // Skip first 8 bytes
+  // TODO: Clean this up
+  file = file.subspan(8);
+
+  oishii::BinaryReader reader(file, "Unknown MDL0Shade", std::endian::big);
+
+  // This function is a bit more complex, as we normally assume materials are
+  // read before shaders; here we don't make such assumptions.
+
+  gx::LowLevelGxMaterial gx_mat;
+  // So the DL parser doesn't discard IndOrders
+  gx_mat.indirectStages.resize(4);
+  // Trust the stage count since we have not necessarily read the material yet.
+  TRY(g3d::ReadTev(gx_mat, reader, /* tev_addr */ 0,
+                   /* trust_stagecount */ true, /* brawlbox_bug */ true));
+
+  g3d::G3dShader shader;
+
+  shader.mSwapTable = gx_mat.mSwapTable;
+
+  shader.mIndirectOrders.resize(gx_mat.indirectStages.size());
+  for (size_t i = 0; i < gx_mat.indirectStages.size(); ++i) {
+    shader.mIndirectOrders[i] = gx_mat.indirectStages[i].order;
+  }
+  // The true size is set by the material later
+
+  shader.mStages = gx_mat.mStages;
+
+  return shader;
 }
 
 std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
@@ -121,6 +166,28 @@ Result<std::vector<u8>> WriteSRT0(const g3d::BinarySrt& arc) {
   return writer.takeBuf();
 }
 
+Result<g3d::G3dMaterialData>
+ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
+                         const g3d::G3dShader& tev) {
+  const size_t num_istage = mat.indirectStages.size();
+  EXPECT(tev.mIndirectOrders.size() >= num_istage,
+         "Material and shader were built for a different number of indirect "
+         "stages.");
+
+  g3d::G3dMaterialData tmp = mat;
+  tmp.mSwapTable = tev.mSwapTable;
+  for (size_t i = 0; i < mat.indirectStages.size(); ++i) {
+    tmp.indirectStages[i].order =
+        i < tev.mIndirectOrders.size() ? tev.mIndirectOrders[i] : gx::NullOrder;
+  }
+  // Override with material stage count
+  const size_t num_tevstages = mat.mStages.size();
+  tmp.mStages = tev.mStages;
+  tmp.mStages.resize(num_tevstages);
+
+  return tmp;
+}
+
 static std::string FormatRange(auto&& range, auto&& functor) {
   std::string tmp;
   for (const auto& it : range) {
@@ -133,10 +200,115 @@ static std::string FormatRange(auto&& range, auto&& functor) {
   return tmp;
 }
 
-Result<CrateAnimation> ReadCrateAnimation(std::filesystem::path path) {
-  auto s = path.string();
-  auto bytes = TRY(brres::read_mdl0mat_folder_preset(s));
-  return ReadRSPreset(bytes);
+Result<CrateAnimationPaths>
+ScanCrateAnimationFolder(std::filesystem::path path) {
+  EXPECT(std::filesystem::is_directory(path),
+         "ScanCrateAnimationFolder takes in a folder, not a file.");
+  CrateAnimationPaths tmp;
+  tmp.preset_name = path.stem().string();
+  for (const auto& entry : std::filesystem::directory_iterator{path}) {
+    const auto extension = entry.path().extension();
+    if (extension == ".mdl0mat") {
+      if (!tmp.mdl0mat.empty()) {
+        return std::unexpected("Rejecting: Multiple .mdl0mat files in folder");
+      }
+      tmp.mdl0mat = entry.path();
+    } else if (extension == ".mdl0shade") {
+      if (!tmp.mdl0shade.empty()) {
+        return std::unexpected(
+            "Rejecting: Multiple .mdl0shade files in folder");
+      }
+      tmp.mdl0shade = entry.path();
+    } else if (extension == ".srt0") {
+      tmp.srt0.emplace_back(entry.path());
+    } else if (extension == ".tex0") {
+      tmp.tex0.emplace_back(entry.path());
+    }
+    // Ignore other extensions
+  }
+  if (tmp.mdl0mat.empty()) {
+    return std::unexpected("Missing .mdl0mat definition");
+  }
+  if (tmp.mdl0shade.empty()) {
+    return std::unexpected("Missing .mdl0shade definition");
+  }
+  return tmp;
+}
+
+Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
+  auto mdl0mat = OishiiReadFile2(paths.mdl0mat.string());
+  if (!mdl0mat) {
+    return std::unexpected(std::format("Failed to read .mdl0mat at \"{}\"",
+                                       paths.mdl0mat.string()));
+  }
+  auto mdl0shade = OishiiReadFile2(paths.mdl0shade.string());
+  if (!mdl0shade) {
+    return std::unexpected(std::format("Failed to read .mdl0shade at \"{}\"",
+                                       paths.mdl0shade.string()));
+  }
+  std::vector<std::vector<u8>> tex0s;
+  for (auto& x : paths.tex0) {
+    auto tex0 = OishiiReadFile2(x.string());
+    if (!tex0) {
+      return std::unexpected(
+          std::format("Failed to read .tex0 at \"{}\"", x.string()));
+    }
+    tex0s.push_back(std::move(*tex0));
+  }
+  std::vector<std::vector<u8>> srt0s;
+  for (auto& x : paths.srt0) {
+    auto srt0 = OishiiReadFile2(x.string());
+    if (!srt0) {
+      return std::unexpected(
+          std::format("Failed to read .srt0 at \"{}\"", x.string()));
+    }
+    srt0s.push_back(std::move(*srt0));
+  }
+  auto mat = ReadMDL0Mat(*mdl0mat);
+  if (!mat.has_value()) {
+    return std::unexpected(std::format("Failed to parse material at \"{}\": {}",
+                                       paths.mdl0mat.string(), mat.error()));
+  }
+  auto shade = ReadMDL0Shade(*mdl0shade);
+  if (!shade.has_value()) {
+    return std::unexpected(std::format("Failed to parse shader at \"{}\": {}",
+                                       paths.mdl0shade.string(),
+                                       shade.error()));
+  }
+  CrateAnimation tmp;
+  for (size_t i = 0; i < tex0s.size(); ++i) {
+    auto tex = g3d::ReadTEX0(tex0s[i]);
+    if (!tex.has_value()) {
+      if (i >= paths.tex0.size()) {
+        return std::unexpected(tex.error());
+      }
+      return std::unexpected(std::format("Failed to parse TEX0 at \"{}\": {}",
+                                         paths.tex0[i].string(), tex.error()));
+    }
+    tmp.tex.push_back(*tex);
+  }
+  for (size_t i = 0; i < srt0s.size(); ++i) {
+    auto srt = ReadSRT0(srt0s[i]);
+    if (!srt.has_value()) {
+      if (i >= paths.srt0.size()) {
+        return std::unexpected(srt.error());
+      }
+      return std::unexpected(std::format("Failed to parse SRT0 at \"{}\": {}",
+                                         paths.srt0[i].string(), srt.error()));
+    }
+    tmp.srt.push_back(*srt);
+  }
+
+  {
+    auto merged = ApplyG3dShaderToMaterial(*mat, *shade);
+    if (!merged.has_value()) {
+      return std::unexpected(std::format(
+          "Failed to combine material + shader: {}", merged.error()));
+    }
+    tmp.mat = *merged;
+  }
+  tmp.mat.name = paths.preset_name;
+  return tmp;
 }
 
 Result<void> RetargetCrateAnimation(CrateAnimation& preset) {

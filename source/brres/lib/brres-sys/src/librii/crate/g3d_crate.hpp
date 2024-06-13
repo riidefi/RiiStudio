@@ -14,10 +14,40 @@ struct G3dShader;
 
 namespace librii::crate {
 
+//! BrawlCrate-generated material definition. Does not include TEV/Swap/Indirect
+//! Orders.
+//!
+//! mStages/mIndirectStages[...].indOrder will be set to default values; their
+//! size will be valid, though.
+//
+[[nodiscard]] Result<g3d::G3dMaterialData>
+ReadMDL0Mat(std::span<const u8> file);
+
 [[nodiscard]] Result<std::vector<u8>>
 WriteMDL0Mat(const g3d::G3dMaterialData& mat);
 
+//! BrawlCrate-generated TEV definition. Includes Swap/Indirect Orders too.
+//!
+//! There will always be 4 indirectOrders provided; use the material's GEN_MODE
+//! to know how many are actually used. Also, the stage count in the shader is
+//! trusted here, although it may be unused by the game/runtime library.
+//!
+[[nodiscard]] Result<g3d::G3dShader> ReadMDL0Shade(std::span<const u8> file);
+
 [[nodiscard]] std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat);
+
+//! Applies the three fields in G3dShader to G3dMaterialData.
+//!
+//! If the material has 2 TEV stages already, it will only grab the first 2 TEV
+//! stages of the shader. This is because a MDL0Mat could only use the first few
+//! stages of a MDL0Shade. So here we just trust the material.
+//!
+//! Likewise, the number of indirectStages in the material determines the number
+//! of indirectOrders pulled from the G3dShader.
+//!
+[[nodiscard]] Result<g3d::G3dMaterialData>
+ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
+                         const g3d::G3dShader& tev);
 
 //! A "SRT0" file is effectively a .brtsa archive without the enclosing
 //! structure.
@@ -25,6 +55,15 @@ WriteMDL0Mat(const g3d::G3dMaterialData& mat);
 [[nodiscard]] Result<g3d::SrtAnim> ReadSRT0(std::span<const u8> file);
 
 [[nodiscard]] Result<std::vector<u8>> WriteSRT0(const g3d::BinarySrt& arc);
+
+struct CrateAnimationPaths {
+  std::string preset_name; // For sake of preset name
+  std::filesystem::path mdl0mat;
+  std::filesystem::path mdl0shade;
+  std::vector<std::filesystem::path>
+      tex0; // Should be .tex0; ignoring .png for now
+  std::vector<std::filesystem::path> srt0;
+};
 
 struct CrateAnimation {
   g3d::G3dMaterialData mat;          // MDL0Mat + MDL0Shade combined
@@ -66,8 +105,10 @@ inline std::optional<std::string> GetTool(const CrateAnimation& crate) {
   return GetStringField(crate, "tool");
 }
 
+[[nodiscard]] Result<CrateAnimationPaths>
+ScanCrateAnimationFolder(std::filesystem::path path);
 [[nodiscard]] Result<CrateAnimation>
-ReadCrateAnimation(std::filesystem::path path);
+ReadCrateAnimation(const CrateAnimationPaths& paths);
 
 //! Animations targets materials by name; rename each SRT animation target to
 //! the name of `mat`. We assert that only one material target is defined.

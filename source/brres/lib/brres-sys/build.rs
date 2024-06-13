@@ -74,7 +74,7 @@ fn main() {
                 build.flag("-mssse3");
             }
         }
-        
+
         if is_clang_cl || compiler.is_like_msvc() {
             build.std("c++latest");
         } else {
@@ -143,7 +143,8 @@ fn main() {
             .file("./src/librii/g3d/io/PolygonIO.cpp")
             .file("./src/librii/g3d/io/AnimChrIO.cpp")
             .file("./src/librii/g3d/io/JSON.cpp")
-            .file("./src/librii/g3d/io/G3dJson.cpp");
+            .file("./src/librii/g3d/io/G3dJson.cpp")
+            .file("./src/librii/crate/g3d_crate.cpp");
 
         build
             .file("../../../rsl/SafeReader.cpp")

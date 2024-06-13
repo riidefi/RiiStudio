@@ -12,6 +12,10 @@ use bytemuck;
 
 use json::*;
 
+use std::path::Path;
+
+use anyhow::anyhow;
+
 /// Corresponds to a single `.brres` file
 #[derive(Debug, Clone, PartialEq)]
 pub struct Archive {
@@ -910,6 +914,18 @@ pub fn write_raw_brres(archive: &Archive) -> anyhow::Result<Vec<u8>> {
     let (json, blob) = create_json(&archive)?;
 
     let ffi_obj = ffi::CBrresWrapper::write_bytes(&json, &blob)?;
+
+    // This is a copy we could avoid by returning the CBrresWrapper iteslf--but this
+    // avoids exposing a dependency and keeps the API simple.
+    Ok(ffi_obj.buffer_data.to_vec())
+}
+
+// TODO: Add test
+pub fn read_mdl0mat_preset_folder(folder: &std::path::Path) -> anyhow::Result<Vec<u8>> {
+    let folder_str = folder
+        .to_str()
+        .ok_or(anyhow!("Failed to stringify path"))?;
+    let ffi_obj = ffi::CBrresWrapper::read_preset_folder(folder_str)?;
 
     // This is a copy we could avoid by returning the CBrresWrapper iteslf--but this
     // avoids exposing a dependency and keeps the API simple.

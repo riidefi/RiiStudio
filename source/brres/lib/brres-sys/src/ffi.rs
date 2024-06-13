@@ -29,6 +29,12 @@ pub mod bindings {
             buffer_len: u32,
         ) -> u32;
         pub fn imp_brres_free(result: *mut CBrres);
+
+        pub fn imp_brres_read_mdl0mat_preset(
+            result: *mut CBrres,
+            path: *const i8,
+            path_len: u32,
+        ) -> u32;
     }
 }
 
@@ -39,16 +45,20 @@ pub struct CBrresWrapper<'a> {
 }
 
 impl<'a> CBrresWrapper<'a> {
+    pub fn default() -> bindings::CBrres {
+        bindings::CBrres {
+            json_metadata: ptr::null(),
+            len_json_metadata: 0,
+            buffer_data: ptr::null(),
+            len_buffer_data: 0,
+            freeResult: dummy_free_result,
+            opaque: ptr::null_mut(),
+        }
+    }
+
     pub fn from_bytes(buf: &[u8]) -> anyhow::Result<Self> {
         unsafe {
-            let mut result: Box<bindings::CBrres> = Box::new(bindings::CBrres {
-                json_metadata: ptr::null(),
-                len_json_metadata: 0,
-                buffer_data: ptr::null(),
-                len_buffer_data: 0,
-                freeResult: dummy_free_result,
-                opaque: ptr::null_mut(),
-            });
+            let mut result: Box<bindings::CBrres> = Box::new(Self::default());
 
             let ok = bindings::imp_brres_read_from_bytes(
                 &mut *result as *mut bindings::CBrres,
@@ -86,14 +96,7 @@ impl<'a> CBrresWrapper<'a> {
         let buffer_len = buffer.len() as u32;
 
         unsafe {
-            let mut result: Box<bindings::CBrres> = Box::new(bindings::CBrres {
-                json_metadata: ptr::null(),
-                len_json_metadata: 0,
-                buffer_data: ptr::null(),
-                len_buffer_data: 0,
-                freeResult: dummy_free_result,
-                opaque: ptr::null_mut(),
-            });
+            let mut result: Box<bindings::CBrres> = Box::new(Self::default());
 
             let ok = bindings::imp_brres_write_bytes(
                 &mut *result as *mut bindings::CBrres,
@@ -119,6 +122,40 @@ impl<'a> CBrresWrapper<'a> {
 
             Ok(CBrresWrapper {
                 json_metadata,
+                buffer_data,
+                result,
+            })
+        }
+    }
+    pub fn read_preset_folder(json: &str) -> anyhow::Result<Self> {
+        let json_cstring = CString::new(json)?;
+        let json_ptr = json_cstring.as_ptr();
+        let json_len = json.len() as u32;
+
+        unsafe {
+            let mut result: Box<bindings::CBrres> = Box::new(Self::default());
+
+            let ok = bindings::imp_brres_read_mdl0mat_preset(
+                &mut *result as *mut bindings::CBrres,
+                json_ptr,
+                json_len,
+            );
+
+            if ok == 0 {
+                let json_metadata = {
+                    let slice = std::slice::from_raw_parts(
+                        result.json_metadata,
+                        result.len_json_metadata as usize,
+                    );
+                    std::str::from_utf8(slice)?
+                };
+                anyhow::bail!("Failed to write BRRES file: {json_metadata}");
+            }
+            let buffer_data =
+                std::slice::from_raw_parts(result.buffer_data, result.len_buffer_data as usize);
+
+            Ok(CBrresWrapper {
+                json_metadata: "",
                 buffer_data,
                 result,
             })
@@ -226,5 +263,14 @@ pub mod c_api {
     #[no_mangle]
     pub unsafe fn brres_free(result: *mut ffi::bindings::CBrres) {
         ffi::bindings::imp_brres_free(result)
+    }
+    #[cfg(feature = "c_api")]
+    #[no_mangle]
+    pub unsafe fn brres_read_mdl0mat_preset(
+        result: *mut ffi::bindings::CBrres,
+        path: *const i8,
+        path_len: u32,
+    ) {
+        ffi::bindings::imp_brres_read_mdl0mat_preset(result, path, path_len);
     }
 }

@@ -30,6 +30,9 @@ static inline void brres_free(CResult* result) {
 //! Returns the length of the string. Will be no more than 256.
 int32_t brres_get_version_unstable_api(char* buf, uint32_t len);
 
+uint32_t brres_read_mdl0mat_preset(CResult* result, const char* path,
+                                   uint32_t pathLen);
+
 #ifdef __cplusplus
 }
 #endif
@@ -71,7 +74,7 @@ static inline std::string get_version() {
   return s;
 }
 
-std::expected<DumpResult, std::string>
+static inline std::expected<DumpResult, std::string>
 read_from_bytes(std::span<const uint8_t> bytes) {
   CResult result = {};
   uint32_t res = brres_read_from_bytes(&result, bytes.data(),
@@ -93,12 +96,32 @@ read_from_bytes(std::span<const uint8_t> bytes) {
   return dumpResult;
 }
 
-std::expected<std::vector<u8>, std::string>
-write_bytes(const std::string& json, std::span<const uint8_t> buffer) {
+static inline std::expected<std::vector<u8>, std::string>
+write_bytes(std::string_view json, std::span<const uint8_t> buffer) {
   CResult result = {};
   uint32_t res = brres_write_bytes(
       &result, json.data(), static_cast<uint32_t>(json.size()), buffer.data(),
       static_cast<uint32_t>(buffer.size()));
+  impl::Defer _([&]() { brres_free(&result); });
+
+  if (res != 1) {
+    std::string error(result.json_metadata ? result.json_metadata
+                                           : "Unknown error");
+    return std::unexpected(error);
+  }
+
+  std::vector<uint8_t> buf(static_cast<const uint8_t*>(result.buffer_data),
+                           static_cast<const uint8_t*>(result.buffer_data) +
+                               result.len_buffer_data);
+
+  return buf;
+}
+
+static inline std::expected<std::vector<u8>, std::string>
+read_mdl0mat_folder_preset(std::string_view path) {
+  CResult result = {};
+  uint32_t res = brres_read_mdl0mat_preset(&result, path.data(),
+                                           static_cast<uint32_t>(path.size()));
   impl::Defer _([&]() { brres_free(&result); });
 
   if (res != 1) {

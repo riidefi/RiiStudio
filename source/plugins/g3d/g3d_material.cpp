@@ -87,8 +87,7 @@ Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
 Result<void>
 ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
                            const std::filesystem::path& preset_folder) {
-  auto paths = TRY(librii::crate::ScanCrateAnimationFolder(preset_folder));
-  auto anim = TRY(ReadCrateAnimation(paths));
+  auto anim = TRY(librii::crate::ReadCrateAnimation(preset_folder));
   return ApplyCratePresetToMaterial(mat, anim);
 }
 

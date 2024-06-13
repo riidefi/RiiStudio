@@ -3,7 +3,9 @@
 #include <string>
 #include <vector>
 
+#include "./librii/crate/g3d_crate.hpp"
 #include "./librii/g3d/data/Archive.hpp"
+#include "./librii/g3d/io/ArchiveIO.hpp"
 
 #include <vendor/json_struct.h>
 
@@ -59,6 +61,13 @@ static void SetCResult(CResult& result, DumpResult&& dumped) {
   };
 }
 
+static Result<std::vector<u8>> ConvertCratePresetToRsPreset(std::string path) {
+  auto paths = TRY(librii::crate::ScanCrateAnimationFolder(path));
+  auto anim = TRY(librii::crate::ReadCrateAnimation(paths));
+  auto res = TRY(librii::crate::WriteRSPreset(anim, /* cli */ false));
+  return res;
+}
+
 struct Warning {
   JS_OBJ(mclass, domain, body);
   int mclass;
@@ -107,7 +116,7 @@ WASM_EXPORT u32 imp_brres_read_from_bytes(CResult* result, const void* buf,
     // Assumes inital character is a "{"
     assert(extJson.size() >= 1);
     assert(extJson[0] == '{');
-    dumped.jsonData = dumped.jsonData + "," +  extJson.substr(1);
+    dumped.jsonData = dumped.jsonData + "," + extJson.substr(1);
   } else {
     dumped.jsonData = arc.error();
     ok = false;
@@ -151,6 +160,27 @@ WASM_EXPORT u32 imp_brres_write_bytes(CResult* result, const char* json,
     dumped.collatedBuffer = arc.value();
   } else {
     dumped.jsonData = arc.error();
+    ok = false;
+  }
+
+  SetCResult(*result, std::move(dumped));
+
+  return ok;
+}
+
+WASM_EXPORT u32 imp_brres_read_mdl0mat_preset(CResult* result, const char* path,
+                                              u32 path_len) {
+  assert(result != nullptr);
+  assert(path != nullptr && path_len);
+  std::string path_s(path, path + path_len);
+  auto res = ConvertCratePresetToRsPreset(path_s);
+
+  DumpResult dumped;
+  bool ok = true;
+  if (res.has_value()) {
+    dumped.collatedBuffer = res.value();
+  } else {
+    dumped.jsonData = res.error();
     ok = false;
   }
 
