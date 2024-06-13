@@ -6,7 +6,6 @@
 #pragma once
 
 #include <bit>
-static_assert(__cpp_lib_byteswap >= 202110L, "Depends on std::byteswap");
 
 #include <oishii/options.hxx>
 #include <stdint.h>

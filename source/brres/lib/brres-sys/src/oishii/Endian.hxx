@@ -3,6 +3,9 @@
 #include <bit>
 #include <stdint.h>
 
+#include <algorithm>
+#include <array>
+
 namespace oishii {
 
 template <typename T1, typename T2> union enumCastHelper {
@@ -14,12 +17,20 @@ template <typename T1, typename T2> union enumCastHelper {
   enumCastHelper(T1 _) : _t(_) {}
 };
 
+template<typename T>
+T RSL_BYTESWAP(T value)
+{
+    auto value_representation = std::bit_cast<std::array<u8, sizeof(T)>>(value);
+    std::reverse(value_representation.begin(), value_representation.end());
+    return std::bit_cast<T>(value_representation);
+}
+
 #if OISHII_PLATFORM_LE == 1
-#define MAKE_BE32(x) std::byteswap(x)
+#define MAKE_BE32(x) RSL_BYTESWAP(x)
 #define MAKE_LE32(x) x
 #else
 #define MAKE_BE32(x) x
-#define MAKE_LE32(x) std::byteswap(x)
+#define MAKE_LE32(x) RSL_BYTESWAP(x)
 #endif
 
 //! @brief Fast endian swapping.
@@ -34,12 +45,12 @@ template <typename T> inline T swapEndian(T v) {
   switch (sizeof(T)) {
   case 4: {
     enumCastHelper<T, uint32_t> tmp(v);
-    tmp._u = std::byteswap(tmp._u);
+    tmp._u = RSL_BYTESWAP(tmp._u);
     return tmp._t;
   }
   case 2: {
     enumCastHelper<T, uint16_t> tmp(v);
-    tmp._u = std::byteswap(tmp._u);
+    tmp._u = RSL_BYTESWAP(tmp._u);
     return tmp._t;
   }
   case 1: {
