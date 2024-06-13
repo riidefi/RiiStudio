@@ -5,6 +5,10 @@
 
 #include "./librii/g3d/data/Archive.hpp"
 
+#include <vendor/json_struct.h>
+
+#include <LibBadUIFramework/Plugins.hpp>
+
 bool gTestMode __attribute__((weak)) = false;
 
 namespace librii::g3d {
@@ -55,19 +59,55 @@ static void SetCResult(CResult& result, DumpResult&& dumped) {
   };
 }
 
+struct Warning {
+  JS_OBJ(mclass, domain, body);
+  int mclass;
+  std::string domain;
+  std::string body;
+};
+
+struct ArchiveExtensions {
+  JS_OBJ(warnings);
+  std::vector<Warning> warnings;
+};
+
 extern "C" {
 
 WASM_EXPORT u32 imp_brres_read_from_bytes(CResult* result, const void* buf,
                                           u32 len) {
   std::span<const u8> buf_span(reinterpret_cast<const u8*>(buf),
                                reinterpret_cast<const u8*>(buf) + len);
-  auto arc =
-      librii::g3d::Archive::fromMemory(buf_span, "brres_read_from_bytes");
+
+  ArchiveExtensions ext;
+
+  kpi::LightIOTransaction trans;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    ext.warnings.push_back(Warning{
+        static_cast<int>(message_class),
+        std::string(domain),
+        std::string(message_body),
+    });
+  };
+  auto arc = librii::g3d::Archive::fromMemory(buf_span, "brres_read_from_bytes",
+                                              trans);
 
   DumpResult dumped;
   bool ok = true;
   if (arc.has_value()) {
     dumped = librii::g3d::DumpJson(*arc);
+
+    auto extJson = JS::serializeStruct(ext);
+
+    // Assumes final character is a "}"
+    assert(dumped.jsonData.size() >= 1);
+    assert(dumped.jsonData[dumped.jsonData.size() - 1] == '}');
+    dumped.jsonData.resize(dumped.jsonData.size() - 1);
+    // Assumes inital character is a "{"
+    assert(extJson.size() >= 1);
+    assert(extJson[0] == '{');
+    dumped.jsonData = dumped.jsonData + "," +  extJson.substr(1);
   } else {
     dumped.jsonData = arc.error();
     ok = false;

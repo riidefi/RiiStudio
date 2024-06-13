@@ -94,12 +94,12 @@ if (WIN32)
 			$<TARGET_FILE_DIR:tests>
 	)
   # Disabled: No DLLs exist
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  #if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	  add_custom_command(TARGET tests POST_BUILD
 	    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests> 
 	    COMMAND_EXPAND_LISTS
 	  )
-  endif()
+  #endif()
 endif()
 
 add_custom_command(
