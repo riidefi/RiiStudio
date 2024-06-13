@@ -161,9 +161,11 @@ corrosion_import_crate(MANIFEST_PATH source/wiitrig/Cargo.toml CRATE_TYPES ${REC
 corrosion_import_crate(MANIFEST_PATH source/rsmeshopt/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
 corrosion_import_crate(MANIFEST_PATH source/szs/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
 corrosion_import_crate(MANIFEST_PATH source/avir-rs/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
+corrosion_import_crate(MANIFEST_PATH source/brres/lib/brres-sys/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
 if (NOT EMSCRIPTEN)
   corrosion_import_crate(MANIFEST_PATH source/c-discord-rich-presence/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 endif()
+# Annoying because bzip2
 corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 corrosion_import_crate(MANIFEST_PATH source/cli/rszst_arg_parser/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 

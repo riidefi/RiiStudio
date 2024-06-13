@@ -140,10 +140,10 @@ extern "C" fn dummy_free_result(_: *mut bindings::CBrres) {
 
 // Reentrant Rust (this crate) -> C++ -> Rust (other crate)
 pub mod c_api {
+    use crate::*;
     use core::ffi::c_char;
     use gctex;
     use wiitrig;
-    use crate::*;
 
     // use simple_logger::SimpleLogger;
 
@@ -204,7 +204,11 @@ pub mod c_api {
 
     #[cfg(feature = "c_api")]
     #[no_mangle]
-    pub unsafe fn brres_read_from_bytes(result: *mut ffi::bindings::CBrres, buf: *const u8, len: u32) -> u32 {
+    pub unsafe fn brres_read_from_bytes(
+        result: *mut ffi::bindings::CBrres,
+        buf: *const u8,
+        len: u32,
+    ) -> u32 {
         ffi::bindings::imp_brres_read_from_bytes(result, buf, len)
     }
     #[cfg(feature = "c_api")]

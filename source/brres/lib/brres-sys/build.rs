@@ -49,17 +49,18 @@ fn main() {
 
         // AppleClang/GCC are fine. Just MSVC is problematic.
 
-        #[cfg(windows)]
-        match find_clang() {
-            Some(path) => println!("Found clang at: {}", path.display()),
-            None => panic!("Clang not found"),
+        let compiler2 = build.get_compiler();
+        if !compiler2.path().ends_with("clang-cl.exe") && !compiler2.path().ends_with("clang-cl") {
+            #[cfg(windows)]
+            match find_clang() {
+                Some(path) => println!("Found clang at: {}", path.display()),
+                None => panic!("Clang not found"),
+            }
+            #[cfg(windows)]
+            build.compiler(find_clang().unwrap());
         }
-        #[cfg(windows)]
-        build.compiler(find_clang().unwrap());
 
         build.cpp(true);
-
-        build.std("c++23");
 
         if target.starts_with("x86_64-") {
             build.flag("-DARCH_X64=1");
@@ -73,6 +74,13 @@ fn main() {
                 build.flag("-mssse3");
             }
         }
+        
+        if is_clang_cl || compiler.is_like_msvc() {
+            build.std("c++latest");
+        } else {
+            build.std("gnu++2b");
+        }
+
         if compiler.is_like_clang() || is_clang_cl {
             // warning : src/dolemu/TextureDecoder/TextureDecoder_x64.cpp(1177,75): warning: unused parameter 'tlut' [-Wunused-parameter]
             // warning : TextureFormat texformat, const u8* tlut, TLUTFormat tlutfmt,
@@ -87,6 +95,10 @@ fn main() {
             #[cfg(not(debug_assertions))]
             build.flag("-MT");
         }
+
+        build.flag("-fno-exceptions");
+        build.flag("-DFMT_EXCEPTIONS=0");
+        build.flag("-D_HAS_EXCEPTIONS=0");
 
         build.include(".").include("src");
         build.file("src/bindings.cpp");
@@ -103,7 +115,6 @@ fn main() {
         build.define("wii_sin", "wii_sin2");
         build.define("wii_cos", "wii_cos2");
 
-        
         build.define("librii", "brres_librii");
         build.define("oishii", "brres_oishii");
         build.define("rsl", "brres_rsl");

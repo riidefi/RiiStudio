@@ -25,7 +25,8 @@ if (WIN32)
   target_link_directories(rsl PUBLIC ${PROJECT_SOURCE_DIR}/../vendor/dll)
 endif()
 
-corrosion_import_crate(MANIFEST_PATH rust/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
+# Annoying bzip2 version conflict (so use dylib)
+corrosion_import_crate(MANIFEST_PATH rust/Cargo.toml CRATE_TYPES cdylib FLAGS --crate-type=cdylib)
 
 target_link_libraries(rsl PUBLIC core riistudio_rs vendor)
 
