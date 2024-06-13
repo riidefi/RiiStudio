@@ -4,9 +4,6 @@
 
 #include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
-#if !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
-#include <stacktrace>
-#endif
 
 namespace rsl {
 
@@ -72,11 +69,7 @@ public:
     if (!as_enum.has_value()) {
       mReader.warnAt(as_enum.error().c_str(), mReader.tell() - sizeof(T),
                      mReader.tell());
-#if defined(_WIN32)
-      auto cur = std::stacktrace::current();
-#else
-      auto cur = 0;
-#endif
+      auto cur = STACK_TRACE;
       return std::unexpected(std::format("{}\nStacktrace:\n{}", as_enum.error(),
                                          std::to_string(cur)));
     }
