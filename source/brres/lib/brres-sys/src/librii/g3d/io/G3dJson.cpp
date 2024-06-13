@@ -199,13 +199,6 @@ std::vector<std::vector<u8>> ParseBuffers(std::span<const u8> data) {
 }
 
 void TestJson(const librii::g3d::Archive& archive) {
-  JsonWriteCtx ctx;
-  nlohmann::json j;
-  WriteJson(ctx, j, archive);
-  std::cout << j << std::endl;
-  std::print(std::cout, "Number of buffers: {}\n", ctx.buffers.size());
-  auto collated = CollateBuffers(ctx);
-  std::print(std::cout, "filesize of raw data: {}\n", collated.size());
 }
 
 struct DumpResult {

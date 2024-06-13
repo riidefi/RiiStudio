@@ -284,7 +284,6 @@ struct CHR0Track {
       return 8 + x->filesize();
     }
     assert(!"Internal error");
-    std::unreachable();
   }
 };
 struct CHR0BakedTrack {
@@ -322,7 +321,6 @@ struct CHR0BakedTrack {
       return x->filesize();
     }
     assert(!"Internal error");
-    std::unreachable();
   }
 };
 
@@ -355,7 +353,6 @@ struct CHR0AnyTrack {
       return x->filesize();
     }
     assert(!"Internal error");
-    std::unreachable();
   }
 };
 

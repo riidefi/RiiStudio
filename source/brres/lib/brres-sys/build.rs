@@ -78,7 +78,7 @@ fn main() {
         if is_clang_cl || compiler.is_like_msvc() {
             build.std("c++latest");
         } else {
-            build.std("gnu++2b");
+            build.std("gnu++20");
         }
 
         if compiler.is_like_clang() || is_clang_cl {
