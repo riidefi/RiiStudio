@@ -103,29 +103,35 @@ fn main() {
         build.define("wii_sin", "wii_sin2");
         build.define("wii_cos", "wii_cos2");
 
+        
+        build.define("librii", "brres_librii");
+        build.define("oishii", "brres_oishii");
+        build.define("rsl", "brres_rsl");
+
         build
             .include(".")
+            .include("./src/")
             .include("../../../librii/g3d")
             .include("../../../")
             .include("../../../vendor")
             .include("../../../plate/include")
             .include("../../../plate/vendor")
-            .file("../../../librii/g3d/io/TextureIO.cpp")
-            .file("../../../librii/g3d/io/AnimIO.cpp")
-            .file("../../../librii/g3d/io/TevIO.cpp")
-            .file("../../../librii/g3d/io/NameTableIO.cpp")
-            .file("../../../librii/g3d/io/DictWriteIO.cpp")
-            .file("../../../librii/g3d/io/MatIO.cpp")
-            .file("../../../librii/g3d/io/BoneIO.cpp")
-            .file("../../../librii/g3d/io/ModelIO.cpp")
-            .file("../../../librii/g3d/io/ArchiveIO.cpp")
-            .file("../../../librii/g3d/io/AnimTexPatIO.cpp")
-            .file("../../../librii/g3d/io/AnimClrIO.cpp")
-            .file("../../../librii/g3d/io/AnimVisIO.cpp")
-            .file("../../../librii/g3d/io/PolygonIO.cpp")
-            .file("../../../librii/g3d/io/AnimChrIO.cpp")
-            .file("../../../librii/g3d/io/JSON.cpp")
-            .file("../../../librii/g3d/io/G3dJson.cpp");
+            .file("./src/librii/g3d/io/TextureIO.cpp")
+            .file("./src/librii/g3d/io/AnimIO.cpp")
+            .file("./src/librii/g3d/io/TevIO.cpp")
+            .file("./src/librii/g3d/io/NameTableIO.cpp")
+            .file("./src/librii/g3d/io/DictWriteIO.cpp")
+            .file("./src/librii/g3d/io/MatIO.cpp")
+            .file("./src/librii/g3d/io/BoneIO.cpp")
+            .file("./src/librii/g3d/io/ModelIO.cpp")
+            .file("./src/librii/g3d/io/ArchiveIO.cpp")
+            .file("./src/librii/g3d/io/AnimTexPatIO.cpp")
+            .file("./src/librii/g3d/io/AnimClrIO.cpp")
+            .file("./src/librii/g3d/io/AnimVisIO.cpp")
+            .file("./src/librii/g3d/io/PolygonIO.cpp")
+            .file("./src/librii/g3d/io/AnimChrIO.cpp")
+            .file("./src/librii/g3d/io/JSON.cpp")
+            .file("./src/librii/g3d/io/G3dJson.cpp");
 
         build
             .file("../../../rsl/SafeReader.cpp")
