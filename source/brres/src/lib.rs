@@ -921,15 +921,13 @@ pub fn write_raw_brres(archive: &Archive) -> anyhow::Result<Vec<u8>> {
 }
 
 // TODO: Add test
-pub fn read_mdl0mat_preset_folder(folder: &std::path::Path) -> anyhow::Result<Vec<u8>> {
+pub fn read_mdl0mat_preset_folder(folder: &std::path::Path) -> anyhow::Result<Archive> {
     let folder_str = folder
         .to_str()
         .ok_or(anyhow!("Failed to stringify path"))?;
     let ffi_obj = ffi::CBrresWrapper::read_preset_folder(folder_str)?;
 
-    // This is a copy we could avoid by returning the CBrresWrapper iteslf--but this
-    // avoids exposing a dependency and keeps the API simple.
-    Ok(ffi_obj.buffer_data.to_vec())
+    Ok(read_raw_brres(&ffi_obj.buffer_data)?)
 }
 
 #[cfg(test)]
