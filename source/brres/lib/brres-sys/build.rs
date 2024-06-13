@@ -99,6 +99,7 @@ fn main() {
         build.flag("-fno-exceptions");
         build.flag("-DFMT_EXCEPTIONS=0");
         build.flag("-D_HAS_EXCEPTIONS=0");
+        build.define("JSON_NOEXCEPTION", "1");
 
         build.include(".").include("src");
         build.file("src/bindings.cpp");

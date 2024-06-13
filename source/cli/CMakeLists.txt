@@ -100,7 +100,7 @@ add_custom_command(
 add_dependencies(cli rsl)
 
 # Disabled: No DLLs exist
-if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+if (WIN32) # AND CMAKE_BUILD_TYPE STREQUAL "Debug"
   add_custom_command(TARGET cli POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:cli> $<TARGET_FILE_DIR:cli> 
     COMMAND_EXPAND_LISTS

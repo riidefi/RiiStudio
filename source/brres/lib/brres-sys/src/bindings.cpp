@@ -3,10 +3,11 @@
 #include <string>
 #include <vector>
 
-#include "../../librii/g3d/data/Archive.hpp"
+#include "./librii/g3d/data/Archive.hpp"
 
-bool gTestMode = false;
+bool gTestMode __attribute__((weak)) = false;
 
+namespace librii::g3d {
 struct DumpResult {
   std::string jsonData;
   std::vector<u8> collatedBuffer;
@@ -15,6 +16,9 @@ struct DumpResult {
 DumpResult DumpJson(const librii::g3d::Archive& archive);
 Result<librii::g3d::Archive> ReadJsonArc(std::string_view json,
                                          std::span<const u8> buffers);
+} // namespace librii::g3d
+
+using DumpResult = librii::g3d::DumpResult;
 
 extern "C" {
 
@@ -54,7 +58,7 @@ static void SetCResult(CResult& result, DumpResult&& dumped) {
 extern "C" {
 
 WASM_EXPORT u32 imp_brres_read_from_bytes(CResult* result, const void* buf,
-                                      u32 len) {
+                                          u32 len) {
   std::span<const u8> buf_span(reinterpret_cast<const u8*>(buf),
                                reinterpret_cast<const u8*>(buf) + len);
   auto arc =
@@ -63,7 +67,7 @@ WASM_EXPORT u32 imp_brres_read_from_bytes(CResult* result, const void* buf,
   DumpResult dumped;
   bool ok = true;
   if (arc.has_value()) {
-    dumped = DumpJson(*arc);
+    dumped = librii::g3d::DumpJson(*arc);
   } else {
     dumped.jsonData = arc.error();
     ok = false;
@@ -83,7 +87,7 @@ WASM_EXPORT void imp_brres_free(CResult* result) {
 
 static Result<std::vector<u8>> WriteArchive(std::string_view json,
                                             std::span<const u8> blob) {
-  auto arc = TRY(ReadJsonArc(json, blob));
+  auto arc = TRY(librii::g3d::ReadJsonArc(json, blob));
   auto bin = TRY(arc.write());
 
   return bin;
@@ -92,8 +96,8 @@ static Result<std::vector<u8>> WriteArchive(std::string_view json,
 extern "C" {
 
 WASM_EXPORT u32 imp_brres_write_bytes(CResult* result, const char* json,
-                                  u32 json_len, const void* buffer,
-                                  u32 buffer_len) {
+                                      u32 json_len, const void* buffer,
+                                      u32 buffer_len) {
   std::string_view json_view(json, json + json_len);
   std::span<const u8> buffer_span(reinterpret_cast<const u8*>(buffer),
                                   buffer_len);

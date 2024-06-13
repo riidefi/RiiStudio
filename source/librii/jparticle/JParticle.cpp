@@ -40,7 +40,7 @@ gx::ColorF32 colorFromRGBA8(u32 n) {
 Result<void> makeColorTable(oishii::BinaryReader& reader, u16 offset,
                             u16 entryCount, std::vector<ColorTableEntry>& dst) {
 
-  assert(entryCount > 0 && duration > 0);
+  assert(entryCount > 0);
 
   for (u32 i = 0; i < entryCount; i++) {
     u32 entry0 = i;

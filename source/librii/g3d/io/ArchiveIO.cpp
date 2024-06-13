@@ -9,6 +9,7 @@
 #include <brres/lib/brres-sys/include/brres_sys.h>
 #include <rsl/WriteFile.hpp>
 
+namespace librii::g3d {
 void TestJson(const librii::g3d::Archive& archive);
 
 struct DumpResult {
@@ -19,6 +20,7 @@ struct DumpResult {
 DumpResult DumpJson(const librii::g3d::Archive& archive);
 Result<librii::g3d::Archive> ReadJsonArc(std::string_view json,
                                          std::span<const u8> buffer);
+} // namespace librii::g3d
 
 namespace librii::g3d {
 

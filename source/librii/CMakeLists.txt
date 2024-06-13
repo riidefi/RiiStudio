@@ -218,8 +218,14 @@ endif()
 
 target_link_libraries(librii
   PUBLIC core LibBadUIFramework
-  PRIVATE vendor oishii gctex wiitrig avir_rs c_wbz szs plate rsmeshopt brres_sys
+  PRIVATE vendor oishii gctex avir_rs c_wbz szs plate rsmeshopt brres_sys
 )
+# wiitrig transitively linked in by brres_sys
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_link_libraries(librii
+    PRIVATE wiitrig
+  )
+endif()
 
 target_include_directories(librii
   PRIVATE

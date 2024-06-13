@@ -15,15 +15,16 @@
 #include <librii/g3d/data/VertexData.hpp>
 #include <librii/g3d/io/ArchiveIO.hpp>
 
+
+namespace librii::g3d {
+
 template <typename T> using Expected = std::expected<T, std::string>;
 
 struct JsonWriteCtx;
 
-namespace librii::g3d {
 std::string ArcToJSON(const g3d::Archive& model, JsonWriteCtx& c);
 Result<g3d::Archive> JSONToArc(std::string_view json,
                                std::span<const std::vector<u8>> buffers);
-} // namespace librii::g3d
 
 struct JsonReadCtx {
   nlohmann::json j;
@@ -231,3 +232,5 @@ Result<std::vector<u8>> WriteArchive(std::string_view json,
 
   return bin;
 }
+
+} // namespace librii::g3d

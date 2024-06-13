@@ -33,6 +33,8 @@
 #define JS_STD_OPTIONAL
 #include <vendor/json_struct.h>
 
+
+namespace librii::g3d {
 struct JsonWriteCtx {
   std::vector<std::vector<u8>> buffers;
 
@@ -46,6 +48,7 @@ struct JsonWriteCtx {
     return save_buffer_with_move(std::move(tmp));
   }
 };
+} // namespace librii::g3d
 
 namespace JS {
 

@@ -31,6 +31,8 @@
 #include <rsl/WriteFile.hpp>
 #include <sstream>
 
+namespace librii::g3d {
+
 struct DumpResult {
   std::string jsonData;
   std::vector<u8> collatedBuffer;
@@ -39,6 +41,8 @@ struct DumpResult {
 DumpResult DumpJson(const librii::g3d::Archive& archive);
 Result<std::vector<u8>> WriteArchive(std::string_view json,
                                      std::span<const u8> blob);
+
+} // namespace librii::g3d
 
 namespace riistudio {
 const char* translateString(std::string_view str) { return str.data(); }
@@ -927,12 +931,13 @@ static Result<void> brres2json(const CliOptions& m_opt) {
   auto brres = TRY(
       librii::g3d::Archive::fromMemory(*file, std::string(m_opt.from.view())));
 
-  auto dumped = DumpJson(brres);
+  auto dumped = librii::g3d::DumpJson(brres);
 
   std::ofstream stream(m_to);
   stream << dumped.jsonData;
 
-  TRY(rsl::WriteFile(dumped.collatedBuffer, m_to.replace_extension("bin").string()));
+  TRY(rsl::WriteFile(dumped.collatedBuffer,
+                     m_to.replace_extension("bin").string()));
 
   return {};
 }
@@ -942,7 +947,7 @@ static Result<void> json2brres(const CliOptions& m_opt) {
   auto file = TRY(ReadFile(m_from.string()));
   std::string_view json(reinterpret_cast<char*>(file.data()), file.size());
   auto bin = TRY(ReadFile(m_from.replace_extension("bin").string()));
-  auto converted = TRY(WriteArchive(json, bin));
+  auto converted = TRY(librii::g3d::WriteArchive(json, bin));
   TRY(rsl::WriteFile(converted, m_opt.to.view()));
   return {};
 }
