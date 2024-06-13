@@ -107,7 +107,7 @@ pub struct JsonTexture {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JsonArchive {
     pub chrs: Vec<JSONChrData>,
-    pub clrs: Vec<serde_json::Value>,
+    pub clrs: Vec<JSONClrAnim>,
     pub models: Vec<JsonModel>,
     pub pats: Vec<JSONPatAnim>,
     pub srts: Vec<JSONSrtData>,
@@ -495,6 +495,39 @@ pub struct JSONPatAnim {
     pub paletteNames: Vec<String>,
     pub runtimeTextures: Vec<u32>,
     pub runtimePalettes: Vec<u32>,
+    pub name: String,
+    pub sourcePath: String,
+    pub frameDuration: u16,
+    pub wrapMode: AnimationWrapMode,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONClrKeyFrame {
+    pub data: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONClrTrack {
+    pub keyframes: Vec<JSONClrKeyFrame>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONClrTarget {
+    pub notAnimatedMask: u32,
+    pub data: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONClrMaterial {
+    pub name: String,
+    pub flags: u32,
+    pub targets: Vec<JSONClrTarget>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONClrAnim {
+    pub materials: Vec<JSONClrMaterial>,
+    pub tracks: Vec<JSONClrTrack>,
     pub name: String,
     pub sourcePath: String,
     pub frameDuration: u16,

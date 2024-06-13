@@ -166,4 +166,113 @@ void BinaryClr::mergeIdenticalTracks() {
   tracks = std::move(compacted.uniqueElements);
 }
 
+Result<ClrAnim> ClrAnim::from(const BinaryClr& binaryClr) {
+  ClrAnim anim;
+  anim.name = binaryClr.name;
+  anim.sourcePath = binaryClr.sourcePath;
+  anim.frameDuration = binaryClr.frameDuration;
+  anim.wrapMode = binaryClr.wrapMode;
+
+  // Add tracks
+  for (const auto& track : binaryClr.tracks) {
+    EXPECT(track.keyframes.size() >= 2);
+    anim.tracks.push_back(track);
+  }
+
+  // Add materials with track indices
+  for (const auto& material : binaryClr.materials) {
+    ClrMaterial clrMaterial;
+    clrMaterial.name = material.name;
+    clrMaterial.flags = material.flags;
+    for (const auto& target : material.targets) {
+      if (std::holds_alternative<u32>(target.data)) {
+        ClrTarget tmp;
+        tmp.notAnimatedMask = target.notAnimatedMask;
+        tmp.data = std::get<u32>(target.data);
+        clrMaterial.targets.push_back(tmp);
+      } else {
+        const CLR0KeyFrame& keyframe = std::get<CLR0KeyFrame>(target.data);
+        // Add a new Const track
+        CLR0Track constTrack;
+        constTrack.keyframes.push_back(keyframe);
+        anim.tracks.push_back(constTrack);
+        ClrTarget newTarget;
+        newTarget.notAnimatedMask = target.notAnimatedMask;
+        newTarget.data = anim.tracks.size() - 1;
+        clrMaterial.targets.push_back(newTarget);
+      }
+    }
+    anim.materials.push_back(clrMaterial);
+  }
+
+  return anim;
+}
+
+BinaryClr ClrAnim::to() const {
+  BinaryClr binaryClr;
+  binaryClr.name = name;
+  binaryClr.sourcePath = sourcePath;
+  binaryClr.frameDuration = frameDuration;
+  binaryClr.wrapMode = wrapMode;
+
+  // NOTE: ASSUMES CONST TRACKS ARE AT THE END!
+
+  bool is_const_mode = false;
+  for (const auto& track : tracks) {
+    if (track.keyframes.size() == 1) {
+      is_const_mode = true;
+      continue;
+    }
+    if (is_const_mode) {
+      assert(
+          false &&
+          "Invalid track ordering. CONST tracks must be contiguous and final");
+      exit(1);
+    }
+    binaryClr.tracks.push_back(track);
+  }
+
+  // Convert and add materials
+  for (const auto& node : materials) {
+    CLR0Material tmp;
+    tmp.name = node.name;
+    tmp.flags = node.flags;
+
+    for (const auto& target : node.targets) {
+      if (target.data >= tracks.size()) {
+        assert(false && "Track index out of bounds");
+        exit(1);
+      }
+      const auto& track = tracks[target.data];
+
+      CLR0Target targetTmp;
+      targetTmp.notAnimatedMask = target.notAnimatedMask;
+      if (track.keyframes.size() == 1) {
+        targetTmp.data = track.keyframes[0];
+      } else {
+        targetTmp.data = target.data;
+      }
+      tmp.targets.push_back(targetTmp);
+    }
+
+    binaryClr.materials.push_back(tmp);
+  }
+
+  return binaryClr;
+}
+
+Result<void> ClrAnim::read(oishii::BinaryReader& reader) {
+  BinaryClr tmp;
+  TRY(tmp.read(reader));
+  *this = TRY(ClrAnim::from(tmp));
+
+  return {};
+}
+
+void ClrAnim::write(oishii::Writer& writer, NameTable& names,
+                    u32 addrBrres) const {
+  auto bin = to();
+  bin.write(writer, names, addrBrres);
+}
+
 } // namespace librii::g3d

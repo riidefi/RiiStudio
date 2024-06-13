@@ -506,7 +506,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
     }
   }
   for (auto& clr : scene->clrs) {
-    librii::g3d::BinaryClr mut = clr;
+    librii::g3d::ClrAnim mut = clr;
     std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
     if (!mut.materials.empty()) {
       result.clr.push_back(mut);

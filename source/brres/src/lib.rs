@@ -32,7 +32,7 @@ pub struct Archive {
     pub pats: Vec<JSONPatAnim>,
 
     /// GPU uniform (color) animation
-    pub clrs: Vec<serde_json::Value>,
+    pub clrs: Vec<JSONClrAnim>,
 
     /// Bone visibility animation
     pub viss: Vec<serde_json::Value>,
@@ -1087,4 +1087,26 @@ mod tests4 {
         // PAT0
         test_validate_binary_is_lossless("../../tests/samples/luigi_circuit.brres", true)
     }
+    #[test]
+    fn test_validate_binary_is_lossless_pocha_nomodel() {
+        // CHR0, CLR0, SRT0
+        test_validate_binary_is_lossless("../../tests/samples/pocha_nomodel.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_pocha() {
+        // Desync: Draw order
+        test_validate_binary_is_lossless("../../tests/samples/pocha.brres", false)
+    }
+    /*
+    #[test]
+    fn test_validate_binary_is_lossless_smooth_rtpa() {
+        // PAT0
+        test_validate_binary_is_lossless("../../tests/samples/smooth_rtpa.brres", true)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_smooth_rcla() {
+        // CLR0
+        test_validate_binary_is_lossless("../../tests/samples/smooth_rcla.brres", true)
+    }
+    */
 }

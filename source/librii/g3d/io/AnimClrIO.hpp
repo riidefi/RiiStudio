@@ -138,4 +138,37 @@ struct BinaryClr {
   void mergeIdenticalTracks();
 };
 
+struct ClrTarget {
+  // final = (final & notAnimatedMask) | (animated & ~notAnimatedMask)
+  u32 notAnimatedMask{};
+  u32 data; // index to CLR0Track
+
+  bool operator==(const ClrTarget&) const = default;
+};
+
+struct ClrMaterial {
+  std::string name;
+  u32 flags{};
+
+  std::vector<ClrTarget> targets; // Max 11 tracks - for each channel
+  bool operator==(const ClrMaterial&) const = default;
+};
+
+struct ClrAnim {
+  std::vector<ClrMaterial> materials;
+  std::vector<CLR0Track> tracks;
+  std::string name;
+  std::string sourcePath;
+  u16 frameDuration{};
+  AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
+
+  static Result<ClrAnim> from(const BinaryClr& binaryClr);
+  BinaryClr to() const;
+
+  Result<void> read(oishii::BinaryReader& reader);
+  void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
+
+  bool operator==(const ClrAnim&) const = default;
+};
+
 } // namespace librii::g3d

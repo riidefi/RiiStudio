@@ -66,11 +66,11 @@ struct CrateAnimationPaths {
 };
 
 struct CrateAnimation {
-  g3d::G3dMaterialData mat;           // MDL0Mat + MDL0Shade combined
-  std::vector<g3d::TextureData> tex;  // All valid .tex0s
-  std::vector<g3d::SrtAnim> srt;      // All valid .srt archives
-  std::vector<g3d::BinaryClr> clr;    // .clr0
-  std::vector<g3d::PatAnim> pat; // .pat0
+  g3d::G3dMaterialData mat;          // MDL0Mat + MDL0Shade combined
+  std::vector<g3d::TextureData> tex; // All valid .tex0s
+  std::vector<g3d::SrtAnim> srt;     // All valid .srt archives
+  std::vector<g3d::ClrAnim> clr;     // .clr0
+  std::vector<g3d::PatAnim> pat;     // .pat0
 
   std::string metadata;
   nlohmann::json metadata_json{

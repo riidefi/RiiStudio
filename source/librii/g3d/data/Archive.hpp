@@ -16,7 +16,7 @@ struct ChrAnim;
 struct SrtAnim;
 struct BinaryVis;
 struct PatAnim;
-struct BinaryClr;
+struct ClrAnim;
 
 struct BinaryArchive;
 
@@ -24,7 +24,7 @@ struct Archive {
   std::vector<Model> models;
   std::vector<TextureData> textures;
   std::vector<ChrAnim> chrs;
-  std::vector<BinaryClr> clrs;
+  std::vector<ClrAnim> clrs;
   std::vector<PatAnim> pats;
   std::vector<librii::g3d::SrtAnim> srts;
   std::vector<librii::g3d::BinaryVis> viss;

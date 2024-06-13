@@ -1809,22 +1809,120 @@ struct JSONChrData {
   }
 };
 
-struct JSONClrData {
-  DEFINE_SERIALIZABLE(JSONClrData, name)
+struct JSONClrKeyFrame {
+  u32 data;
 
+  DEFINE_SERIALIZABLE(JSONClrKeyFrame, data)
+
+  static JSONClrKeyFrame from(const CLR0KeyFrame& keyFrame) {
+    return {keyFrame.data};
+  }
+
+  CLR0KeyFrame to() const { return {data}; }
+};
+
+struct JSONClrTrack {
+  std::vector<JSONClrKeyFrame> keyframes;
+
+  DEFINE_SERIALIZABLE(JSONClrTrack, keyframes)
+
+  static JSONClrTrack from(const CLR0Track& track) {
+    JSONClrTrack jsonTrack;
+    for (const auto& keyFrame : track.keyframes) {
+      jsonTrack.keyframes.push_back(JSONClrKeyFrame::from(keyFrame));
+    }
+    return jsonTrack;
+  }
+
+  CLR0Track to() const {
+    CLR0Track track;
+    for (const auto& jsonKeyFrame : keyframes) {
+      track.keyframes.push_back(jsonKeyFrame.to());
+    }
+    return track;
+  }
+};
+
+struct JSONClrTarget {
+  u32 notAnimatedMask;
+  u32 data;
+
+  DEFINE_SERIALIZABLE(JSONClrTarget, notAnimatedMask, data)
+
+  static JSONClrTarget from(const ClrTarget& target) {
+    return {target.notAnimatedMask, target.data};
+  }
+
+  ClrTarget to() const { return {notAnimatedMask, data}; }
+};
+
+struct JSONClrMaterial {
   std::string name;
+  u32 flags;
+  std::vector<JSONClrTarget> targets;
 
-  static JSONClrData from(const librii::g3d::BinaryClr& clr,
-                          JsonWriteCtx& ctx) {
-    JSONClrData json;
-    json.name = clr.name;
+  DEFINE_SERIALIZABLE(JSONClrMaterial, name, flags, targets)
+
+  static JSONClrMaterial from(const ClrMaterial& material) {
+    JSONClrMaterial jsonMaterial;
+    jsonMaterial.name = material.name;
+    jsonMaterial.flags = material.flags;
+    for (const auto& target : material.targets) {
+      jsonMaterial.targets.push_back(JSONClrTarget::from(target));
+    }
+    return jsonMaterial;
+  }
+
+  ClrMaterial to() const {
+    ClrMaterial material;
+    material.name = name;
+    material.flags = flags;
+    for (const auto& jsonTarget : targets) {
+      material.targets.push_back(jsonTarget.to());
+    }
+    return material;
+  }
+};
+
+struct JSONClrAnim {
+  std::vector<JSONClrMaterial> materials;
+  std::vector<JSONClrTrack> tracks;
+  std::string name;
+  std::string sourcePath;
+  u16 frameDuration;
+  AnimationWrapMode wrapMode;
+
+  DEFINE_SERIALIZABLE(JSONClrAnim, materials, tracks, name, sourcePath,
+                      frameDuration, wrapMode)
+
+  static JSONClrAnim from(const ClrAnim& anim) {
+    JSONClrAnim json;
+    json.name = anim.name;
+    json.sourcePath = anim.sourcePath;
+    json.frameDuration = anim.frameDuration;
+    json.wrapMode = anim.wrapMode;
+    for (const auto& material : anim.materials) {
+      json.materials.push_back(JSONClrMaterial::from(material));
+    }
+    for (const auto& track : anim.tracks) {
+      json.tracks.push_back(JSONClrTrack::from(track));
+    }
     return json;
   }
 
-  librii::g3d::BinaryClr to(std::span<const std::vector<u8>> buffers) const {
-    librii::g3d::BinaryClr clr;
-    clr.name = name;
-    return clr;
+  ClrAnim to() const {
+    ClrAnim anim;
+    anim.name = name;
+    anim.sourcePath = sourcePath;
+    anim.frameDuration = frameDuration;
+    anim.wrapMode = wrapMode;
+    for (const auto& jsonMaterial : materials) {
+      anim.materials.push_back(jsonMaterial.to());
+    }
+    for (const auto& jsonTrack : tracks) {
+      anim.tracks.push_back(jsonTrack.to());
+    }
+    return anim;
   }
 };
 
@@ -1979,7 +2077,7 @@ struct JSONArchive {
   std::vector<JSONModel> models;
   std::vector<JSONTextureData> textures;
   std::vector<JSONChrData> chrs;
-  std::vector<JSONClrData> clrs;
+  std::vector<JSONClrAnim> clrs;
   std::vector<JSONPatAnim> pats;
   std::vector<JSONSrtData> srts;
   std::vector<JSONVisData> viss;
@@ -2001,7 +2099,7 @@ struct JSONArchive {
     }
 
     for (const auto& clr : original.clrs) {
-      archive.clrs.emplace_back(JSONClrData::from(clr, c));
+      archive.clrs.emplace_back(JSONClrAnim::from(clr));
     }
 
     for (const auto& pat : original.pats) {
@@ -2035,7 +2133,7 @@ struct JSONArchive {
     }
 
     for (const auto& jsonClr : clrs) {
-      result.clrs.push_back(jsonClr.to(buffers));
+      result.clrs.push_back(jsonClr.to());
     }
 
     for (const auto& jsonPat : pats) {

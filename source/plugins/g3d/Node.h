@@ -129,7 +129,7 @@ public:
 
 struct SceneData {
     std::vector<librii::g3d::ChrAnim> chrs;
-    std::vector<librii::g3d::BinaryClr> clrs;
+    std::vector<librii::g3d::ClrAnim> clrs;
     std::vector<librii::g3d::PatAnim> pats;
     std::vector<librii::g3d::BinaryVis> viss;
     std::string path;

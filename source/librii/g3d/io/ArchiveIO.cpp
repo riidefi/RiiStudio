@@ -479,7 +479,9 @@ Result<Archive> Archive::from(const BinaryArchive& archive,
   }
   tmp.textures = archive.textures;
   tmp.chrs = archive.chrs;
-  tmp.clrs = archive.clrs;
+  for (auto& clr : archive.clrs) {
+    tmp.clrs.push_back(TRY(ClrAnim::from(clr)));
+  }
   for (auto& pat : archive.pats) {
     tmp.pats.push_back(TRY(PatAnim::from(pat)));
   }
@@ -508,7 +510,9 @@ Result<BinaryArchive> Archive::binary() const {
   }
   tmp.textures = textures;
   tmp.chrs = chrs;
-  tmp.clrs = clrs;
+  for (auto& clr : clrs) {
+    tmp.clrs.push_back(clr.to());
+  }
   for (auto& pat : pats) {
     tmp.pats.push_back(pat.to());
   }

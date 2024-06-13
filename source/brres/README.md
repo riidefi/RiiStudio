@@ -28,9 +28,10 @@ Implements a Rust layer on top of `librii::g3d`'s JSON export-import layer. Impo
 | TEX0   | Yes       |
 | SRT0   | Yes       |
 | PAT0   | Yes*      |
-| CLR0   | No        |
+| CLR0   | Yes*      |
 | CHR0   | Yes*      |
 | VIS0   | No        |
+| SHP0   | No        |
 
 * Restrictions on track ordering when editing.
 
