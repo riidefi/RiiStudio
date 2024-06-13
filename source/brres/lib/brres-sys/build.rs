@@ -102,6 +102,7 @@ fn main() {
         build.define("JSON_NOEXCEPTION", "1");
 
         build.flag("-DRSL_USE_FALLBACK_EXPECTED");
+        build.flag("-DRSL_STACKTRACE_UNSUPPORTED");
 
         build.include(".").include("src");
         build.file("src/bindings.cpp");
