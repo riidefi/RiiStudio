@@ -20,7 +20,7 @@ template <typename T1, typename T2> union enumCastHelper {
 template<typename T>
 T RSL_BYTESWAP(T value)
 {
-    auto value_representation = std::bit_cast<std::array<u8, sizeof(T)>>(value);
+    auto value_representation = std::bit_cast<std::array<uint8_t, sizeof(T)>>(value);
     std::reverse(value_representation.begin(), value_representation.end());
     return std::bit_cast<T>(value_representation);
 }

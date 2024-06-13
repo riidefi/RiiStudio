@@ -17,11 +17,12 @@ auto findByName = [](auto&& x, auto&& y) {
               x.begin();
   return index >= x.size() ? nullptr : &x[index];
 };
+} // namespace
+#endif
+
 auto findByName2 = [](auto&& x, auto&& y) {
   int index =
       std::find_if(x.begin(), x.end(), [y](auto& f) { return f.name == y; }) -
       x.begin();
   return index >= x.size() ? nullptr : &x[index];
 };
-} // namespace
-#endif
