@@ -75,7 +75,7 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
         auto ok = mdl.read(reader, transaction,
                            "/" + node.name + "/" + sub.name + "/", isValid);
         if (!ok) {
-          return std::unexpected(
+          return RSL_UNEXPECTED(
               std::format("Failed to read MDL0 {}: {}", sub.name, ok.error()));
         }
         (void)isValid;
@@ -101,7 +101,7 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
         auto& chr = chrs.emplace_back();
         auto ok = chr.read(reader);
         if (!ok) {
-          return std::unexpected(
+          return RSL_UNEXPECTED(
               std::format("Failed to read CHR0 {}: {}", sub.name, ok.error()));
         }
       }
@@ -113,7 +113,7 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
         auto& clr = clrs.emplace_back();
         auto ok = clr.read(reader);
         if (!ok) {
-          return std::unexpected(
+          return RSL_UNEXPECTED(
               std::format("Failed to read CLR0 {}: {}", sub.name, ok.error()));
         }
       }
@@ -125,7 +125,7 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
         auto& pat = pats.emplace_back();
         auto ok = pat.read(reader);
         if (!ok) {
-          return std::unexpected(
+          return RSL_UNEXPECTED(
               std::format("Failed to read PAT0 {}: {}", sub.name, ok.error()));
         }
       }
@@ -137,7 +137,7 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
         auto& srt = srts.emplace_back();
         auto ok = srt.read(reader);
         if (!ok) {
-          return std::unexpected(
+          return RSL_UNEXPECTED(
               std::format("Failed to read SRT0 {}: {}", sub.name, ok.error()));
         }
       }
@@ -149,7 +149,7 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
         auto& vis = viss.emplace_back();
         auto ok = vis.read(reader);
         if (!ok) {
-          return std::unexpected(
+          return RSL_UNEXPECTED(
               std::format("Failed to read VIS0 {}: {}", sub.name, ok.error()));
         }
       }

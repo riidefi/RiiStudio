@@ -1733,7 +1733,7 @@ struct JSONChrTrack {
     track.offset = offset;
     track.step = step;
     if (framesDataBufferId >= buffers.size()) {
-      return std::unexpected("Invalid buffer index");
+      return RSL_UNEXPECTED("Invalid buffer index");
     }
     track.frames = ChrFramePacker::unpack(buffers[framesDataBufferId]);
     return track;
@@ -2247,7 +2247,7 @@ Result<g3d::Archive> JSONToArc(std::string_view json,
   auto err = context.parseTo(mdl);
   if (err != JS::Error::NoError) {
     auto n = magic_enum::enum_name(err);
-    return std::unexpected(std::format("JSONToArc failed: Parse error {} ({})",
+    return RSL_UNEXPECTED(std::format("JSONToArc failed: Parse error {} ({})",
                                        n, context.makeErrorString()));
   }
   return mdl.lift(buffers);

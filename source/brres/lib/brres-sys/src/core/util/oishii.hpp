@@ -26,7 +26,7 @@ inline std::expected<std::vector<u8>, std::string>
 ReadFile(std::string_view path) {
   auto buf = OishiiReadFile2(path);
   if (!buf) {
-    return std::unexpected("Failed to read file at \"" + std::string(path) +
+    return RSL_UNEXPECTED("Failed to read file at \"" + std::string(path) +
                            "\"");
   }
   return *buf;

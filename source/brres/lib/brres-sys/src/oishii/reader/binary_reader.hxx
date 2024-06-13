@@ -54,7 +54,7 @@ public:
     for (auto& r : result) {
       auto tmp = tryRead<T>();
       if (!tmp) {
-        return std::unexpected(tmp.error());
+        return RSL_UNEXPECTED(tmp.error());
       }
       r = *tmp;
     }
@@ -74,7 +74,7 @@ public:
         fprintf(stderr, "%s\n", err.c_str());
         rsl::debug_break();
       }
-      return std::unexpected(err);
+      return RSL_UNEXPECTED(err);
     }
 
     if (trans < 0 || trans + sizeof(T) > endpos()) {
@@ -85,7 +85,7 @@ public:
         fprintf(stderr, "%s\n", err.c_str());
         rsl::debug_break();
       }
-      return std::unexpected(err);
+      return RSL_UNEXPECTED(err);
     }
 
     readerBpCheck(sizeof(T), trans - tell());
@@ -129,7 +129,7 @@ public:
                              "decimal) exceeds buffer size of 0x{:x} ({})",
                              sizeof(T) * size, addr, addr, endpos(), endpos());
       rsl::debug_break();
-      return std::unexpected(err);
+      return RSL_UNEXPECTED(err);
     }
     readerBpCheck(size, addr - tell());
     if constexpr (sizeof(T) == 1) {
@@ -149,7 +149,7 @@ public:
   auto tryReadBuffer(uint32_t size) -> Result<std::vector<T>> {
     auto buf = tryReadBuffer<T>(size, tell());
     if (!buf) {
-      return std::unexpected(buf.error());
+      return RSL_UNEXPECTED(buf.error());
     }
     seekSet(tell() + size);
     return *buf;

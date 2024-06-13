@@ -31,7 +31,7 @@ static std::expected<u16, std::string> ProcessAttr(
         a != gx::VertexAttribute::Texture0MatrixIndex &&
         a != gx::VertexAttribute::Texture1MatrixIndex) {
 
-      return std::unexpected("Direct vertex data is unsupported.");
+      return RSL_UNEXPECTED("Direct vertex data is unsupported.");
     }
     // As PNM indices are always direct, we
     // still use them in an all-indexed vertex
@@ -39,7 +39,7 @@ static std::expected<u16, std::string> ProcessAttr(
     EXPECT(val != 0xff);
     break;
   default:
-    return std::unexpected("Unknown vertex attribute format.");
+    return RSL_UNEXPECTED("Unknown vertex attribute format.");
   }
 
   return val;
@@ -61,7 +61,7 @@ DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
       continue;
 
     if ((tag & 0x80) == 0) {
-      return std::unexpected("Unexpected command in mesh display list.");
+      return RSL_UNEXPECTED("Unexpected command in mesh display list.");
     }
 
     u16 nVerts = TRY(reader.tryRead<u16, CmdProcEndian, true>());

@@ -33,7 +33,7 @@ struct JsonReadCtx {
   template <typename T> Expected<T> get(const std::string& name) const {
     auto it = j.find(name);
     if (it == j.end()) {
-      return std::unexpected(name + " not found");
+      return RSL_UNEXPECTED(name + " not found");
     }
     return it->template get<T>();
   }
@@ -41,7 +41,7 @@ struct JsonReadCtx {
   Expected<glm::vec2> getVec2(const std::string& name) const {
     auto it = j.find(name);
     if (it == j.end()) {
-      return std::unexpected(name + " not found");
+      return RSL_UNEXPECTED(name + " not found");
     }
     auto x = (*it)[0].template get<f32>();
     auto y = (*it)[1].template get<f32>();
@@ -51,7 +51,7 @@ struct JsonReadCtx {
   Expected<glm::vec3> getVec3(const std::string& name) const {
     auto it = j.find(name);
     if (it == j.end()) {
-      return std::unexpected(name + " not found");
+      return RSL_UNEXPECTED(name + " not found");
     }
     auto x = (*it)[0].template get<f32>();
     auto y = (*it)[1].template get<f32>();
@@ -83,7 +83,7 @@ struct JsonReadCtx {
 
   template <typename T> Expected<std::span<const T>> buffer(int index) const {
     if (index > static_cast<int>(buffers.size()) || index < 0) {
-      return std::unexpected("Invalid buffer index");
+      return RSL_UNEXPECTED("Invalid buffer index");
     }
     return buffers[index];
   }

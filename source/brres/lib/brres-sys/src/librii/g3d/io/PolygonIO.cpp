@@ -78,7 +78,7 @@ struct VertexDescriptor {
       case VA::Position: {
         const auto* buf = findByName(mdl.positions, mesh.mPositionBuffer);
         if (!buf) {
-          return std::unexpected("Cannot find position buffer " +
+          return RSL_UNEXPECTED("Cannot find position buffer " +
                                  mesh.mPositionBuffer);
         }
         set_quant(buf->mQuantize);
@@ -87,7 +87,7 @@ struct VertexDescriptor {
       case VA::Color0: {
         const auto* buf = findByName(mdl.colors, mesh.mColorBuffer[0]);
         if (!buf) {
-          return std::unexpected("Cannot find color buffer " +
+          return RSL_UNEXPECTED("Cannot find color buffer " +
                                  mesh.mColorBuffer[0]);
         }
         set_quant(buf->mQuantize);
@@ -96,7 +96,7 @@ struct VertexDescriptor {
       case VA::Color1: {
         const auto* buf = findByName(mdl.colors, mesh.mColorBuffer[1]);
         if (!buf) {
-          return std::unexpected("Cannot find color buffer " +
+          return RSL_UNEXPECTED("Cannot find color buffer " +
                                  mesh.mColorBuffer[1]);
         }
         set_quant(buf->mQuantize);
@@ -115,7 +115,7 @@ struct VertexDescriptor {
 
         const auto* buf = findByName(mdl.texcoords, mesh.mTexCoordBuffer[chan]);
         if (!buf) {
-          return std::unexpected("Cannot find texcoord buffer " +
+          return RSL_UNEXPECTED("Cannot find texcoord buffer " +
                                  mesh.mTexCoordBuffer[chan]);
         }
         set_quant(buf->mQuantize);
@@ -125,7 +125,7 @@ struct VertexDescriptor {
       case VA::NormalBinormalTangent: {
         const auto* buf = findByName(mdl.normals, mesh.mNormalBuffer);
         if (!buf) {
-          return std::unexpected("Cannot find normal buffer " +
+          return RSL_UNEXPECTED("Cannot find normal buffer " +
                                  mesh.mNormalBuffer);
         }
         set_quant(buf->mQuantize);
@@ -223,7 +223,7 @@ ReadMPrims(rsl::SafeReader& reader, u32 buf_size,
                     TRY(reader.tryRead<u8, oishii::EndianSelect::Big, true>());
                 break;
               }
-              return std::unexpected("Mesh unsupported");
+              return RSL_UNEXPECTED("Mesh unsupported");
             case librii::gx::VertexAttributeType::None:
               break;
             case librii::gx::VertexAttributeType::Byte:
@@ -318,7 +318,7 @@ BuildVCD(rsl::SafeReader& reader, u32 buf_size, u32& bitfield) {
       }
       result.mAttributes[att] = encoding;
     } else {
-      return std::unexpected("Unrecognized attribute");
+      return RSL_UNEXPECTED("Unrecognized attribute");
     }
   }
   return result;
@@ -479,7 +479,7 @@ struct BinaryPolygon {
     for (auto& prim : mp.mPrimitives) {
       u8 prim_cmd = librii::gx::EncodeDrawPrimitiveCommand(prim.mType);
       if (prim.mVertices.size() > 0xFFFF) {
-        return std::unexpected(
+        return RSL_UNEXPECTED(
             "Too many vertices in single primitive (max 0xFFFF)");
       }
       u16 indices_count = prim.mVertices.size();
@@ -504,12 +504,12 @@ struct BinaryPolygon {
             if (attr != VATAttrib::PositionNormalMatrixIndex &&
                 ((u32)attr > (u32)VATAttrib::Texture7MatrixIndex &&
                  (u32)attr < (u32)VATAttrib::Texture0MatrixIndex)) {
-              return std::unexpected("Direct vertex data is unsupported.");
+              return RSL_UNEXPECTED("Direct vertex data is unsupported.");
             }
             writer.writeUnaligned<u8>(v[attr]);
             break;
           default:
-            return std::unexpected("Unknown vertex attribute format.");
+            return RSL_UNEXPECTED("Unknown vertex attribute format.");
           }
         }
       }

@@ -53,7 +53,7 @@ Result<void> BinaryVis::read(oishii::BinaryReader& unsafeReader) {
   TRY(reader.U32()); // size
   auto ver = TRY(reader.U32());
   if (ver != 4) {
-    return std::unexpected(std::format(
+    return RSL_UNEXPECTED(std::format(
         "Unsupported VIS0 version {}. Only version 4 is supported.", ver));
   }
   VISOffsets offsets;

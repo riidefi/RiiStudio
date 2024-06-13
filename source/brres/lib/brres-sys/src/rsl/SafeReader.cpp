@@ -57,7 +57,7 @@ auto SafeReader::Bool8() -> Result<bool> {
   case 1:
     return true;
   default:
-    return std::unexpected(
+    return RSL_UNEXPECTED(
         std::format("Expected bool value (0 or 1); instead saw {}", u));
   }
 }
@@ -70,7 +70,7 @@ auto SafeReader::Magic(std::string_view ident) -> Result<std::string_view> {
         std::format("Expected magic identifier {} at {}. Instead saw {}.",
                     ident, mReader.tell() - ident.size(), buf_s);
     mReader.warnAt(msg.c_str(), mReader.tell() - ident.size(), mReader.tell());
-    return std::unexpected(msg);
+    return RSL_UNEXPECTED(msg);
   }
   return ident;
 }
@@ -85,7 +85,7 @@ SafeReader::Result<std::string> SafeReader::StringOfs32(u32 relative) {
 
   [[unlikely]] if (relative + ofs >= mReader.endpos() ||
                    static_cast<s32>(relative) + ofs < 0) {
-    return std::unexpected(
+    return RSL_UNEXPECTED(
         std::format("Invalid string offset {}. Out of file bounds [0, {})",
                     ofs + relative, mReader.endpos()));
   }
@@ -102,7 +102,7 @@ SafeReader::Result<std::string> SafeReader::StringOfs32(u32 relative) {
 
   // very unlikely
   [[unlikely]] if (!terminated) {
-    return std::unexpected("File has been truncated. String does not contain "
+    return RSL_UNEXPECTED("File has been truncated. String does not contain "
                            "a final null terminator");
   }
 

@@ -100,7 +100,7 @@ Result<void> QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
     mGpuShader.mMask = 0xff000000 | (token.val & 0x00ffffff);
     break;
   default:
-    return std::unexpected(std::format("Unexpected BP command: 0x{:x}",
+    return RSL_UNEXPECTED(std::format("Unexpected BP command: 0x{:x}",
                                        static_cast<u32>(token.reg)));
   }
   // If mask has expired, reset it
@@ -290,7 +290,7 @@ Result<void> QDisplayListMaterialHandler::onCommandXF(const QXFCommand& token) {
     return {};
   }
 
-  return std::unexpected(std::format("Unexpected XF command: 0x{:x}",
+  return RSL_UNEXPECTED(std::format("Unexpected XF command: 0x{:x}",
                                      static_cast<u32>(token.reg)));
 }
 Result<void> QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
@@ -389,7 +389,7 @@ Result<void> QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
     break;
   }
   default: {
-    return std::unexpected(std::format("Unexpected BP command: 0x{:x}",
+    return RSL_UNEXPECTED(std::format("Unexpected BP command: 0x{:x}",
                                        static_cast<u32>(token.reg)));
   }
   }

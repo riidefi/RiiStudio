@@ -35,7 +35,7 @@ inline std::expected<E, std::string> enum_cast(u32 candidate) {
   if (!as_enum.has_value()) {
     auto values = magic_enum::enum_entries<E>();
     auto msg = EnumError(candidate, values);
-    return std::unexpected(msg);
+    return RSL_UNEXPECTED(msg);
   }
   return *as_enum;
 }
@@ -46,7 +46,7 @@ inline std::expected<E, std::string> enum_cast(std::string_view candidate) {
   if (!as_enum.has_value()) {
     auto values = magic_enum::enum_entries<E>();
     auto msg = EnumError(candidate, values);
-    return std::unexpected(msg);
+    return RSL_UNEXPECTED(msg);
   }
   return *as_enum;
 }

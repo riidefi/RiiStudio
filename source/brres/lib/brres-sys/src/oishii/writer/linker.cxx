@@ -189,7 +189,7 @@ Result<void> Linker::write(Writer& writer, bool doShuffle, bool print_linkmap) {
     writer.mBlockName = entry.mNode->getId();
     auto ok = entry.mNode->write(writer);
     if (!ok) {
-      return std::unexpected(
+      return RSL_UNEXPECTED(
           std::format("Linker failure: {} while writing node {}::{}",
                       ok.error(), entry.mNamespace, entry.mNode->getId()));
     }

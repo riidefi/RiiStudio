@@ -57,14 +57,14 @@ std::expected<std::vector<u8>, std::string>
 UtilReadFile(std::string_view path) {
   std::ifstream file(std::string(path), std::ios::binary | std::ios::ate);
   if (!file) {
-    return std::unexpected("Failed to open file " + std::string(path));
+    return RSL_UNEXPECTED("Failed to open file " + std::string(path));
   }
 
   std::vector<u8> vec(file.tellg());
   file.seekg(0, std::ios::beg);
 
   if (!file.read(reinterpret_cast<char*>(vec.data()), vec.size())) {
-    return std::unexpected("Failed to read file " + std::string(path));
+    return RSL_UNEXPECTED("Failed to read file " + std::string(path));
   }
   return vec;
 }

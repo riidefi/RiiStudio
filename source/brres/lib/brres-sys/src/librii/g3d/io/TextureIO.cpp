@@ -138,7 +138,7 @@ Result<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file) {
   // TODO: We trust the .tex0-file provided name to be correct
   const bool ok = g3d::ReadTexture(tex, file, "");
   if (!ok) {
-    return std::unexpected(
+    return RSL_UNEXPECTED(
         "Failed to parse TEX0: g3d::ReadTexture returned false");
   }
   return tex;

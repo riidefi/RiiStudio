@@ -12,7 +12,7 @@ std::expected<T, std::string> checked_cast(const F& f) {
   static_assert(std::is_integral_v<T>);
   static_assert(std::is_integral_v<F>);
   if (static_cast<F>(static_cast<T>(f)) != f) {
-    return std::unexpected(std::format(
+    return RSL_UNEXPECTED(std::format(
         "Cannot fit value {} in F (truncates to {})", f, static_cast<T>(f)));
   }
   return static_cast<T>(f);
@@ -70,7 +70,7 @@ public:
       mReader.warnAt(as_enum.error().c_str(), mReader.tell() - sizeof(T),
                      mReader.tell());
       auto cur = STACK_TRACE;
-      return std::unexpected(std::format("{}\nStacktrace:\n{}", as_enum.error(),
+      return RSL_UNEXPECTED(std::format("{}\nStacktrace:\n{}", as_enum.error(),
                                          std::to_string(cur)));
     }
     return *as_enum;

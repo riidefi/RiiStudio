@@ -113,7 +113,7 @@ Result<void> readGenericBuffer(
   }
   auto err = ValidateQuantize(kind, out.mQuantize);
   if (!err.empty()) {
-    return std::unexpected(err);
+    return RSL_UNEXPECTED(err);
   }
   switch (out.mQuantize.mType.generic) {
   case librii::gx::VertexBufferType::Generic::s8: {
@@ -173,7 +173,7 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
   [[maybe_unused]] const u32 fileSize = TRY(reader.U32());
   const u32 revision = TRY(reader.U32());
   if (revision != 11) {
-    return std::unexpected(std::format(
+    return RSL_UNEXPECTED(std::format(
         "MDL0 is version {}. Only MDL0 version 11 is supported.", revision));
   }
 
@@ -880,19 +880,19 @@ public:
     if (boneIdx > mdl.bones.size()) {
       ctx.error("Invalid bone index in render command");
       boneIdx = 0;
-      return std::unexpected("Invalid bone index in render command");
+      return RSL_UNEXPECTED("Invalid bone index in render command");
     }
 
     if (disp.mMaterial > mdl.meshes.size()) {
       ctx.error("Invalid material index in render command");
       disp.mMaterial = 0;
-      return std::unexpected("Invalid material index in render command");
+      return RSL_UNEXPECTED("Invalid material index in render command");
     }
 
     if (disp.mPoly > mdl.meshes.size()) {
       ctx.error("Invalid mesh index in render command");
       disp.mPoly = 0;
-      return std::unexpected("Invalid mesh index in render command");
+      return RSL_UNEXPECTED("Invalid mesh index in render command");
     }
 
     mdl.bones[boneIdx].mDisplayCommands.push_back(disp);

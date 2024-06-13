@@ -60,7 +60,7 @@ Result<void> BinaryChr::read(oishii::BinaryReader& reader) {
   TRY(safe.U32()); // size
   auto ver = TRY(safe.U32());
   if (ver != 5) {
-    return std::unexpected(std::format(
+    return RSL_UNEXPECTED(std::format(
         "Unsupported CHR0 version {}. Only version 5 is supported.", ver));
   }
   CHR0Offsets offsets;

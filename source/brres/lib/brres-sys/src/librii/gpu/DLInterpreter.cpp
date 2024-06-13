@@ -69,7 +69,7 @@ Result<void> RunDisplayList(oishii::BinaryReader& unsafeReader,
         auto verts = TRY(reader.U16NoAlign());
         TRY(handler.onCommandDraw(unsafeReader, prim, verts, start + dlSize));
       } else {
-        return std::unexpected(std::format("Unrecognized command {} in stream.",
+        return RSL_UNEXPECTED(std::format("Unrecognized command {} in stream.",
                                            static_cast<u32>(tag)));
       }
       break;

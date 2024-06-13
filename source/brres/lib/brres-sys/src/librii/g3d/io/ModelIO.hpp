@@ -73,7 +73,7 @@ struct ByteCodeLists {
       const auto cmd = TRY(reader.Enum8<RenderCommand>());
       switch (cmd) {
       case RenderCommand::MatrixCopy:
-        return std::unexpected("RenderCommand::MatrixCopy is unsupported.");
+        return RSL_UNEXPECTED("RenderCommand::MatrixCopy is unsupported.");
       case RenderCommand::NoOp:
         if (keep_nops) {
           commands.push_back(NoOp{});
@@ -188,7 +188,7 @@ struct BinaryModelInfo {
     Result<void> readAt(oishii::BinaryReader& reader, u32 pos) {
       auto count = TRY(reader.tryGetAt<u32>(pos));
       if (pos + count * 4 >= reader.endpos()) {
-        return std::unexpected("mtxIdToBoneId LUT size exceeds filesize");
+        return RSL_UNEXPECTED("mtxIdToBoneId LUT size exceeds filesize");
       }
       mtxIdToBoneId.resize(count);
       for (u32 i = 0; i < count; ++i) {

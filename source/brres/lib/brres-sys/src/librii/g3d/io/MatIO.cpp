@@ -157,7 +157,7 @@ Result<void> BinaryMaterial::read(oishii::BinaryReader& unsafeReader,
   const auto ofsUserData = TRY(reader.S32());
   const auto ofsDisplayLists = TRY(reader.S32());
   if (ofsFur || ofsUserData) {
-    return std::unexpected(std::format(
+    return RSL_UNEXPECTED(std::format(
         "Warning: Material {} uses Fur or UserData which is unsupported!",
         name));
   }

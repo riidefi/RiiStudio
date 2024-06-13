@@ -57,7 +57,7 @@ Result<void> BinaryClr::read(oishii::BinaryReader& reader) {
   TRY(safe.U32()); // size
   auto ver = TRY(safe.U32());
   if (ver != 4) {
-    return std::unexpected(std::format(
+    return RSL_UNEXPECTED(std::format(
         "Unsupported CLR0 version {}. Only version 4 is supported.", ver));
   }
   CLROffsets offsets;

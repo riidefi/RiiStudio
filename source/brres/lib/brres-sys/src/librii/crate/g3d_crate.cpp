@@ -20,7 +20,7 @@ Result<g3d::G3dMaterialData> ReadMDL0Mat(std::span<const u8> file) {
   g3d::G3dMaterialData mat;
   const bool ok = g3d::readMaterial(mat, reader, /* ignore_tev */ true);
   if (!ok) {
-    return std::unexpected("Failed to read MDL0Mat file");
+    return RSL_UNEXPECTED("Failed to read MDL0Mat file");
   }
 
   return mat;
@@ -139,7 +139,7 @@ Result<g3d::SrtAnimationArchive> ReadSRT0(std::span<const u8> file) {
   oishii::BinaryReader reader(file, "Unknown SRT0", std::endian::big);
   auto ok = arc.read(reader);
   if (!ok) {
-    return std::unexpected("Failed to parse SRT0: g3d::ReadSrtFile returned " +
+    return RSL_UNEXPECTED("Failed to parse SRT0: g3d::ReadSrtFile returned " +
                            ok.error());
   }
   return g3d::SrtAnim::read(arc, [](...) {});
@@ -210,12 +210,12 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
     const auto extension = entry.path().extension();
     if (extension == ".mdl0mat") {
       if (!tmp.mdl0mat.empty()) {
-        return std::unexpected("Rejecting: Multiple .mdl0mat files in folder");
+        return RSL_UNEXPECTED("Rejecting: Multiple .mdl0mat files in folder");
       }
       tmp.mdl0mat = entry.path();
     } else if (extension == ".mdl0shade") {
       if (!tmp.mdl0shade.empty()) {
-        return std::unexpected(
+        return RSL_UNEXPECTED(
             "Rejecting: Multiple .mdl0shade files in folder");
       }
       tmp.mdl0shade = entry.path();
@@ -227,10 +227,10 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
     // Ignore other extensions
   }
   if (tmp.mdl0mat.empty()) {
-    return std::unexpected("Missing .mdl0mat definition");
+    return RSL_UNEXPECTED("Missing .mdl0mat definition");
   }
   if (tmp.mdl0shade.empty()) {
-    return std::unexpected("Missing .mdl0shade definition");
+    return RSL_UNEXPECTED("Missing .mdl0shade definition");
   }
   return tmp;
 }
@@ -238,19 +238,19 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
 Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   auto mdl0mat = OishiiReadFile2(paths.mdl0mat.string());
   if (!mdl0mat) {
-    return std::unexpected(std::format("Failed to read .mdl0mat at \"{}\"",
+    return RSL_UNEXPECTED(std::format("Failed to read .mdl0mat at \"{}\"",
                                        paths.mdl0mat.string()));
   }
   auto mdl0shade = OishiiReadFile2(paths.mdl0shade.string());
   if (!mdl0shade) {
-    return std::unexpected(std::format("Failed to read .mdl0shade at \"{}\"",
+    return RSL_UNEXPECTED(std::format("Failed to read .mdl0shade at \"{}\"",
                                        paths.mdl0shade.string()));
   }
   std::vector<std::vector<u8>> tex0s;
   for (auto& x : paths.tex0) {
     auto tex0 = OishiiReadFile2(x.string());
     if (!tex0) {
-      return std::unexpected(
+      return RSL_UNEXPECTED(
           std::format("Failed to read .tex0 at \"{}\"", x.string()));
     }
     tex0s.push_back(std::move(*tex0));
@@ -259,19 +259,19 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   for (auto& x : paths.srt0) {
     auto srt0 = OishiiReadFile2(x.string());
     if (!srt0) {
-      return std::unexpected(
+      return RSL_UNEXPECTED(
           std::format("Failed to read .srt0 at \"{}\"", x.string()));
     }
     srt0s.push_back(std::move(*srt0));
   }
   auto mat = ReadMDL0Mat(*mdl0mat);
   if (!mat.has_value()) {
-    return std::unexpected(std::format("Failed to parse material at \"{}\": {}",
+    return RSL_UNEXPECTED(std::format("Failed to parse material at \"{}\": {}",
                                        paths.mdl0mat.string(), mat.error()));
   }
   auto shade = ReadMDL0Shade(*mdl0shade);
   if (!shade.has_value()) {
-    return std::unexpected(std::format("Failed to parse shader at \"{}\": {}",
+    return RSL_UNEXPECTED(std::format("Failed to parse shader at \"{}\": {}",
                                        paths.mdl0shade.string(),
                                        shade.error()));
   }
@@ -280,9 +280,9 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
     auto tex = g3d::ReadTEX0(tex0s[i]);
     if (!tex.has_value()) {
       if (i >= paths.tex0.size()) {
-        return std::unexpected(tex.error());
+        return RSL_UNEXPECTED(tex.error());
       }
-      return std::unexpected(std::format("Failed to parse TEX0 at \"{}\": {}",
+      return RSL_UNEXPECTED(std::format("Failed to parse TEX0 at \"{}\": {}",
                                          paths.tex0[i].string(), tex.error()));
     }
     tmp.tex.push_back(*tex);
@@ -291,9 +291,9 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
     auto srt = ReadSRT0(srt0s[i]);
     if (!srt.has_value()) {
       if (i >= paths.srt0.size()) {
-        return std::unexpected(srt.error());
+        return RSL_UNEXPECTED(srt.error());
       }
-      return std::unexpected(std::format("Failed to parse SRT0 at \"{}\": {}",
+      return RSL_UNEXPECTED(std::format("Failed to parse SRT0 at \"{}\": {}",
                                          paths.srt0[i].string(), srt.error()));
     }
     tmp.srt.push_back(*srt);
@@ -302,7 +302,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   {
     auto merged = ApplyG3dShaderToMaterial(*mat, *shade);
     if (!merged.has_value()) {
-      return std::unexpected(std::format(
+      return RSL_UNEXPECTED(std::format(
           "Failed to combine material + shader: {}", merged.error()));
     }
     tmp.mat = *merged;
@@ -336,7 +336,7 @@ Result<void> RetargetCrateAnimation(CrateAnimation& preset) {
     const std::string mat_names =
         FormatRange(mat_targets, [](auto& x) { return x; });
 
-    return std::unexpected(std::format(
+    return RSL_UNEXPECTED(std::format(
         "Invalid single material preset. We expect one material per preset. "
         "Here, we scanned {} SRT0+CLR0+PAT0 files ({}) and saw references to "
         "more than just one material. In particular, the materials ({}) were "
@@ -384,39 +384,39 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
   std::vector<u8> buf(file.begin(), file.end());
   auto brres = ReadBRRES(buf, "<rs preset>");
   if (!brres) {
-    return std::unexpected("Failed to parse .rspreset file"s);
+    return RSL_UNEXPECTED("Failed to parse .rspreset file"s);
   }
   if (brres->models.size() != 1) {
-    return std::unexpected("Failed to parse .rspreset file"s);
+    return RSL_UNEXPECTED("Failed to parse .rspreset file"s);
   }
   auto& mdl = brres->models[0];
   if (mdl.materials.size() != 1) {
-    return std::unexpected("Failed to parse .rspreset file"s);
+    return RSL_UNEXPECTED("Failed to parse .rspreset file"s);
   }
   auto mat = mdl.materials[0];
   for (auto& tex : mat.samplers) {
     if (findByName2(brres->textures, tex.mTexture) == nullptr) {
-      return std::unexpected("Preset is missing texture "s + tex.mTexture);
+      return RSL_UNEXPECTED("Preset is missing texture "s + tex.mTexture);
     }
   }
   for (auto& srt : brres->srts) {
     for (auto& anim : srt.matrices) {
       if (anim.target.materialName != mat.name) {
-        return std::unexpected("Extraneous SRT0 animations included"s);
+        return RSL_UNEXPECTED("Extraneous SRT0 animations included"s);
       }
     }
   }
   for (auto& clr : brres->clrs) {
     for (auto& anim : clr.materials) {
       if (anim.name != mat.name) {
-        return std::unexpected("Extraneous CLR0 animations included"s);
+        return RSL_UNEXPECTED("Extraneous CLR0 animations included"s);
       }
     }
   }
   for (auto& pat : brres->pats) {
     for (auto& anim : pat.materials) {
       if (anim.name != mat.name) {
-        return std::unexpected("Extraneous PAT0 animations included"s);
+        return RSL_UNEXPECTED("Extraneous PAT0 animations included"s);
       }
     }
   }
@@ -475,7 +475,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
                                                 const g3d::Archive* scene,
                                                 std::string_view metadata) {
   if (!scene) {
-    return std::unexpected(
+    return RSL_UNEXPECTED(
         "Internal: This scene type does not support .rspreset files. "
         "Not a BRRES file?");
   }
@@ -495,7 +495,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
     tex_names.emplace(tex);
     auto* data = findByName2(scene->textures, tex);
     if (data == nullptr) {
-      return std::unexpected(
+      return RSL_UNEXPECTED(
           std::string("Failed to find referenced textures ") + tex);
     }
     result.tex.push_back(*data);
@@ -546,7 +546,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
                                   "keyframe should have paletteIdx of 0");
           referenced.emplace_back(f->texture);
         } else {
-          return std::unexpected("Invalid PAT0");
+          return RSL_UNEXPECTED("Invalid PAT0");
         }
 #endif
       }
@@ -560,7 +560,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
       }
       auto* data = findByName2(scene->textures, tex);
       if (data == nullptr) {
-        return std::unexpected(
+        return RSL_UNEXPECTED(
             std::format("Failed to find referenced texture {}", tex));
       }
       result.tex.push_back(*data);
@@ -580,7 +580,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
   std::error_code ec;
   bool exists = std::filesystem::exists(root, ec);
   if (ec || !exists) {
-    return std::unexpected("Error: output folder does not exist");
+    return RSL_UNEXPECTED("Error: output folder does not exist");
   }
   for (auto& mdl : scene.models) {
     for (auto& mat : mdl.materials) {
