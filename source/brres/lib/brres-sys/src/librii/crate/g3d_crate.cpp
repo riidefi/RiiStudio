@@ -9,8 +9,8 @@
 #include <rsl/ArrayUtil.hpp>
 #include <rsl/WriteFile.hpp>
 
-const char GIT_TAG[] __attribute__((weak)) = "`brres` pre-release";
-const char RII_TIME_STAMP[] __attribute__((weak)) = "`brres` pre-release";
+extern const char GIT_TAG[] __attribute__((weak)) = "`brres` pre-release";
+extern const char RII_TIME_STAMP[] __attribute__((weak)) = "`brres` pre-release";
 
 namespace librii::crate {
 

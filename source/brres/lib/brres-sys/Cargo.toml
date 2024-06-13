@@ -1,7 +1,7 @@
 [package]
 name = "brres-sys"
 license = "MIT"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 description = "Low-level bindings for librii's .brres layer"
 homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/brres"
