@@ -6,7 +6,6 @@
 #include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
 
-void TestJson(const librii::g3d::Archive& archive);
 
 namespace librii::g3d {
 

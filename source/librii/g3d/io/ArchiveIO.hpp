@@ -14,18 +14,4 @@
 
 namespace librii::g3d {
 
-struct BinaryArchive {
-  std::vector<librii::g3d::BinaryModel> models;
-  std::vector<librii::g3d::TextureData> textures;
-  std::vector<librii::g3d::ChrAnim> chrs;
-  std::vector<librii::g3d::BinaryClr> clrs;
-  std::vector<librii::g3d::BinaryTexPat> pats;
-  std::vector<librii::g3d::BinarySrt> srts;
-  std::vector<librii::g3d::BinaryVis> viss;
-
-  Result<void> read(oishii::BinaryReader& reader,
-                    kpi::LightIOTransaction& transaction);
-  Result<void> write(oishii::Writer& writer);
-};
-
 } // namespace librii::g3d

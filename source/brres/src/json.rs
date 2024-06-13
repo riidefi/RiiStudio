@@ -513,7 +513,7 @@ pub struct JSONClrTrack {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct JSONClrTarget {
-    pub notAnimatedMask : u32,
+    pub notAnimatedMask: u32,
     pub data: u32,
 }
 

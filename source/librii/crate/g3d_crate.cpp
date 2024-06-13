@@ -464,9 +464,7 @@ Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset, bool cli) {
   mdl.bones.emplace_back().mName =
       preset.metadata + "{BEGIN_STRUCTURED_DATA}" + nlohmann::to_string(json);
 
-  oishii::Writer writer(0, std::endian::big);
-  TRY(collection.binary()).write(writer);
-  return writer.takeBuf();
+  return collection.write();
 }
 
 Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,

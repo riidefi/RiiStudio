@@ -104,12 +104,7 @@ Result<void> ReadBRRES(Collection& collection, librii::g3d::Archive& archive,
 
 Result<void> ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
                        kpi::LightIOTransaction& transaction) {
-  librii::g3d::BinaryArchive bin;
-  if (auto r = bin.read(reader, transaction); !r) {
-    transaction.callback(kpi::IOMessageClass::Error, "BRRES", r.error());
-    return std::unexpected(r.error());
-  }
-  auto archive = TRY(librii::g3d::Archive::from(bin, transaction));
+  auto archive = TRY(librii::g3d::Archive::read(reader, transaction));
   return ReadBRRES(collection, archive, reader.getFile());
 }
 
@@ -166,8 +161,7 @@ librii::g3d::Archive Collection::toLibRii() const {
 
 Result<void> WriteBRRES(Collection& scn, oishii::Writer& writer) {
   auto arc = scn.toLibRii();
-  auto ok = TRY(arc.binary());
-  return ok.write(writer);
+  return arc.write(writer);
 }
 
 } // namespace riistudio::g3d

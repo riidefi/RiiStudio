@@ -15,8 +15,6 @@
 #include <librii/g3d/data/VertexData.hpp>
 #include <librii/g3d/io/ArchiveIO.hpp>
 
-#include <rsl/WriteFile.hpp>
-
 template <typename T> using Expected = std::expected<T, std::string>;
 
 struct JsonWriteCtx;
@@ -109,8 +107,6 @@ void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
   auto s = librii::g3d::ArcToJSON(archive, ctx);
   j = nlohmann::json::parse(s);
 }
-
-constexpr u32 RBUF_ENTRY_ALIGNMENT = 64;
 
 std::vector<u8> CollateBuffers(const JsonWriteCtx& c) {
   std::vector<u8> result;
@@ -209,7 +205,6 @@ void TestJson(const librii::g3d::Archive& archive) {
   std::print(std::cout, "Number of buffers: {}\n", ctx.buffers.size());
   auto collated = CollateBuffers(ctx);
   std::print(std::cout, "filesize of raw data: {}\n", collated.size());
-  (void)rsl::WriteFile(collated, "Yea.bin");
 }
 
 struct DumpResult {
@@ -222,7 +217,7 @@ DumpResult DumpJson(const librii::g3d::Archive& archive) {
   nlohmann::json j;
   WriteJson(ctx, j, archive);
   auto collated = CollateBuffers(ctx);
-  return DumpResult{j.dump(4), std::move(collated)};
+  return DumpResult{j.dump(), std::move(collated)};
 }
 Result<librii::g3d::Archive> ReadJsonArc(std::string_view json,
                                          std::span<const u8> buffer) {
