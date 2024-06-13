@@ -101,6 +101,8 @@ fn main() {
         build.flag("-D_HAS_EXCEPTIONS=0");
         build.define("JSON_NOEXCEPTION", "1");
 
+        build.flag("-DRSL_USE_FALLBACK_EXPECTED");
+
         build.include(".").include("src");
         build.file("src/bindings.cpp");
 
