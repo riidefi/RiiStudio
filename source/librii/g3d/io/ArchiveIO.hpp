@@ -7,7 +7,6 @@
 #include <librii/g3d/io/AnimIO.hpp>
 #include <librii/g3d/io/AnimTexPatIO.hpp>
 #include <librii/g3d/io/AnimVisIO.hpp>
-#include <librii/g3d/io/ModelIO.hpp>
 
 // Regrettably, for kpi::LightIOTransaction
 #include <LibBadUIFramework/Plugins.hpp>

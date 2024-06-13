@@ -149,6 +149,11 @@ template <IsEnum T> struct TypeHandler<T> {
 
 namespace librii::g3d {
 
+Model::Model() __attribute__((weak)) = default;
+Model::Model(const Model&) __attribute__((weak)) = default;
+Model::Model(Model&&) noexcept __attribute__((weak)) = default;
+Model::~Model() __attribute__((weak)) = default;
+
 #define DEFINE_SERIALIZABLE(T, ...) JS_OBJ(__VA_ARGS__);
 
 struct JSONMatrixWeight {

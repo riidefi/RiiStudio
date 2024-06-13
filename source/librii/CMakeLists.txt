@@ -104,10 +104,9 @@ add_library(librii STATIC
   "kcol/Model.hpp" "kcol/Model.cpp"
   "g3d/gfx/G3dGfx.hpp" "g3d/gfx/G3dGfx.cpp"
   "g3d/io/MatIO.cpp" "g3d/io/MatIO.hpp"
-  "g3d/io/BoneIO.cpp"
+  
   "g3d/data/VertexData.hpp"
-  "g3d/io/ModelIO.hpp"
-  "g3d/io/ModelIO.cpp"
+  
   "g3d/io/ArchiveIO.hpp"
   "g3d/io/ArchiveIO.cpp"
   "crate/g3d_crate.cpp"
@@ -138,7 +137,7 @@ add_library(librii STATIC
   "jparticle/Sections/JPADynamicsBlock.hpp"
   "jparticle/utils/JPAUtils.hpp"
 
- "rhst/RHSTOptimizer.cpp" "rhst/MeshUtils.cpp"  "g3d/io/PolygonIO.cpp"
+ "rhst/RHSTOptimizer.cpp" "rhst/MeshUtils.cpp"  
 
 
 	"assimp2rhst/Assimp.cpp"

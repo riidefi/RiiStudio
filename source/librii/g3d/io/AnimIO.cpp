@@ -5,6 +5,11 @@
 #include <rsl/CompactVector.hpp>
 #include <rsl/SortArray.hpp>
 
+#include <librii/g3d/data/Archive.hpp>
+#include <librii/g3d/data/MaterialData.hpp>
+#include <librii/g3d/data/ModelData.hpp>
+#include <librii/g3d/data/BoneData.hpp>
+
 namespace librii::g3d {
 
 struct SRTOffsets {
