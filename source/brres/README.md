@@ -30,7 +30,7 @@ Implements a Rust layer on top of `librii::g3d`'s JSON export-import layer. Impo
 | PAT0   | Yes*      |
 | CLR0   | Yes*      |
 | CHR0   | Yes*      |
-| VIS0   | No        |
+| VIS0   | Yes       |
 | SHP0   | No        |
 
 * Restrictions on track ordering when editing.

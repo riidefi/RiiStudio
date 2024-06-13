@@ -2053,22 +2053,99 @@ struct JSONPatAnim {
     return anim;
   }
 };
+struct JSONVisKeyFrame {
+  u32 data;
+
+  DEFINE_SERIALIZABLE(JSONVisKeyFrame, data)
+
+  static JSONVisKeyFrame from(const VIS0KeyFrame& keyFrame) {
+    return {keyFrame.data};
+  }
+
+  VIS0KeyFrame to() const { return {data}; }
+};
+
+struct JSONVisTrack {
+  std::vector<JSONVisKeyFrame> keyframes;
+
+  DEFINE_SERIALIZABLE(JSONVisTrack, keyframes)
+
+  static JSONVisTrack from(const VIS0Track& track) {
+    JSONVisTrack jsonTrack;
+    for (const auto& keyFrame : track.keyframes) {
+      jsonTrack.keyframes.push_back(JSONVisKeyFrame::from(keyFrame));
+    }
+    return jsonTrack;
+  }
+
+  VIS0Track to() const {
+    VIS0Track track;
+    for (const auto& jsonKeyFrame : keyframes) {
+      track.keyframes.push_back(jsonKeyFrame.to());
+    }
+    return track;
+  }
+};
+
+struct JSONVisBone {
+  std::string name;
+  u32 flags;
+  std::optional<JSONVisTrack> target;
+
+  DEFINE_SERIALIZABLE(JSONVisBone, name, flags, target)
+
+  static JSONVisBone from(const VIS0Bone& bone) {
+    JSONVisBone jsonBone;
+    jsonBone.name = bone.name;
+    jsonBone.flags = bone.flags;
+    if (bone.target.has_value()) {
+      jsonBone.target = JSONVisTrack::from(bone.target.value());
+    }
+    return jsonBone;
+  }
+
+  VIS0Bone to() const {
+    VIS0Bone bone;
+    bone.name = name;
+    bone.flags = flags;
+    if (target.has_value()) {
+      bone.target = target->to();
+    }
+    return bone;
+  }
+};
 
 struct JSONVisData {
-  DEFINE_SERIALIZABLE(JSONVisData, name)
-
+  std::vector<JSONVisBone> bones;
   std::string name;
+  std::string sourcePath;
+  u16 frameDuration;
+  AnimationWrapMode wrapMode;
 
-  static JSONVisData from(const librii::g3d::BinaryVis& vis,
-                          JsonWriteCtx& ctx) {
+  DEFINE_SERIALIZABLE(JSONVisData, bones, name, sourcePath, frameDuration,
+                      wrapMode)
+
+  static JSONVisData from(const BinaryVis& vis, JsonWriteCtx& ctx) {
     JSONVisData json;
     json.name = vis.name;
+    json.sourcePath = vis.sourcePath;
+    json.frameDuration = vis.frameDuration;
+    json.wrapMode = vis.wrapMode;
+    for (const auto& bone : vis.bones) {
+      json.bones.push_back(JSONVisBone::from(bone));
+    }
     return json;
   }
 
-  librii::g3d::BinaryVis to(std::span<const std::vector<u8>> buffers) const {
-    librii::g3d::BinaryVis vis;
+  BinaryVis to(std::span<const std::vector<u8>> buffers) const {
+    BinaryVis vis;
     vis.name = name;
+    vis.sourcePath = sourcePath;
+    vis.frameDuration = frameDuration;
+    vis.wrapMode = wrapMode;
+    for (const auto& jsonBone : bones) {
+      vis.bones.push_back(jsonBone.to());
+    }
     return vis;
   }
 };

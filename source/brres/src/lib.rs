@@ -35,7 +35,7 @@ pub struct Archive {
     pub clrs: Vec<JSONClrAnim>,
 
     /// Bone visibility animation
-    pub viss: Vec<serde_json::Value>,
+    pub viss: Vec<JSONVisData>,
 }
 
 /// Corresponds to a single MDL0 file
@@ -1097,7 +1097,6 @@ mod tests4 {
         // Desync: Draw order
         test_validate_binary_is_lossless("../../tests/samples/pocha.brres", false)
     }
-    /*
     #[test]
     fn test_validate_binary_is_lossless_smooth_rtpa() {
         // PAT0
@@ -1108,5 +1107,8 @@ mod tests4 {
         // CLR0
         test_validate_binary_is_lossless("../../tests/samples/smooth_rcla.brres", true)
     }
-    */
+    #[test]
+    fn test_validate_binary_is_lossless_brvia() {
+        test_validate_binary_is_lossless("../../tests/samples/brvia.brres", true)
+    }
 }

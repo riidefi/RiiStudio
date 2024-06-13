@@ -112,7 +112,7 @@ pub struct JsonArchive {
     pub pats: Vec<JSONPatAnim>,
     pub srts: Vec<JSONSrtData>,
     pub textures: Vec<JsonTexture>,
-    pub viss: Vec<serde_json::Value>,
+    pub viss: Vec<JSONVisData>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -513,7 +513,7 @@ pub struct JSONClrTrack {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct JSONClrTarget {
-    pub notAnimatedMask: u32,
+    pub notAnimatedMask : u32,
     pub data: u32,
 }
 
@@ -528,6 +528,33 @@ pub struct JSONClrMaterial {
 pub struct JSONClrAnim {
     pub materials: Vec<JSONClrMaterial>,
     pub tracks: Vec<JSONClrTrack>,
+    pub name: String,
+    pub sourcePath: String,
+    pub frameDuration: u16,
+    pub wrapMode: AnimationWrapMode,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONVisKeyFrame {
+    pub data: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONVisTrack {
+    pub keyframes: Vec<JSONVisKeyFrame>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONVisBone {
+    pub name: String,
+    pub flags: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<JSONVisTrack>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct JSONVisData {
+    pub bones: Vec<JSONVisBone>,
     pub name: String,
     pub sourcePath: String,
     pub frameDuration: u16,
