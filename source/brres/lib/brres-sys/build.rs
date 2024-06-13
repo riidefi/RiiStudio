@@ -81,6 +81,12 @@ fn main() {
             build.std("gnu++20");
         }
 
+        if compiler.is_like_gnu() {
+            build.flag("-Wno-unused-parameter");
+            build.flag("-Wno-unused-value");
+            build.flag("-Wno-sign-compare");
+        }
+
         if compiler.is_like_clang() || is_clang_cl {
             // warning : src/dolemu/TextureDecoder/TextureDecoder_x64.cpp(1177,75): warning: unused parameter 'tlut' [-Wunused-parameter]
             // warning : TextureFormat texformat, const u8* tlut, TLUTFormat tlutfmt,
