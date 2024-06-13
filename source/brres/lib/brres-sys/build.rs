@@ -147,23 +147,23 @@ fn main() {
             .file("./src/librii/crate/g3d_crate.cpp");
 
         build
-            .file("../../../rsl/SafeReader.cpp")
-            .file("../../../rsl/WriteFile.cpp")
-            .file("../../../rsl/Log.cpp")
-            .file("../../../oishii/AbstractStream.cxx")
-            .file("../../../oishii/BreakpointHolder.cxx")
-            .file("../../../oishii/writer/binary_writer.cxx")
-            .file("../../../oishii/writer/linker.cxx")
-            .file("../../../oishii/writer/node.cxx")
-            .file("../../../oishii/util/util.cxx")
-            .file("../../../oishii/reader/binary_reader.cxx")
-            .file("../../../librii/gx/Texture.cpp")
-            .file("../../../librii/gpu/DLInterpreter.cpp")
-            .file("../../../librii/gpu/DLPixShader.cpp")
-            .file("../../../librii/gpu/GPUMaterial.cpp")
-            .file("../../../vendor/fmt/format.cc")
-            .file("../../../vendor/fmt/os.cc")
-            .file("../../../librii/trig/WiiTrig.cpp");
+            .file("./src/rsl/SafeReader.cpp")
+            .file("./src/rsl/WriteFile.cpp")
+            .file("./src/rsl/Log.cpp")
+            .file("./src/oishii/AbstractStream.cxx")
+            .file("./src/oishii/BreakpointHolder.cxx")
+            .file("./src/oishii/writer/binary_writer.cxx")
+            .file("./src/oishii/writer/linker.cxx")
+            .file("./src/oishii/writer/node.cxx")
+            .file("./src/oishii/util/util.cxx")
+            .file("./src/oishii/reader/binary_reader.cxx")
+            .file("./src/librii/gx/Texture.cpp")
+            .file("./src/librii/gpu/DLInterpreter.cpp")
+            .file("./src/librii/gpu/DLPixShader.cpp")
+            .file("./src/librii/gpu/GPUMaterial.cpp")
+            .file("./src/vendor/fmt/format.cc")
+            .file("./src/vendor/fmt/os.cc")
+            .file("./src/librii/trig/WiiTrig.cpp");
 
         build.compile("brres-sys.a");
     }
