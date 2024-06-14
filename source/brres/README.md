@@ -13,12 +13,12 @@ Filetype   | Description                              | Rust structure
 BRRES v0   | 3D Resource                              | [`Archive`](https://docs.rs/brres/latest/brres/struct.Archive.html)
 MDL0 v11   | 3D Model                                 | [`Model`](https://docs.rs/brres/latest/brres/struct.Model.html)
 TEX0 v1/v3 | Texture                                  | [`Texture`](https://docs.rs/brres/latest/brres/struct.Texture.html)
-SRT0 v5    | Texture scale/rotate/translate animation | [`JSONSrtData`](https://docs.rs/brres/latest/brres/struct.JSONSrtData.html)
-VIS0 v4    | Bone visibility animation                | [`JSONVisData`](https://docs.rs/brres/latest/brres/struct.JSONVisData.html)
-CLR0 v4    | Shader uniform animation                 | [`JSONClrAnim`](https://docs.rs/brres/latest/brres/struct.JSONClrAnim.html), editing limitations
-CHR0 v4    | Shader uniform animation                 | [`ChrData`](https://docs.rs/brres/latest/brres/struct.ChrData.html), editing limitations
-PAT0 v4    | Texture image animation                  | [`JSONPatAnim`](https://docs.rs/brres/latest/brres/struct.JSONPatAnim.html), editing limitations
-SHP0       | Bone/character animation                 | Unsupported
+SRT0 v5    | Texture scale/rotate/translate animation | [`JSONSrtData`](https://docs.rs/brres/latest/brres/json/struct.JSONSrtData.html)
+VIS0 v4    | Bone visibility animation                | [`JSONVisData`](https://docs.rs/brres/latest/brres/json/struct.JSONVisData.html)
+CLR0 v4    | Shader uniform animation                 | [`JSONClrAnim`](https://docs.rs/brres/latest/brres/json/struct.JSONClrAnim.html), editing limitations
+CHR0 v4    | Bone/character animation                 | [`ChrData`](https://docs.rs/brres/latest/brres/struct.ChrData.html), editing limitations
+PAT0 v4    | Texture image animation                  | [`JSONPatAnim`](https://docs.rs/brres/latest/brres/json/struct.JSONPatAnim.html), editing limitations
+SHP0       | Vertex morph animation                   | Unsupported
 
 ## File format: .mdl0
 
@@ -40,10 +40,7 @@ MDL0.PaletteLink | Internal               | Recomputed
 MDL0.UserData    | Metadata               | Not supported
 
 Thus, the Rust view of a MDL0 file looks like this:
-```
-use brres::*;
-use brres::json::*;
-
+```rs
 struct Model {
     pub name: String,
     pub info: JSONModelInfo,
@@ -66,7 +63,7 @@ struct Model {
 ## Reading a file
 Read a .brres file from a path on the filesystem.
 
-```
+```rs
 let archive = brres::Archive::from_path("kuribo.brres").unwrap();
 assert!(archive.models[1].name == "kuribo");
 
@@ -74,7 +71,7 @@ println!("{:#?}", archive.get_model("kuribo").unwrap().meshes[0]);
 ```
 Read a .brres file from a raw slice of bytes.
 
-```
+```rs
 let raw_bytes = std::fs::read("kuribo.brres").expect("Expected kuribo :)");
 
 let archive = brres::Archive::from_memory(&raw_bytes).unwrap();
@@ -85,13 +82,11 @@ println!("{:#?}", archive.get_model("kuribo").unwrap().meshes[0]);
 
 ## Writing a file
 (to a file)
-```
-let kuribo = brres::Archive::from_path("kuribo.brres").unwrap();
+```rs
 let buf = kuribo.write_path("kuribo_modified.brres").unwrap();
 ```
 (to memory)
-```
-let kuribo = brres::Archive::from_path("kuribo.brres").unwrap();
+```rs
 let buf = kuribo.write_memory().unwrap();
 std::fs::write("kuribo_modified.brres", buf).unwrap();
 ```
@@ -103,7 +98,7 @@ fn test_read_raw_brres() {
     let brres_data = fs::read("sea.brres").expect("Failed to read sea.brres file");
 
     // Call the read_raw_brres function
-    match read_raw_brres(&brres_data) {
+    match brres::Archive::from_memory(&brres_data) {
         Ok(archive) => {
             println!("{:#?}", archive.get_model("sea").unwrap().meshes[0]);
         }
@@ -129,6 +124,15 @@ Implements a Rust layer on top of `librii::g3d`'s JSON export-import layer. Impo
 | SHP0   | No        |
 
 * Restrictions on track ordering when editing.
+
+## Current limitations
+- PAT0, CLR0 and CHR0 support is slightly less than ideal. In particular, existing code emphasizes bit-perfect rebuilding, but lacks the flexibility useful for editing. Future versions should address this.
+- The internal parts of the library are written in C++. Additionally, the `clang` compiler is needed on Windows. The Microsoft Visual C++ compiler cannot be used.
+- A lot of documentation is still needed.
+- SHP0 is unsupported, although almost never used.
+- Only V11 MDL0 is supported. For older titles we should support older (and newer) versions (v7: Wii Sports?, v9: Brawl, v12: Kirby, etc.)
+- JSON* structures probably shouldn't be directly exposed.
+- The names of enum values do not always follow Rust convention.
 
 ## Tests
 Unit tests are being used to validate correctness. Run the suite with `cargo test`

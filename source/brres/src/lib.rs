@@ -3,7 +3,7 @@
 //! BRRES (.brres) is Nintendo's first-party 3D model format for the Nintendo Wii. Used in games like *Mario Kart Wii*, *Twilight Princess* and *Super Smash Bros: Brawl*, .brres is a versatile and efficient file format.
 //! Nearly all data is stored as raw GPU display lists that are directly read by the Wii's "flipper" GPU.
 //!
-//! # File format: .brres
+//! ## File format: .brres
 //!
 //! At the very root, ".brres" is an archive format for the following sub-files. All but SHP0 are supported.
 //!
@@ -12,14 +12,14 @@
 //! BRRES v0   | 3D Resource                              | [`Archive`](https://docs.rs/brres/latest/brres/struct.Archive.html)
 //! MDL0 v11   | 3D Model                                 | [`Model`](https://docs.rs/brres/latest/brres/struct.Model.html)
 //! TEX0 v1/v3 | Texture                                  | [`Texture`](https://docs.rs/brres/latest/brres/struct.Texture.html)
-//! SRT0 v5    | Texture scale/rotate/translate animation | [`JSONSrtData`](https://docs.rs/brres/latest/brres/struct.JSONSrtData.html)
-//! VIS0 v4    | Bone visibility animation                | [`JSONVisData`](https://docs.rs/brres/latest/brres/struct.JSONVisData.html)
-//! CLR0 v4    | Shader uniform animation                 | [`JSONClrAnim`](https://docs.rs/brres/latest/brres/struct.JSONClrAnim.html), editing limitations
-//! CHR0 v4    | Shader uniform animation                 | [`ChrData`](https://docs.rs/brres/latest/brres/struct.ChrData.html), editing limitations
-//! PAT0 v4    | Texture image animation                  | [`JSONPatAnim`](https://docs.rs/brres/latest/brres/struct.JSONPatAnim.html), editing limitations
-//! SHP0       | Bone/character animation                 | Unsupported
+//! SRT0 v5    | Texture scale/rotate/translate animation | [`JSONSrtData`](https://docs.rs/brres/latest/brres/json/struct.JSONSrtData.html)
+//! VIS0 v4    | Bone visibility animation                | [`JSONVisData`](https://docs.rs/brres/latest/brres/json/struct.JSONVisData.html)
+//! CLR0 v4    | Shader uniform animation                 | [`JSONClrAnim`](https://docs.rs/brres/latest/brres/json/struct.JSONClrAnim.html), editing limitations
+//! CHR0 v4    | Bone/character animation                 | [`ChrData`](https://docs.rs/brres/latest/brres/struct.ChrData.html), editing limitations
+//! PAT0 v4    | Texture image animation                  | [`JSONPatAnim`](https://docs.rs/brres/latest/brres/json/struct.JSONPatAnim.html), editing limitations
+//! SHP0       | Vertex morph animation                   | Unsupported
 //!
-//! # File format: .mdl0
+//! ## File format: .mdl0
 //!
 //! Filetype         | Description            | Rust structure
 //! -----------------|------------------------|--------------
@@ -62,7 +62,7 @@
 //! }
 //! ```
 //!
-//! # Reading a file
+//! ## Reading a file
 //! Read a .brres file from a path on the filesystem.
 //!
 //! ```
@@ -73,7 +73,7 @@
 //! ```
 //! Read a .brres file from a raw slice of bytes.
 //!
-//! ```
+//! ```rs
 //! let raw_bytes = std::fs::read("kuribo.brres").expect("Expected kuribo :)");
 //!
 //! let archive = brres::Archive::from_memory(&raw_bytes).unwrap();
@@ -82,7 +82,7 @@
 //! println!("{:#?}", archive.get_model("kuribo").unwrap().meshes[0]);
 //! ```
 //!
-//! # Writing a file
+//! ## Writing a file
 //! (to a file)
 //! ```
 //! let kuribo = brres::Archive::from_path("kuribo.brres").unwrap();
@@ -94,7 +94,16 @@
 //! let buf = kuribo.write_memory().unwrap();
 //! std::fs::write("kuribo_modified.brres", buf).unwrap();
 //! ```
-
+//!
+//! ## Current limitations
+//! - PAT0, CLR0 and CHR0 support is slightly less than ideal. In particular, existing code emphasizes bit-perfect rebuilding, but lacks the flexibility useful for editing. Future versions should address this.
+//! - The internal parts of the library are written in C++. Additionally, the `clang` compiler is needed on Windows. The Microsoft Visual C++ compiler cannot be used.
+//! - A lot of documentation is still needed.
+//! - SHP0 is unsupported, although almost never used.
+//! - Only V11 MDL0 is supported. For older titles we should support older (and newer) versions (v7: Wii Sports?, v9: Brawl, v12: Kirby, etc.)
+//! - JSON* structures probably shouldn't be directly exposed.
+//! - The names of enum values do not always follow Rust convention.
+//!
 
 use std::fs::File;
 use std::io::BufReader;
@@ -1007,14 +1016,14 @@ fn create_json(archive: &Archive) -> anyhow::Result<(String, Vec<u8>)> {
 }
 
 /// Read a .brres file from memory
-pub fn read_raw_brres(brres: &[u8]) -> anyhow::Result<Archive> {
+fn read_raw_brres(brres: &[u8]) -> anyhow::Result<Archive> {
     let tmp = ffi::CBrresWrapper::from_bytes(brres)?;
 
     create_archive(&tmp.json_metadata, &tmp.buffer_data)
 }
 
 /// Write a .brres to memory
-pub fn write_raw_brres(archive: &Archive) -> anyhow::Result<Vec<u8>> {
+fn write_raw_brres(archive: &Archive) -> anyhow::Result<Vec<u8>> {
     let (json, blob) = create_json(&archive)?;
 
     let ffi_obj = ffi::CBrresWrapper::write_bytes(&json, &blob)?;
