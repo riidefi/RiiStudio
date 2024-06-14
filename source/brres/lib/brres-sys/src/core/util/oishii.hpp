@@ -4,7 +4,6 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 #include <optional>
-#include <plate/Platform.hpp>
 #include <rsl/Expected.hpp>
 
 inline std::optional<std::vector<u8>>
