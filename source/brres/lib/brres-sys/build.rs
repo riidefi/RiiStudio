@@ -20,7 +20,7 @@ const SEARCH_WINDOWS: &[&str] = &[
 #[cfg(windows)]
 fn find_clang() -> Option<PathBuf> {
     for &pattern in SEARCH_WINDOWS {
-        if let Some(path) = find_in_pattern(pattern, "clang.exe") {
+        if let Some(path) = find_in_pattern(pattern, "clang-cl.exe") {
             return Some(path);
         }
     }
@@ -98,7 +98,6 @@ fn main() {
             build.flag("-Wno-deprecated-copy");
         }
         if !compiler.is_like_gnu() && !compiler.is_like_clang() {
-            #[cfg(not(debug_assertions))]
             build.flag("-MT");
         }
 
