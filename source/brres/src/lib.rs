@@ -1,9 +1,107 @@
+//! # brres
+//!
+//! BRRES (.brres) is Nintendo's first-party 3D model format for the Nintendo Wii. Used in games like *Mario Kart Wii*, *Twilight Princess* and *Super Smash Bros: Brawl*, .brres is a versatile and efficient file format.
+//! Nearly all data is stored as raw GPU display lists that are directly read by the Wii's "flipper" GPU.
+//!
+//! # File format: .brres
+//!
+//! At the very root, ".brres" is an archive format for the following sub-files. All but SHP0 are supported.
+//!
+//! Filetype   | Description                              | Rust structure
+//! -----------|------------------------------------------|--------------------------
+//! BRRES v0   | 3D Resource                              | [`Archive`](https://docs.rs/brres/latest/brres/struct.Archive.html)
+//! MDL0 v11   | 3D Model                                 | [`Model`](https://docs.rs/brres/latest/brres/struct.Model.html)
+//! TEX0 v1/v3 | Texture                                  | [`Texture`](https://docs.rs/brres/latest/brres/struct.Texture.html)
+//! SRT0 v5    | Texture scale/rotate/translate animation | [`JSONSrtData`](https://docs.rs/brres/latest/brres/struct.JSONSrtData.html)
+//! VIS0 v4    | Bone visibility animation                | [`JSONVisData`](https://docs.rs/brres/latest/brres/struct.JSONVisData.html)
+//! CLR0 v4    | Shader uniform animation                 | [`JSONClrAnim`](https://docs.rs/brres/latest/brres/struct.JSONClrAnim.html), editing limitations
+//! CHR0 v4    | Shader uniform animation                 | [`ChrData`](https://docs.rs/brres/latest/brres/struct.ChrData.html), editing limitations
+//! PAT0 v4    | Texture image animation                  | [`JSONPatAnim`](https://docs.rs/brres/latest/brres/struct.JSONPatAnim.html), editing limitations
+//! SHP0       | Bone/character animation                 | Unsupported
+//!
+//! # File format: .mdl0
+//!
+//! Filetype         | Description            | Rust structure
+//! -----------------|------------------------|--------------
+//! MDL0.ByteCode    | Draw calls + Skeleton  | Merged into [`JSONBoneData`](https://docs.rs/brres/latest/brres/json/struct.JSONBoneData.html), [`JSONDrawMatrix`](https://docs.rs/brres/latest/brres/json/struct.JSONDrawMatrix.html)
+//! MDL0.Bone        | Bone                   | [`JSONBoneData`](https://docs.rs/brres/latest/brres/json/struct.JSONBoneData.html)
+//! MDL0.PositionBuf | Holds vertex positions | [`VertexPositionBuffer`](https://docs.rs/brres/latest/brres/struct.VertexPositionBuffer.html)
+//! MDL0.NormalBuf   | Holds vertex normals   | [`VertexNormalBuffer`](https://docs.rs/brres/latest/brres/struct.VertexNormalBuffer.html)
+//! MDL0.ColorBuf    | Holds vertex colors    | [`VertexColorBuffer`](https://docs.rs/brres/latest/brres/struct.VertexColorBuffer.html)
+//! MDL0.UVBuf       | Holds UV maps          | [`VertexTextureCoordinateBuffer`](https://docs.rs/brres/latest/brres/struct.VertexTextureCoordinateBuffer.html)
+//! MDL0.FurVecBuf   | Fur related            | Not supported
+//! MDL0.FurPosBuf   | Fur related            | Not supported
+//! MDL0.Material    | Material data          | [`JSONMaterial`](https://docs.rs/brres/latest/brres/json/struct.JSONMaterial.html)
+//! MDL0.TEV         | Shader data            | Merged into [`JSONMaterial`](https://docs.rs/brres/latest/brres/json/struct.JSONMaterial.html)
+//! MDL0.Mesh        | 3D mesh data           | [`Mesh`](https://docs.rs/brres/latest/brres/struct.Mesh.html)
+//! MDL0.TextureLink | Internal               | Recomputed
+//! MDL0.PaletteLink | Internal               | Recomputed
+//! MDL0.UserData    | Metadata               | Not supported
+//!
+//! Thus, the Rust view of a MDL0 file looks like this:
+//! ```
+//! use brres::*;
+//! use brres::json::*;
+//!
+//! struct Model {
+//!     pub name: String,
+//!     pub info: JSONModelInfo,
+//!
+//!     pub bones: Vec<JSONBoneData>,
+//!     pub materials: Vec<JSONMaterial>,
+//!     pub meshes: Vec<Mesh>,
+//!
+//!     // Vertex buffers
+//!     pub positions: Vec<VertexPositionBuffer>,
+//!     pub normals: Vec<VertexNormalBuffer>,
+//!     pub texcoords: Vec<VertexTextureCoordinateBuffer>,
+//!     pub colors: Vec<VertexColorBuffer>,
+//!
+//!     /// For skinning
+//!     pub matrices: Vec<JSONDrawMatrix>,
+//! }
+//! ```
+//!
+//! # Reading a file
+//! Read a .brres file from a path on the filesystem.
+//!
+//! ```
+//! let archive = brres::Archive::from_path("kuribo.brres").unwrap();
+//! assert!(archive.models[1].name == "kuribo");
+//!
+//! println!("{:#?}", archive.get_model("kuribo").unwrap().meshes[0]);
+//! ```
+//! Read a .brres file from a raw slice of bytes.
+//!
+//! ```
+//! let raw_bytes = std::fs::read("kuribo.brres").expect("Expected kuribo :)");
+//!
+//! let archive = brres::Archive::from_memory(&raw_bytes).unwrap();
+//! assert!(archive.models[1].name == "kuribo");
+//!
+//! println!("{:#?}", archive.get_model("kuribo").unwrap().meshes[0]);
+//! ```
+//!
+//! # Writing a file
+//! (to a file)
+//! ```
+//! let kuribo = brres::Archive::from_path("kuribo.brres").unwrap();
+//! let buf = kuribo.write_path("kuribo_modified.brres").unwrap();
+//! ```
+//! (to memory)
+//! ```
+//! let kuribo = brres::Archive::from_path("kuribo.brres").unwrap();
+//! let buf = kuribo.write_memory().unwrap();
+//! std::fs::write("kuribo_modified.brres", buf).unwrap();
+//! ```
+
+
 use std::fs::File;
 use std::io::BufReader;
 
 mod buffers;
-mod enums;
-mod json;
+pub mod enums;
+pub mod json;
 
 use brres_sys::ffi;
 use enums::*;
@@ -140,60 +238,64 @@ pub struct MatrixPrimitive {
 /// Holds positions of vertices in 3D space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VertexPositionBuffer {
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    data: Vec<[f32; 3]>,
+    /// TODO: Can't we recompute this?
+    pub id: i32,
+    pub name: String,
+    pub q_comp: i32,
+    pub q_divisor: i32,
+    pub q_stride: i32,
+    pub q_type: i32,
+    pub data: Vec<[f32; 3]>,
     /// Only here to make unit tests simple (1:1 matching)
-    cached_minmax: Option<([f32; 3], [f32; 3])>,
+    pub cached_minmax: Option<([f32; 3], [f32; 3])>,
 }
 
 /// Holds normal vectors of vertices in 3D space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VertexNormalBuffer {
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    data: Vec<[f32; 3]>,
+    /// TODO: Can't we recompute this?
+    pub id: i32,
+    pub name: String,
+    pub q_comp: i32,
+    pub q_divisor: i32,
+    pub q_stride: i32,
+    pub q_type: i32,
+    pub data: Vec<[f32; 3]>,
     /// Only here to make unit tests simple (1:1 matching)
-    cached_minmax: Option<([f32; 3], [f32; 3])>,
+    pub cached_minmax: Option<([f32; 3], [f32; 3])>,
 }
 
 /// Holds vertex colors.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VertexColorBuffer {
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    data: Vec<[u8; 4]>,
+    /// TODO: Can't we recompute this?
+    pub id: i32,
+    pub name: String,
+    pub q_comp: i32,
+    pub q_divisor: i32,
+    pub q_stride: i32,
+    pub q_type: i32,
+    pub data: Vec<[u8; 4]>,
     /// Only here to make unit tests simple (1:1 matching)
-    cached_minmax: Option<([u8; 4], [u8; 4])>,
+    pub cached_minmax: Option<([u8; 4], [u8; 4])>,
 }
 
 /// Holds vertex UV coordinates.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VertexTextureCoordinateBuffer {
-    id: i32,
-    name: String,
-    q_comp: i32,
-    q_divisor: i32,
-    q_stride: i32,
-    q_type: i32,
-    data: Vec<[f32; 2]>,
+    /// TODO: Can't we recompute this?
+    pub id: i32,
+    pub name: String,
+    pub q_comp: i32,
+    pub q_divisor: i32,
+    pub q_stride: i32,
+    pub q_type: i32,
+    pub data: Vec<[f32; 2]>,
     /// Only here to make unit tests simple (1:1 matching)
-    cached_minmax: Option<([f32; 2], [f32; 2])>,
+    pub cached_minmax: Option<([f32; 2], [f32; 2])>,
 }
 
-/// Holds a hardware-encoded image. Potentially may store multiple mip levels in a hierarchy. See https://en.wikipedia.org/wiki/Mipmap#Mechanism
+/// Holds a hardware-encoded image. Potentially may store multiple mip levels in a hierarchy. See <https://en.wikipedia.org/wiki/Mipmap#Mechanism>.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
     /// Name of this resource.
@@ -284,31 +386,31 @@ pub struct Texture {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChrData {
     /// Name of this resource.
-    name: String,
+    pub name: String,
 
     /// Bones/Joints/Nodes that are being animated. Specifies which attributes of a Bone are animated.
-    nodes: Vec<ChrNode>,
+    pub nodes: Vec<ChrNode>,
 
     /// Actual animation curve data.
-    tracks: Vec<ChrTrack>,
+    pub tracks: Vec<ChrTrack>,
 
-    source_path: String,
-    frame_duration: u16,
-    wrap_mode: u32,
-    scale_rule: u32,
+    pub source_path: String,
+    pub frame_duration: u16,
+    pub wrap_mode: u32,
+    pub scale_rule: u32,
 }
 
 /// Describes the animations being applied to a single Bone.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChrNode {
-    /// Name of the Bone to link to.
-    name: String,
+    /// Name of the referenced Bone. Case-sensitive?
+    pub name: String,
 
     /// TODO: Should not be exposed to the user.
-    flags: u32,
+    pub flags: u32,
 
     /// You'll need to interpret `flags` to determine which track indices correspond to which attributes, for now.
-    tracks: Vec<u32>,
+    pub tracks: Vec<u32>,
 }
 
 /// Animation curve data.
@@ -316,26 +418,26 @@ pub struct ChrNode {
 pub struct ChrTrack {
     /// How is this curve being stored? Different formats offer different (lossy) compression.
     /// ChrQuantization::Constant is special--when specified only a single keyframe is permitted.
-    quant: ChrQuantization,
+    pub quant: ChrQuantization,
     /// For some animation formats, you will need to compute an optimal scale/offset affine transform that reduces the signed area of the curve.
-    scale: f32,
+    pub scale: f32,
     /// For some animation formats, you will need to compute an optimal scale/offset affine transform that reduces the signed area of the curve.
-    offset: f32,
+    pub offset: f32,
     /// This *should* be recomputed--we have this here for unit tests with BrawlBox. Should be made Optional.
-    step: f32,
+    pub step: f32,
     /// Keyframes for the Curve data.
-    frames_data: Vec<ChrFrame>,
+    pub frames_data: Vec<ChrFrame>,
 }
 
 /// Hermine spline point in an animation curve. We use f64 because the quantized fixed-point numbers have far more precision than f32 allows (and without this, we wouldn't currently support 1:1 matching on encode-decode.)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ChrFrame {
     /// x: Position of the current keyframe (in time)
-    frame: f64,
+    pub frame: f64,
     /// f(x): Curve evaluated at the frame
-    value: f64,
+    pub value: f64,
     /// f'(x): Slope of curve at the frame
-    slope: f64,
+    pub slope: f64,
 }
 
 // Useful structure for dumping blobs and keeping track of indices.
@@ -386,11 +488,11 @@ impl Archive {
         }
     }
 
-    fn get_model(&self, name: &str) -> Option<&Model> {
+    pub fn get_model(&self, name: &str) -> Option<&Model> {
         self.models.iter().find(|model| model.name == name)
     }
 
-    fn get_texture(&self, name: &str) -> Option<&Texture> {
+    pub fn get_texture(&self, name: &str) -> Option<&Texture> {
         self.textures.iter().find(|texture| texture.name == name)
     }
 
@@ -835,7 +937,7 @@ struct ChrFramePacker;
 impl ChrFramePacker {
     const CHR_FRAME_SIZE: usize = 8 * 3;
 
-    pub fn pack(frames: &[ChrFrame]) -> Vec<u8> {
+    fn pack(frames: &[ChrFrame]) -> Vec<u8> {
         let mut buffer = Vec::with_capacity(frames.len() * Self::CHR_FRAME_SIZE);
         for frame in frames {
             buffer.extend_from_slice(&frame.frame.to_le_bytes());
@@ -845,7 +947,7 @@ impl ChrFramePacker {
         buffer
     }
 
-    pub fn unpack(bytes: &[u8], num_keyframes: usize) -> Vec<ChrFrame> {
+    fn unpack(bytes: &[u8], num_keyframes: usize) -> Vec<ChrFrame> {
         let mut frames = Vec::with_capacity(num_keyframes);
         for i in 0..num_keyframes {
             let offset = i * Self::CHR_FRAME_SIZE;
@@ -884,7 +986,7 @@ mod tests {
     }
 }
 
-pub fn create_archive(json_str: &str, raw_buffer: &[u8]) -> anyhow::Result<Archive> {
+fn create_archive(json_str: &str, raw_buffer: &[u8]) -> anyhow::Result<Archive> {
     // Decode the JSON string to JsonArchive
     let json_archive: JsonArchive = serde_json::from_str(json_str)?;
 
@@ -895,7 +997,7 @@ pub fn create_archive(json_str: &str, raw_buffer: &[u8]) -> anyhow::Result<Archi
     Ok(Archive::from_json(json_archive, buffers))
 }
 
-pub fn create_json(archive: &Archive) -> anyhow::Result<(String, Vec<u8>)> {
+fn create_json(archive: &Archive) -> anyhow::Result<(String, Vec<u8>)> {
     let mut ctx = JsonWriteCtx::new();
     let json_archive = archive.to_json(&mut ctx);
     let json_str = serde_json::to_string_pretty(&json_archive)?;
@@ -904,12 +1006,14 @@ pub fn create_json(archive: &Archive) -> anyhow::Result<(String, Vec<u8>)> {
     Ok((json_str, blob))
 }
 
+/// Read a .brres file from memory
 pub fn read_raw_brres(brres: &[u8]) -> anyhow::Result<Archive> {
     let tmp = ffi::CBrresWrapper::from_bytes(brres)?;
 
     create_archive(&tmp.json_metadata, &tmp.buffer_data)
 }
 
+/// Write a .brres to memory
 pub fn write_raw_brres(archive: &Archive) -> anyhow::Result<Vec<u8>> {
     let (json, blob) = create_json(&archive)?;
 
@@ -920,14 +1024,67 @@ pub fn write_raw_brres(archive: &Archive) -> anyhow::Result<Vec<u8>> {
     Ok(ffi_obj.buffer_data.to_vec())
 }
 
-// TODO: Add test
+/// Read a .mdl0mat preset folder
+/// TODO: Add test
 pub fn read_mdl0mat_preset_folder(folder: &std::path::Path) -> anyhow::Result<Archive> {
-    let folder_str = folder
-        .to_str()
-        .ok_or(anyhow!("Failed to stringify path"))?;
+    let folder_str = folder.to_str().ok_or(anyhow!("Failed to stringify path"))?;
     let ffi_obj = ffi::CBrresWrapper::read_preset_folder(folder_str)?;
 
     Ok(read_raw_brres(&ffi_obj.buffer_data)?)
+}
+
+impl Archive {
+    /// Read a .brres file from a raw slice of bytes.
+    ///
+    /// ```
+    /// let raw_bytes = std::fs::read("kuribo.brres").expect("Expected kuribo :)");
+    ///
+    /// let archive = brres::Archive::from_memory(&raw_bytes).unwrap();
+    /// assert!(archive.models[1].name == "kuribo");
+    ///
+    /// println!("{:#?}", archive.get_model("kuribo").unwrap().meshes[0]);
+    /// ```
+    pub fn from_memory(buffer: &[u8]) -> anyhow::Result<Archive> {
+        read_raw_brres(&buffer)
+    }
+
+    /// Read a .brres file from a path on the filesystem.
+    ///
+    /// ```
+    /// let archive = brres::Archive::from_path("kuribo.brres").unwrap();
+    /// assert!(archive.models[1].name == "kuribo");
+    ///
+    /// println!("{:#?}", archive.get_model("kuribo").unwrap().meshes[0]);
+    /// ```
+    pub fn from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Archive> {
+        let buf = std::fs::read(path)?;
+
+        read_raw_brres(&buf)
+    }
+
+    /// Write a .brres file to a raw vector of bytes.
+    ///
+    /// ```
+    /// let kuribo = brres::Archive::from_path("kuribo.brres").unwrap();
+    /// let buf = kuribo.write_memory().unwrap();
+    /// std::fs::write("kuribo_modified.brres", buf).unwrap();
+    /// ```
+    pub fn write_memory(self: &Self) -> anyhow::Result<Vec<u8>> {
+        write_raw_brres(self)
+    }
+
+    /// Write a .brres file to a file.
+    ///
+    /// ```
+    /// let kuribo = brres::Archive::from_path("kuribo.brres").unwrap();
+    /// let buf = kuribo.write_path("kuribo_modified.brres").unwrap();
+    /// ```
+    pub fn write_path<P: AsRef<Path>>(self: &Self, path: P) -> anyhow::Result<()> {
+        let buf = write_raw_brres(self)?;
+        std::fs::write(path, buf)?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

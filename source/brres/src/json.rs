@@ -1,3 +1,8 @@
+//! JSON middle-layer for communication between the inner library (C++) and this Rust layer.
+//!
+//! Soon this JSON layer should be made private, and eventually the inner implementation be rewritten in Rust.
+//!
+
 use serde::Deserialize;
 use serde::Serialize;
 
