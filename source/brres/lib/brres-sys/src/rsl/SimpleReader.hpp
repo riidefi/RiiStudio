@@ -1,6 +1,8 @@
 #pragma once
 
-#include <llvm/Support/Endian.h>
+#include <array>
+#include <algorithm>
+#include <bit>
 #include <span>
 #include <stdint.h>
 #include <type_traits>
@@ -9,8 +11,10 @@ namespace rsl {
 
 using byte_view = std::span<const uint8_t>;
 
-template <typename T> static inline constexpr T GetFlipped(T v) {
-  return llvm::sys::getSwappedBytes(v);
+template <typename T> static inline T GetFlipped(T value) {
+    auto value_representation = std::bit_cast<std::array<uint8_t, sizeof(T)>>(value);
+    std::reverse(value_representation.begin(), value_representation.end());
+    return std::bit_cast<T>(value_representation);
 }
 
 template <typename T> struct endian_swapped_value {
@@ -50,7 +54,7 @@ static inline T* buffer_cast(byte_view_t data, unsigned offset = 0) {
 template <typename T> static T load(byte_view data, unsigned offset) {
   assert(offset + sizeof(T) <= data.size_bytes());
 
-  return llvm::sys::getSwappedBytes(
+  return GetFlipped(
       *reinterpret_cast<const T*>(data.data() + offset));
 }
 
@@ -59,7 +63,7 @@ template <typename T>
 static void store(T obj, std::span<uint8_t> data, unsigned offset) {
   assert(offset + sizeof(T) <= data.size_bytes());
 
-  *reinterpret_cast<T*>(data.data() + offset) = llvm::sys::getSwappedBytes(obj);
+  *reinterpret_cast<T*>(data.data() + offset) = GetFlipped(obj);
 }
 
 //! Unsafe API: Verify the operation before calling
