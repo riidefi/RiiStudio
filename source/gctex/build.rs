@@ -39,10 +39,6 @@ fn main() {
             // warning : ^
             build.flag("-Wno-unused-parameter");
         }
-        if !compiler.is_like_gnu() && !compiler.is_like_clang() {
-            #[cfg(not(debug_assertions))]
-            build.flag("-MT");
-        }
 
         build.include(".").include("src");
         build.file("src/ImagePlatform.cpp");

@@ -6,7 +6,7 @@ Triangle strip / triangle fan generation algorithms
 
 ##### Windows build instructions:
 ```sh
-# Optionally, for better performance*, swap the compiler: SET CXX=clang
+# Optionally, for better performance*, swap the compiler: SET CXX=clang-cl
 cargo build
 ```
 \* This will force the compiler to be `clang`, supposing it exists in your path.

@@ -169,4 +169,13 @@ endif()
 corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 corrosion_import_crate(MANIFEST_PATH source/cli/rszst_arg_parser/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 
+if (NOT(CMAKE_BUILD_TYPE STREQUAL "Debug"))
+  corrosion_add_target_rustflags(gctex "-Ctarget-feature=+crt-static")
+  corrosion_add_target_rustflags(wiitrig "-Ctarget-feature=+crt-static")
+  corrosion_add_target_rustflags(rsmeshopt "-Ctarget-feature=+crt-static")
+  corrosion_add_target_rustflags(szs "-Ctarget-feature=+crt-static")
+  corrosion_add_target_rustflags(avir_rs "-Ctarget-feature=+crt-static")
+  corrosion_add_target_rustflags(brres_sys "-Ctarget-feature=+crt-static")
+endif()
+
 add_subdirectory(source)

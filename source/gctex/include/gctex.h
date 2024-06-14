@@ -62,6 +62,7 @@ void rii_encode_rgba8(void* dst, uint32_t dst_len, const void* src,
 
 #ifdef __cplusplus
 
+#include <array>
 #include <span>
 #include <string>
 #include <vector>
@@ -119,6 +120,10 @@ static inline void decode_into(std::span<uint8_t> dst,
                                uint32_t height, uint32_t texformat,
                                std::span<const uint8_t> tlut,
                                uint32_t tlutformat) {
+  std::array<u8, 1> bruh{};
+  if (tlut.size() == 0) {
+    tlut = bruh;
+  }
   ::rii_decode(dst.data(), dst.size(), src.data(), src.size(), width, height,
                texformat, tlut.data(), tlut.size(), tlutformat);
 }

@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 use std::slice;
 
 #[allow(non_upper_case_globals)]

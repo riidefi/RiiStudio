@@ -97,9 +97,6 @@ fn main() {
             build.flag("-Wno-unused-variable");
             build.flag("-Wno-deprecated-copy");
         }
-        if !compiler.is_like_gnu() && !compiler.is_like_clang() {
-            build.flag("-MT");
-        }
 
         build.flag("-fno-exceptions");
         build.flag("-DFMT_EXCEPTIONS=0");

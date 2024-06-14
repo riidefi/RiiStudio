@@ -80,11 +80,6 @@ fn main() {
         build.flag("-DRSL_STACKTRACE_UNSUPPORTED=1");
     }
 
-    if !compiler.is_like_gnu() && !compiler.is_like_clang() {
-        #[cfg(not(debug_assertions))]
-        build.flag("-MT");
-    }
-
     if compiler.is_like_gnu() || compiler.is_like_clang() || is_clang_cl {
         build.flag("-O2");
     }
