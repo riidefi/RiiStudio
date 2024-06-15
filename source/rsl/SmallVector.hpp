@@ -2,18 +2,18 @@
 
 #include <core/common.h>
 
-#if 1
+#ifndef NDEBUG
 #include <vector>
 #else
-// #include <llvm/ADT/SmallVector.h>
+#include "SmallVectorImpl.hpp"
 #endif
 
 namespace rsl {
 
-#if 1
+#ifndef NDEBUG
 template <typename T, unsigned N> using small_vector = std::vector<T>;
 #else
-template <typename T, unsigned N> using small_vector = llvm::SmallVector<T, N>;
+template <typename T, unsigned N> using small_vector = rsl::SmallVector<T, N>;
 #endif
 
 } // namespace rsl

@@ -19,7 +19,7 @@ add_library(rsl STATIC
   "Stb.cpp"
   "WriteFile.cpp"
   "Zip.cpp"
-)
+ "SmallVectorImpl.cpp")
  
 if (WIN32)
   target_link_directories(rsl PUBLIC ${PROJECT_SOURCE_DIR}/../vendor/dll)
