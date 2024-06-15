@@ -1,4 +1,5 @@
 #pragma once
 
-void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac);
+#include "JParticle.hpp"
 
+void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac);

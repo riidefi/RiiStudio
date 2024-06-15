@@ -1,11 +1,11 @@
+#include "LibBadUIFramework/ActionMenu.hpp"
 #include "frontend/legacy_editor/EditorWindow.hpp"
 #include "frontend/legacy_editor/views/BmdBrresOutliner.hpp"
 #include "frontend/widgets/Lib3dImage.hpp"
 #include "frontend/widgets/OutlinerWidget.hpp"
 #include "imgui-gradient/src/GradientWidget.hpp"
-#include "LibBadUIFramework/ActionMenu.hpp"
-#include "librii/jparticle/JParticle.hpp"
 #include "librii/jparticle/JEFFJPA1.hpp"
+#include "librii/jparticle/JParticle.hpp"
 #include "librii/jparticle/utils/BTIUtils.hpp"
 
 #include <frontend/IEditor.hpp>
@@ -16,7 +16,6 @@
 
 namespace riistudio::frontend {
 class JpaEditor;
-
 
 // Implements a single tab for now
 class JpaEditorTabSheet : private PropertyEditorWidget {
@@ -41,7 +40,6 @@ private:
   std::function<void(void)> m_drawTab = nullptr;
 };
 
-
 class JpaEditorPropertyGrid {
 public:
   void Draw(librii::jpa::JPADynamicsBlock* block);
@@ -60,13 +58,10 @@ public:
   ImGG::GradientWidget colorEnvGradient{};
 };
 
-using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
-                                       librii::jpa::JPABaseShapeBlock*,
-                                       librii::jpa::JPAChildShapeBlock*,
-                                       librii::jpa::JPAExtraShapeBlock*,
-                                       librii::jpa::JPAFieldBlock*,
-                                       librii::jpa::TextureBlock,
-                                       std::monostate>;
+using JPABlockSelection = std::variant<
+    librii::jpa::JPADynamicsBlock*, librii::jpa::JPABaseShapeBlock*,
+    librii::jpa::JPAChildShapeBlock*, librii::jpa::JPAExtraShapeBlock*,
+    librii::jpa::JPAFieldBlock*, librii::jpa::TextureBlock, std::monostate>;
 
 class JpaEditorTreeView {
 private:
@@ -75,10 +70,8 @@ private:
 
 public:
   void Draw(std::vector<librii::jpa::JPAResource>& resources,
-            std::vector<librii::jpa::TextureBlock>& tex,
-	    u32 version,
+            std::vector<librii::jpa::TextureBlock>& tex, u32 version,
             JpaEditorPropertyGrid& grid) {
-
     auto str = std::format("JPA resources ({} entries)", num_entries);
     if (ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
       u32 entryNum = 0;
@@ -96,47 +89,45 @@ public:
             //   ImGui::MenuItem("Add Extra Texture");
             // }
             if (!x.ssp1.has_value()) {
-              if(ImGui::MenuItem("Add Child Shape")) {
+              if (ImGui::MenuItem("Add Child Shape")) {
                 x.ssp1.emplace(librii::jpa::JPAChildShapeBlock());
               }
             }
 
             if (ImGui::MenuItem("Export as JEffect")) {
-                auto default_filename =
-                    std::filesystem::path("").filename();
-                std::vector<std::string> filters{
-                    "JEffect Particle File (*.jpa)", "*.jpa"};
-                auto results = rsl::SaveOneFile(
-                    "Save File"_j, default_filename.string(), filters);
-                if (!results) {
-                  rsl::ErrorDialog("No saving - No file selected");
-                  return;
-                }
-                auto path = results->string();
+              auto default_filename = std::filesystem::path("").filename();
+              std::vector<std::string> filters{"JEffect Particle File (*.jpa)",
+                                               "*.jpa"};
+              auto results = rsl::SaveOneFile(
+                  "Save File"_j, default_filename.string(), filters);
+              if (!results) {
+                rsl::ErrorDialog("No saving - No file selected");
+                return;
+              }
+              auto path = results->string();
 
-                if (!path.ends_with(".jpa")) {
-                  path += ".jpa";
-                }
+              if (!path.ends_with(".jpa")) {
+                path += ".jpa";
+              }
 
-                // Create a new JPC that only contains our
-                librii::jpa::JPAC collection;
+              // Create a new JPC that only contains our
+              librii::jpa::JPAC collection;
 
-		if (x.tdb1.size() == 0) {
-                  rsl::ErrorDialog("There are no textures associated to this ");
-                  return;
-		}
+              if (x.tdb1.size() == 0) {
+                rsl::ErrorDialog("There are no textures associated to this ");
+                return;
+              }
 
-                for (int i = 0; i < x.tdb1.size(); i++) {
-                  collection.textures.push_back(tex[x.tdb1[i]]);
-                }
-                collection.resources.push_back(x);
+              for (int i = 0; i < x.tdb1.size(); i++) {
+                collection.textures.push_back(tex[x.tdb1[i]]);
+              }
+              collection.resources.push_back(x);
 
-                rsl::trace("Attempting to save to {}", path);
-                oishii::Writer writer(std::endian::big);
-                SaveAsJEFFJP(writer, collection);
-                writer.saveToDisk(path);
+              rsl::trace("Attempting to save to {}", path);
+              oishii::Writer writer(std::endian::big);
+              SaveAsJEFFJP(writer, collection);
+              writer.saveToDisk(path);
             }
-
 
             ImGui::EndPopup();
           }
@@ -187,7 +178,6 @@ public:
               ImGui::EndPopup();
             }
             for (int i = 0; i < x.fld1.size(); i++) {
-
               auto field = x.fld1[i];
               auto fieldName = std::format(
                   "{} Field",
@@ -248,11 +238,11 @@ public:
             }
           }
 
-
           ImGui::TreePop();
         }
         entryNum++;
       }
+      ImGui::TreePop();
     }
     if (version == 0) {
       if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -287,9 +277,9 @@ public:
           ImGui::SameLine();
           mIconManager.drawImageIcon(&tex[i], 16);
         }
+        ImGui::TreePop();
       }
     }
-
   }
 
   u32 num_entries = 0;
@@ -325,8 +315,7 @@ private:
 
 class JpaEditor : public frontend::StudioWindow, public IEditor {
 public:
-  JpaEditor()
-    : StudioWindow("JPA Editor: <unknown>", DockSetting::Dockspace) {
+  JpaEditor() : StudioWindow("JPA Editor: <unknown>", DockSetting::Dockspace) {
     // setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
 
@@ -351,35 +340,35 @@ public:
           }
         });
       } else if (auto* x = std::get_if<librii::jpa::JPABaseShapeBlock*>(
-          &m_selected)) {
+                     &m_selected)) {
         m_sheet.Draw([&]() {
           if (*x) {
             m_grid.Draw(*x);
           }
         });
       } else if (auto* x = std::get_if<librii::jpa::JPAChildShapeBlock*>(
-          &m_selected)) {
+                     &m_selected)) {
         m_sheet.Draw([&]() {
           if (*x) {
             m_grid.Draw(*x);
           }
         });
       } else if (auto* x = std::get_if<librii::jpa::JPAExtraShapeBlock*>(
-          &m_selected)) {
+                     &m_selected)) {
         m_sheet.Draw([&]() {
           if (*x) {
             m_grid.Draw(*x);
           }
         });
       } else if (auto* x =
-          std::get_if<librii::jpa::JPAFieldBlock*>(&m_selected)) {
+                     std::get_if<librii::jpa::JPAFieldBlock*>(&m_selected)) {
         m_sheet.Draw([&]() {
           if (*x) {
             m_grid.Draw(*x);
           }
         });
       } else if (auto* x =
-          std::get_if<librii::jpa::TextureBlock>(&m_selected)) {
+                     std::get_if<librii::jpa::TextureBlock>(&m_selected)) {
         m_sheet.Draw([&]() { m_grid.Draw(*x); });
       }
     }
@@ -425,7 +414,6 @@ public:
     } else {
       rsl::ErrorDialog("JPAC: File saving is not supported");
     }
-
   }
 
   void saveButton() override {
@@ -465,8 +453,6 @@ private:
   librii::jpa::JPAC m_jpa;
   // lvl::AutoHistory<librii::j3d::JPAC> m_history;
   JPABlockSelection m_selected = {};
-
-
 };
 
 } // namespace riistudio::frontend
