@@ -2,7 +2,6 @@
 
 #include <algorithm>        // std::fill
 #include <core/common.h>    // assert
-#include <llvm/ADT/Twine.h> // llvm::Twine
 #include <string_view>      // std::string_view
 
 namespace rsl {

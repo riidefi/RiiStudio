@@ -2,15 +2,15 @@
 
 #include <core/common.h>
 
-#ifndef NDEBUG
+#if 1
 #include <vector>
 #else
-#include <llvm/ADT/SmallVector.h>
+// #include <llvm/ADT/SmallVector.h>
 #endif
 
 namespace rsl {
 
-#ifndef NDEBUG
+#if 1
 template <typename T, unsigned N> using small_vector = std::vector<T>;
 #else
 template <typename T, unsigned N> using small_vector = llvm::SmallVector<T, N>;
