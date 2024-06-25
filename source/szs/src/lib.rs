@@ -792,6 +792,38 @@ mod tests {
         format!("{:x}", hasher.finalize())
     }
 
+    fn assert_buffers_equal(encoded_image: &[u8], cached_image: &[u8], format: &str) {
+        if encoded_image != cached_image {
+            let diff_count = encoded_image
+                .iter()
+                .zip(cached_image.iter())
+                .filter(|(a, b)| a != b)
+                .count();
+            println!(
+                "Mismatch for format {:?} - {} bytes differ",
+                format, diff_count
+            );
+
+            // Print some example differences (up to 10)
+            let mut diff_examples = vec![];
+            for (i, (a, b)) in encoded_image.iter().zip(cached_image.iter()).enumerate() {
+                if a != b {
+                    diff_examples.push((i, *a, *b));
+                    if diff_examples.len() >= 10 {
+                        break;
+                    }
+                }
+            }
+
+            println!("Example differences (up to 10):");
+            for (i, a, b) in diff_examples {
+                println!("Byte {}: encoded = {}, cached = {}", i, a, b);
+            }
+
+            panic!("Buffers are not equal");
+        }
+    }
+
     fn test_encode_helper(src: &[u8], algo: EncodeAlgo, expected_hash: &str, is_yay0: bool) {
         let encoded = if is_yay0 {
             encode_yay0(src, algo).unwrap()
@@ -799,6 +831,11 @@ mod tests {
             encode(src, algo).unwrap()
         };
         let hash = calculate_hash(&encoded);
+        if hash != expected_hash && !is_yay0 {
+            let decoded = decode(&encoded).expect("Not even a valid SZS file");
+            assert_buffers_equal(&decoded, src, "test_encode_helper");
+        }
+
         assert_eq!(hash, expected_hash);
     }
 
