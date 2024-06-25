@@ -15,20 +15,20 @@ template <typename T> static inline T seadMathMin(T a, T b) {
 }
 
 enum {
-  cSearchWindowSize = 0x1000,
-  cMatchLenMax = 0x111,
+  SEARCH_WINDOW_SIZE = 0x1000,
+  MATCH_LEN_MAX = 0x111,
 
-  cPosTempBufferNum = 0x8000,
-  cSearchPosBufferNum = cSearchWindowSize,
+  POS_TEMP_BUFFER_NUM = 0x8000,
+  SEARCH_POS_BUFFER_NUM = SEARCH_WINDOW_SIZE,
 
   // In-game: 1x (~8KB)
   // Official tooling: 10x presumably
   // Better results attained with 100x (~1MB)
-  cDataBufferSize = 0x2000 * 100,
-  cPosTempBufferSize = cPosTempBufferNum * sizeof(s32),
-  cSearchPosBufferSize = cSearchPosBufferNum * sizeof(s32),
+  DATA_BUFFER_SIZE = 0x2000 * 100,
+  POS_TEMP_BUFFER_SIZE = POS_TEMP_BUFFER_NUM * sizeof(s32),
+  SEARCH_POS_BUFFER_SIZE = SEARCH_POS_BUFFER_NUM * sizeof(s32),
 
-  cWorkSize = cDataBufferSize + cPosTempBufferSize + cSearchPosBufferSize
+  WORK_SIZE = DATA_BUFFER_SIZE + POS_TEMP_BUFFER_SIZE + SEARCH_POS_BUFFER_SIZE
 };
 
 struct Match {
@@ -41,7 +41,7 @@ public:
   PosTempBufferIndex() : mValue(0) {}
 
   void pushBack(u32 value) {
-    mValue = ((mValue << 5) ^ value) % cPosTempBufferNum;
+    mValue = ((mValue << 5) ^ value) % POS_TEMP_BUFFER_NUM;
   }
 
   u32 value() const { return mValue; }
@@ -51,48 +51,51 @@ private:
 };
 
 struct Work {
-  u8 data_buffer[cDataBufferSize];
-  s32 pos_temp_buffer[cPosTempBufferNum];
-  s32 search_pos_buffer[cSearchPosBufferNum];
+  u8 data_buffer[DATA_BUFFER_SIZE];
+  s32 pos_temp_buffer[POS_TEMP_BUFFER_NUM];
+  s32 search_pos_buffer[SEARCH_POS_BUFFER_NUM];
 
-  s32& search_pos(u32 x) { return search_pos_buffer[x % cSearchPosBufferNum]; }
+  s32& search_pos(u32 x) {
+    return search_pos_buffer[x % SEARCH_POS_BUFFER_NUM];
+  }
   const s32& search_pos(u32 x) const {
-    return search_pos_buffer[x % cSearchPosBufferNum];
+    return search_pos_buffer[x % SEARCH_POS_BUFFER_NUM];
   }
   u32 insert(u32 data_pos, const PosTempBufferIndex& pos_temp_buffer_idx) {
-    search_pos_buffer[data_pos % cSearchPosBufferNum] =
+    search_pos_buffer[data_pos % SEARCH_POS_BUFFER_NUM] =
         pos_temp_buffer[pos_temp_buffer_idx.value()];
     pos_temp_buffer[pos_temp_buffer_idx.value()] = data_pos;
-    return search_pos_buffer[data_pos % cSearchPosBufferNum];
+    return search_pos_buffer[data_pos % SEARCH_POS_BUFFER_NUM];
   }
 };
-static_assert(sizeof(Work) == cWorkSize);
+static_assert(sizeof(Work) == WORK_SIZE);
 
-static inline u32 getRequiredMemorySize() { return cWorkSize; }
+static inline u32 getRequiredMemorySize() { return WORK_SIZE; }
 
 #include <span>
 
-static inline bool search(Match& match, s32 search_pos, const u32 data_pos,
-                          const s32 data_buffer_size, const Work& work) {
+static inline bool search(Match& match, const s32 search_pos_immut,
+                          const u32 data_pos, const s32 data_buffer_size,
+                          const Work& work) {
+  s32 search_pos = search_pos_immut;
   std::span<const u8> cmp2(work.data_buffer + data_pos,
-                           cDataBufferSize - data_pos);
+                           DATA_BUFFER_SIZE - data_pos);
 
   s32 search_pos_min =
-      data_pos > cSearchWindowSize ? s32(data_pos - cSearchWindowSize) : -1;
+      data_pos > SEARCH_WINDOW_SIZE ? s32(data_pos - SEARCH_WINDOW_SIZE) : -1;
 
   s32 match_len = 2;
   match.len = match_len;
 
-  if (data_pos - search_pos <= cSearchWindowSize) {
-    for (u32 i = 0; i < cSearchWindowSize; i++) {
-      // assert(search_pos >= 0);
+  if (data_pos - search_pos <= SEARCH_WINDOW_SIZE) {
+    for (u32 i = 0; i < SEARCH_WINDOW_SIZE; i++) {
       std::span<const u8> cmp1(work.data_buffer + search_pos,
-                               cDataBufferSize - search_pos);
+                               DATA_BUFFER_SIZE - search_pos);
       if (cmp1[0] == cmp2[0] && cmp1[1] == cmp2[1] &&
           cmp1[match_len] == cmp2[match_len]) {
         s32 len_local = 2;
 
-        while (len_local < cMatchLenMax) {
+        while (len_local < MATCH_LEN_MAX) {
           if (cmp1[len_local] != cmp2[len_local])
             break;
           len_local++;
@@ -108,7 +111,7 @@ static inline bool search(Match& match, s32 search_pos, const u32 data_pos,
           else
             match.len = match_len;
 
-          if (len_local >= cMatchLenMax)
+          if (len_local >= MATCH_LEN_MAX)
             break;
         }
       }
@@ -125,7 +128,6 @@ static inline bool search(Match& match, s32 search_pos, const u32 data_pos,
   return false;
 }
 
-
 static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
   Work& work = *reinterpret_cast<Work*>(p_work);
   u8 temp_buffer[24];
@@ -138,8 +140,8 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
   u32 data_pos;
   s32 data_buffer_size;
 
-  memset(work.pos_temp_buffer, u8(-1), cPosTempBufferSize);
-  memset(work.search_pos_buffer, u8(-1), cSearchPosBufferSize);
+  memset(work.pos_temp_buffer, u8(-1), POS_TEMP_BUFFER_SIZE);
+  memset(work.search_pos_buffer, u8(-1), SEARCH_POS_BUFFER_SIZE);
 
   data_pos = 0;
 
@@ -155,7 +157,7 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
 
   PosTempBufferIndex pos_temp_buffer_idx;
 
-  data_buffer_size = seadMathMin<u32>(cDataBufferSize, src_size);
+  data_buffer_size = seadMathMin<u32>(DATA_BUFFER_SIZE, src_size);
   memcpy(work.data_buffer, p_src, data_buffer_size);
 
   pos_temp_buffer_idx.pushBack(work.data_buffer[0]);
@@ -181,7 +183,7 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
       if (search_pos != -1) {
         search(match, search_pos, data_pos, data_buffer_size, work);
 
-        if (2 < match.len && match.len < cMatchLenMax) {
+        if (2 < match.len && match.len < MATCH_LEN_MAX) {
           data_pos++;
           data_buffer_size--;
 
@@ -189,7 +191,7 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
 
           search_pos = work.insert(data_pos, pos_temp_buffer_idx);
 
-		  if (search_pos != -1) {
+          if (search_pos != -1) {
             search(next_match, search_pos, data_pos, data_buffer_size, work);
 
             if (match.len < next_match.len)
@@ -218,13 +220,17 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
         data_buffer_size -= match.len - s32(found_next_match);
         match.len -= s32(found_next_match) + 1;
 
-        do {
+        for (;;) {
           data_pos++;
 
           pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
 
           search_pos = work.insert(data_pos, pos_temp_buffer_idx);
-        } while (--match.len != 0);
+          match.len -= 1;
+          if (match.len == 0) {
+            break;
+          }
+        }
 
         data_pos++;
         found_next_match = false;
@@ -241,7 +247,9 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
         }
       }
 
-      if (--bit == 0) {
+      bit -= 1;
+
+      if (bit == 0) {
         p_dst[out_size++] = flag;
 
         memcpy(p_dst + out_size, temp_buffer, temp_size);
@@ -252,19 +260,19 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
         bit = 8;
       }
 
-      if (data_buffer_size < cMatchLenMax + 2)
+      if (data_buffer_size < MATCH_LEN_MAX + 2)
         break;
     }
     // For search window for compression of next src read portion
-    s32 copy_pos = data_pos - cSearchWindowSize;
-    s32 copy_size = cDataBufferSize - copy_pos;
+    s32 copy_pos = data_pos - SEARCH_WINDOW_SIZE;
+    s32 copy_size = DATA_BUFFER_SIZE - copy_pos;
 
     next_read_end_pos = current_read_end_pos;
 
-    if (data_pos >= cSearchWindowSize + 14 * cMatchLenMax) {
+    if (data_pos >= SEARCH_WINDOW_SIZE + 14 * MATCH_LEN_MAX) {
       memcpy(work.data_buffer, work.data_buffer + copy_pos, copy_size);
 
-      s32 next_read_size = cDataBufferSize - copy_size;
+      s32 next_read_size = DATA_BUFFER_SIZE - copy_size;
       next_read_end_pos = current_read_end_pos + next_read_size;
       if (src_size < u32(next_read_end_pos)) {
         next_read_size = src_size - current_read_end_pos;
@@ -275,12 +283,12 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
       data_buffer_size += next_read_size;
       data_pos -= copy_pos;
 
-      for (u32 i = 0; i < cPosTempBufferNum; i++)
+      for (u32 i = 0; i < POS_TEMP_BUFFER_NUM; i++)
         work.pos_temp_buffer[i] = work.pos_temp_buffer[i] >= copy_pos
                                       ? work.pos_temp_buffer[i] - copy_pos
                                       : -1;
 
-      for (u32 i = 0; i < cSearchPosBufferNum; i++)
+      for (u32 i = 0; i < SEARCH_POS_BUFFER_NUM; i++)
         work.search_pos_buffer[i] = work.search_pos_buffer[i] >= copy_pos
                                         ? work.search_pos_buffer[i] - copy_pos
                                         : -1;
