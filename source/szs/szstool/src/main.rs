@@ -1,0 +1,86 @@
+use anyhow;
+use clap::{Arg, Command};
+use std::fs;
+use std::str::FromStr;
+use szs;
+use szs::{encode, EncodeAlgo, Error};
+
+fn to_encode_algo(s: &str) -> anyhow::Result<EncodeAlgo> {
+    match s {
+        "worst-case-encoding" => Ok(EncodeAlgo::WorstCaseEncoding),
+        "mkw" => Ok(EncodeAlgo::MKW),
+        "mkw (C++)" => Ok(EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION),
+        "mkw-sp" => Ok(EncodeAlgo::MkwSp),
+        "ctgp" => Ok(EncodeAlgo::CTGP),
+        "haroohie" => Ok(EncodeAlgo::Haroohie),
+        "ct-lib" => Ok(EncodeAlgo::CTLib),
+        "lib-yaz0" => Ok(EncodeAlgo::LibYaz0),
+        "mk8" => Ok(EncodeAlgo::MK8),
+        // "mk8-rust" => Ok(EncodeAlgo::MK8_Rust),
+        _ => Err(anyhow::Error::msg(format!("Invalid Yaz0 algorithm: '{}'", s))),
+    }
+}
+
+fn main() {
+    let matches = Command::new("szs-encoder")
+        .version("1.0")
+        .author("Your Name <your.email@example.com>")
+        .about("Encodes data using the specified encoding algorithm")
+        .arg(
+            Arg::new("input")
+                .short('i')
+                .long("input")
+                .value_name("FILE")
+                .required(true),
+        )
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .value_name("FILE")
+                .required(true),
+        )
+        .arg(
+            Arg::new("algorithm")
+                .short('a')
+                .long("algorithm")
+                .value_name("ALGO")
+                .required(true),
+        )
+        .get_matches();
+
+    let input_file = matches.get_one::<String>("input").unwrap();
+    let output_file = matches.get_one::<String>("output").unwrap();
+    let algorithm_str = matches.get_one::<String>("algorithm").unwrap();
+
+    let algorithm: EncodeAlgo = match to_encode_algo(algorithm_str) {
+        Ok(algo) => algo,
+        Err(_) => {
+            eprintln!("Error: Invalid encoding algorithm '{}'", algorithm_str);
+            std::process::exit(1);
+        }
+    };
+
+    let input_data = match fs::read(input_file) {
+        Ok(data) => data,
+        Err(err) => {
+            eprintln!("Error reading input file: {}", err);
+            std::process::exit(1);
+        }
+    };
+
+    match szs::encode(&input_data, algorithm) {
+        Ok(encoded_data) => {
+            if let Err(err) = fs::write(output_file, &encoded_data) {
+                eprintln!("Error writing output file: {}", err);
+                std::process::exit(1);
+            } else {
+                println!("Data encoded successfully.");
+            }
+        }
+        Err(err) => {
+            eprintln!("Error encoding data: {:?}", err);
+            std::process::exit(1);
+        }
+    }
+}
