@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <variant>
 
-#include <vendor/llvm/ADT/SmallVector.h>
+#include <rsl/SmallVector.hpp>
 
 namespace librii::g3d::gfx {
 
@@ -423,11 +423,11 @@ G3DSceneCreateRenderData(riistudio::g3d::Collection& scene);
 
 struct ModelView {
   int model_id = 0;
-  llvm::SmallVector<const libcube::IBoneDelegate*, 32> bones;
-  llvm::SmallVector<const libcube::IndexedPolygon*, 32> polys;
-  llvm::SmallVector<const libcube::IGCMaterial*, 32> mats;
-  llvm::SmallVector<const libcube::Texture*, 32> textures;
-  llvm::SmallVector<libcube::DrawMatrix, 32> drawMatrices;
+  rsl::SmallVector<const libcube::IBoneDelegate*, 32> bones;
+  rsl::SmallVector<const libcube::IndexedPolygon*, 32> polys;
+  rsl::SmallVector<const libcube::IGCMaterial*, 32> mats;
+  rsl::SmallVector<const libcube::Texture*, 32> textures;
+  rsl::SmallVector<libcube::DrawMatrix, 32> drawMatrices;
 
   ModelView(const libcube::Model& model, const libcube::Scene& scene) {
     for (auto& x : model.getBones()) {
