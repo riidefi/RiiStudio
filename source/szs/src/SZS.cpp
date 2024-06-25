@@ -53,7 +53,7 @@ Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
   }
   if (algo == Algo::MK8) {
     std::vector<u8> tmp(getWorstEncodingSize(buf));
-    u32 sz = CompressMK8(buf.data(), buf.size(), tmp.data(), tmp.size());
+    u32 sz = CompressMK8(buf, tmp);
     tmp.resize(sz);
     return tmp;
   }
