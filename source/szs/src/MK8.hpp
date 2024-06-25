@@ -189,10 +189,12 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
 
           search_pos = work.insert(data_pos, pos_temp_buffer_idx);
 
-          search(next_match, search_pos, data_pos, data_buffer_size, work);
+		  if (search_pos != -1) {
+            search(next_match, search_pos, data_pos, data_buffer_size, work);
 
-          if (match.len < next_match.len)
-            match.len = 2;
+            if (match.len < next_match.len)
+              match.len = 2;
+          }
 
           found_next_match = true;
         }
