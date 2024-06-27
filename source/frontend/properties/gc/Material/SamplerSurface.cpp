@@ -621,7 +621,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
                 if (ImGui::CollapsingHeader("Mipmapping"_j,
                                             ImGuiTreeNodeFlags_DefaultOpen)) {
-                  ImGui::Combo("Interpolation type"_j, &min_filt.minMipBase,
+                  ImGui::Combo("LOD transition"_j, &min_filt.minMipBase,
                                "Sudden\0"
                                "Smooth\0"_j);
 
