@@ -1,5 +1,8 @@
 #pragma once
 
+#include <core/common.h>
+#include <vector>
+
 namespace librii::jpa {
 
 enum class JPAKeyType {

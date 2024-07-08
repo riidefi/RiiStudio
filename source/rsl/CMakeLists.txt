@@ -30,6 +30,10 @@ corrosion_import_crate(MANIFEST_PATH rust/Cargo.toml CRATE_TYPES cdylib FLAGS --
 
 target_link_libraries(rsl PUBLIC core riistudio_rs vendor)
 
+if (WIN32)
+  target_link_libraries(rsl PUBLIC llvm_sighandler)
+endif()
+
 if (NOT EMSCRIPTEN)
-  target_link_libraries(rsl PUBLIC llvm_sighandler c_discord_rich_presence)
+  target_link_libraries(rsl PUBLIC c_discord_rich_presence)
 endif()

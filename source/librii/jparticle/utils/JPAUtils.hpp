@@ -1,7 +1,8 @@
 #pragma once
 
-namespace librii::jpa {
+#include <core/common.h>
 
+namespace librii::jpa {
 
 f32 JPAConvertFixToFloat(u16 number);
 

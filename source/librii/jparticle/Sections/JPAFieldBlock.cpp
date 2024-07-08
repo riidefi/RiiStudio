@@ -4,8 +4,7 @@
 
 namespace librii::jpa {
 
-JPAFieldBlock
-From_JEFF_JPAFieldBlock(const jeff_jpa::JPAFieldBlock& b) {
+JPAFieldBlock From_JEFF_JPAFieldBlock(const jeff_jpa::JPAFieldBlock& b) {
   return JPAFieldBlock();
 }
 
@@ -56,9 +55,8 @@ jeff_jpa::JPAFieldBlock To_JEFF_JPAFieldBlock(const JPAFieldBlock& b) {
                                  .param3 = param3,
                                  .fadeIn = JPAConvertFloatToFixed(b.fadeIn),
                                  .fadeOut = JPAConvertFloatToFixed(b.fadeOut),
-                                 .disTime = JPAConvertFloatToFixed(b.disTime),
-                                 .enTime = JPAConvertFloatToFixed(b.enTime)};
-
+                                 .enTime = JPAConvertFloatToFixed(b.enTime),
+                                 .disTime = JPAConvertFloatToFixed(b.disTime)};
 }
 
 } // namespace librii::jpa

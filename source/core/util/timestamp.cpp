@@ -1,7 +1,11 @@
 #include "timestamp.hpp"
 
 #if defined(__VERSION__)
+#ifdef __GNUC__
+#define RII_CC "GCC " __VERSION__
+#else
 #define RII_CC __VERSION__
+#endif
 #elif defined(_MSC_VER)
 #define STRINGIZE(x) STRINGIZE_(x)
 #define STRINGIZE_(x) #x

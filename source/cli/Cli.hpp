@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string.h>
 #include <string_view>
 
 // cli.exe import <from> [to]

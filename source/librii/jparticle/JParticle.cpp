@@ -467,6 +467,11 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
   return {};
 }
 
+template <typename T>
+static Result<T> u8_enum_at(oishii::BinaryReader& reader, u32 pos) {
+  return 
+      rsl::enum_cast<T>(TRY(reader.tryGetAt<u8>(pos)));
+}
 
 Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
                                              s32 tag_count) {
@@ -506,7 +511,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
                         (std::numbers::pi);
       block.emitterRot = glm::vec3(emitterRotX, emitterRotY, emitterRotZ);
 
-      block.volumeType = {TRY(reader.tryGetAt<u8>(tag_start + 0x2A))};
+      block.volumeType = TRY(rsl::enum_cast<VolumeType>(TRY(reader.tryGetAt<u8>(tag_start + 0x2A))));
       block.rateStep = TRY(reader.tryGetAt<u8>(tag_start + 0x2B));
       block.divNumber = TRY(reader.tryGetAt<u16>(tag_start + 0x2E));
 
@@ -580,9 +585,9 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
           !!((colorAnmCalcFlags >> 0) & 0x01) ? 0xFFFF : 0x0000;
       block.isGlblClrAnm = !!((colorAnmCalcFlags >> 1) & 0x01);
 
-      block.shapeType = {TRY(reader.tryGetAt<u8>(tag_start + 0x24))};
-      block.dirType = {TRY(reader.tryGetAt<u8>(tag_start + 0x25))};
-      block.rotType = {TRY(reader.tryGetAt<u8>(tag_start + 0x26))};
+      block.shapeType = TRY(u8_enum_at<ShapeType>(reader, tag_start + 0x24));
+      block.dirType = TRY(u8_enum_at<DirType>(reader, tag_start + 0x25));
+      block.rotType = TRY(u8_enum_at<RotType>(reader, tag_start + 0x26));
 
       // planeType does not exist in JEFFjpa1.
       block.planeType = PlaneType::XY;
@@ -597,21 +602,23 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       // alphaInSelect was added in JEFFjpa1.
       block.alphaInSelect = 0;
 
-      // Will pack into bitfields for JPAC
-      block.blendMode = {TRY(reader.tryGetAt<u8>(tag_start + 0x35))};
-      block.blendSrcFactor = {TRY(reader.tryGetAt<u8>(tag_start + 0x36))};
-      block.blendDstFactor = {TRY(reader.tryGetAt<u8>(tag_start + 0x37))};
-      block.logicOp = {TRY(reader.tryGetAt<u8>(tag_start + 0x38))};
+	  // Will pack into bitfields for JPAC
+      block.blendMode = TRY(u8_enum_at<gx::BlendModeType>(reader, tag_start + 0x35));
+      block.blendSrcFactor =
+          TRY(u8_enum_at<gx::BlendModeFactor>(reader, tag_start + 0x36));
+      block.blendDstFactor =
+          TRY(u8_enum_at<gx::BlendModeFactor>(reader, tag_start + 0x37));
+      block.logicOp = TRY(u8_enum_at<gx::LogicOp>(reader, tag_start + 0x38));
 
-      block.alphaCmp0 = {TRY(reader.tryGetAt<u8>(tag_start + 0x39))};
+      block.alphaCmp0 = TRY(u8_enum_at<gx::Comparison>(reader, tag_start + 0x39));
       block.alphaRef0 = TRY(reader.tryGetAt<u8>(tag_start + 0x3A));
-      block.alphaOp = {TRY(reader.tryGetAt<u8>(tag_start + 0x3B))};
-      block.alphaCmp1 = {TRY(reader.tryGetAt<u8>(tag_start + 0x3C))};
+      block.alphaOp = TRY(u8_enum_at<gx::AlphaOp>(reader, tag_start + 0x3B));
+      block.alphaCmp1 = TRY(u8_enum_at<gx::Comparison>(reader, tag_start + 0x3C));
       block.alphaRef1 = TRY(reader.tryGetAt<u8>(tag_start + 0x3D));
 
       // 0x3E is ZCompLoc
       block.zTest = TRY(reader.tryGetAt<u8>(tag_start + 0x3F));
-      block.zCompare = {TRY(reader.tryGetAt<u8>(tag_start + 0x40))};
+      block.zCompare = TRY(u8_enum_at<gx::Comparison>(reader, tag_start + 0x40));
       block.zWrite = TRY(reader.tryGetAt<u8>(tag_start + 0x41));
 
       block.isEnableProjection = TRY(reader.tryGetAt<u8>(tag_start + 0x43));
@@ -619,7 +626,8 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       u8 flags = TRY(reader.tryGetAt<u8>(tag_start + 0x44));
 
       u8 texAnimFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x4C));
-      block.texCalcIdxType = {TRY(reader.tryGetAt<u8>(tag_start + 0x4D))};
+      block.texCalcIdxType =
+          TRY(u8_enum_at<CalcIdxType>(reader, tag_start + 0x4D));
       block.texIdx = TRY(reader.tryGetAt<u8>(tag_start + 0x4F));
 
       if (((texAnimFlags >> 0) & 0x01)) {
@@ -636,7 +644,8 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       }
 
       block.colorAnimMaxFrm = TRY(reader.tryGetAt<u16>(tag_start + 0x5C));
-      block.colorCalcIdxType = {TRY(reader.tryGetAt<u8>(tag_start + 0x5E))};
+      block.colorCalcIdxType =
+          TRY(u8_enum_at<CalcIdxType>(reader, tag_start + 0x5E));
       u8 colorPrmAnimFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x60));
       u8 colorEnvAnimFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x61));
 
@@ -835,9 +844,9 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       // Contains child particle draw settings.
       JPAChildShapeBlock block = JPAChildShapeBlock();
 
-      block.shapeType = {TRY(reader.tryGetAt<u8>(tag_start + 0x10))};
-      block.dirType = {TRY(reader.tryGetAt<u8>(tag_start + 0x11))};
-      block.rotType = {TRY(reader.tryGetAt<u8>(tag_start + 0x12))};
+	  block.shapeType = TRY(u8_enum_at<ShapeType>(reader, tag_start + 0x10));
+      block.dirType = TRY(u8_enum_at<DirType>(reader, tag_start + 0x11));
+      block.rotType = TRY(u8_enum_at<RotType>(reader, tag_start + 0x12));
 
       // planeType does not exist in JEFFjpa1.
       block.planeType = PlaneType::XY;

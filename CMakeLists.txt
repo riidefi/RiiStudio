@@ -154,7 +154,7 @@ else()
 endif()
 
 if (NOT WIN32 AND NOT EMSCRIPTEN)
-  corrosion_import_crate(MANIFEST_PATH source/llvm/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
+  # corrosion_import_crate(MANIFEST_PATH source/llvm/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 endif()
 corrosion_import_crate(MANIFEST_PATH source/gctex/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
 corrosion_import_crate(MANIFEST_PATH source/wiitrig/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})

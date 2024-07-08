@@ -1,5 +1,7 @@
 #include <updater/updater.hpp>
 
+#include <memory>
+
 namespace riistudio {
 
 class UpdaterView {

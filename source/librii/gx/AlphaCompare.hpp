@@ -2,6 +2,8 @@
 
 #include <librii/gx/Comparison.hpp>
 
+#include <core/common.h>
+
 namespace librii::gx {
 
 enum class AlphaOp {

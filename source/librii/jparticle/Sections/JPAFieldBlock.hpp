@@ -1,6 +1,7 @@
 #pragma once
-#include "glm/vec3.hpp"
 
+#include "glm/vec3.hpp"
+#include <core/common.h>
 
 namespace librii::jpa {
 
@@ -71,7 +72,7 @@ struct JPAFieldBlock {
   u32 _58 = 0;
 };
 
-}
+} // namespace jeff_jpa
 
 struct JPAFieldBlock {
   u32 sttFlag;
@@ -101,10 +102,7 @@ struct JPAFieldBlock {
   f32 outerSpeed;
 };
 
-
 JPAFieldBlock From_JEFF_JPAFieldBlock(const jeff_jpa::JPAFieldBlock& b);
 jeff_jpa::JPAFieldBlock To_JEFF_JPAFieldBlock(const JPAFieldBlock& b);
-   
-
 
 } // namespace librii::jpa

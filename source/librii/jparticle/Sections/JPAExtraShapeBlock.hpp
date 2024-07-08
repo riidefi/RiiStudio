@@ -1,4 +1,6 @@
+#pragma once
 
+#include <core/common.h>
 
 namespace librii::jpa {
 

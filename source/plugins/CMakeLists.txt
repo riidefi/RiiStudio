@@ -47,7 +47,8 @@ add_library(plugins STATIC
   "SceneImpl.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
-if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
+# CMake GCC on Linux: species -Xclang and -fpch-instantiate-templates
+if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
   target_precompile_headers(plugins
   PUBLIC
     ../core/common.h

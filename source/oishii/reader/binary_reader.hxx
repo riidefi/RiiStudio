@@ -6,6 +6,7 @@
 #include <rsl/DebugBreak.hpp>
 #include <rsl/Expected.hpp>
 #include <rsl/Format.hpp>
+#include <rsl/Try.hpp>
 
 // HACK
 extern bool gTestMode;

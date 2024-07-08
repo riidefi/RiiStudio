@@ -4,7 +4,18 @@ namespace rsl {
 
 // Disabled on emscripten.
 // Rationale: browser already handles stacktraces for us.
-#ifndef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
+#define RSL_NO_CUSTOM_STACKTRACE
+#endif
+
+// Disabled on non-Windows
+// Rationale: It never worked anyway and it's out of tree atm.
+//            We also don't have to worry about character encoding of input (?)
+#ifndef _WIN32
+#define RSL_NO_CUSTOM_STACKTRACE
+#endif
+
+#ifndef RSL_NO_CUSTOM_STACKTRACE
 
 struct llvm_InitLLVM;
 

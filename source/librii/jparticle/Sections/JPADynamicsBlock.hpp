@@ -1,5 +1,7 @@
 #pragma once
+
 #include "glm/vec3.hpp"
+#include <core/common.h>
 
 namespace librii::jpa {
 
@@ -70,7 +72,7 @@ struct JPADynamicsBlock {
   u32 _98 = 0;
   u32 _9C = 0;
 };
-}
+} // namespace jeff_jpa
 
 struct JPADynamicsBlock {
   u32 emitFlags;
@@ -104,9 +106,9 @@ struct JPADynamicsBlock {
   u8 rateStep;
 };
 
-JPADynamicsBlock From_JEFF_JPADynamicsBlock(const jeff_jpa::JPADynamicsBlock& b);
+JPADynamicsBlock
+From_JEFF_JPADynamicsBlock(const jeff_jpa::JPADynamicsBlock& b);
 jeff_jpa::JPADynamicsBlock To_JEFF_JPADynamicsBlock(const JPADynamicsBlock& b,
                                                     u32 kfa1KeyTypeMask);
-
 
 } // namespace librii::jpa

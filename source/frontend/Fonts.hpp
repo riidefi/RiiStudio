@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fa5/IconsFontAwesome5.h>
+#include <string.h>
 
 namespace riistudio::frontend {
 
@@ -30,7 +31,6 @@ constexpr const char* sTextFont = sJpnFont;
 inline bool IsJapaneseSupported() { return !strcmp(sTextFont, sJpnFont); }
 
 } // namespace Fonts
-
 
 bool loadFonts(float fontSize = 16.0f);
 

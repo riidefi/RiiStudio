@@ -3,6 +3,8 @@
 /// @file Modern C++ version of an assimp scene. Only includes data we actually
 /// need.
 
+#include <array>
+#include <core/common.h>
 #include <cstdint>
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
