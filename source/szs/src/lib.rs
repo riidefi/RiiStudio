@@ -4,6 +4,7 @@ use std::convert::TryInto;
 
 mod algo_mk8;
 mod algo_mkw;
+mod algo_libyaz0;
 mod szs_to_szp;
 
 #[allow(non_upper_case_globals)]
@@ -207,6 +208,7 @@ pub enum EncodeAlgo {
     MKW,
 
     MK8_Rust,
+    LIBYAZ0_RUST,
 }
 
 impl EncodeAlgo {
@@ -280,6 +282,9 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
     }
     if algo == EncodeAlgo::MK8_Rust {
         return Ok(algo_mk8::compress_mk8(src, dst) as u32);
+    }
+    if algo == EncodeAlgo::LIBYAZ0_RUST {
+      return Ok(algo_libyaz0::compress_yaz(src, 10, dst) as u32);
     }
 
     let mut used_len: u32 = 0;
@@ -995,6 +1000,18 @@ mod tests {
             false,
         );
     }
+
+    #[test]
+    fn test_encode_libyaz0_Rust() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::LIBYAZ0_RUST,
+            "fb8a40ee24422c79cdb8f6525a05d463232830fc39bc29f2db6dfc6902b54827",
+            false,
+        );
+    }
+
     #[test]
     fn test_encode_libyaz0_szp() {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
