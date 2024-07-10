@@ -2,9 +2,9 @@ use core::ffi::c_char;
 use core::slice;
 use std::convert::TryInto;
 
+mod algo_libyaz0;
 mod algo_mk8;
 mod algo_mkw;
-mod algo_libyaz0;
 mod szs_to_szp;
 
 #[allow(non_upper_case_globals)]
@@ -208,6 +208,11 @@ pub enum EncodeAlgo {
     MKW,
 
     MK8_Rust,
+
+    // Slower than C implementation :(
+    //
+    // C encoder               time:   [1.1488 s 1.1546 s 1.1610 s]
+    // Rust encoder            time:   [1.2965 s 1.3416 s 1.3904 s]
     LIBYAZ0_RUST,
 }
 
@@ -284,7 +289,7 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
         return Ok(algo_mk8::compress_mk8(src, dst) as u32);
     }
     if algo == EncodeAlgo::LIBYAZ0_RUST {
-      return Ok(algo_libyaz0::compress_yaz(src, 10, dst) as u32);
+        return Ok(algo_libyaz0::compress_yaz(src, 10, dst) as u32);
     }
 
     let mut used_len: u32 = 0;

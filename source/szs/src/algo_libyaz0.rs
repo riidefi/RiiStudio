@@ -6,52 +6,58 @@ struct SearchResult {
     found_len: u32,
 }
 
-fn compression_search(src_pos: usize, src: &[u8], max_len: usize, search_range: u32) -> SearchResult {
+fn compression_search(
+    src_pos: usize,
+    src: &[u8],
+    max_len: usize,
+    search_range: u32,
+) -> SearchResult {
     let src_end = src.len();
     let mut result = SearchResult {
         found: 0,
         found_len: 0,
     };
 
-    if src_pos + 2 < src_end {
-        let src_ptr = &src[src_pos];
-        let search_start = if src_pos >= search_range as usize {
-            src_pos - search_range as usize
+    if src_pos + 2 >= src_end {
+        return result;
+    }
+    let src_ptr = &src[src_pos];
+    let search_start = if src_pos >= search_range as usize {
+        src_pos - search_range as usize
+    } else {
+        0
+    };
+    let cmp_end = std::cmp::min(src_pos + max_len, src_end);
+
+    let c1 = *src_ptr;
+    let mut search = search_start;
+
+    while search < src_pos {
+        if let Some(pos) = memchr(c1, &src[search..src_pos]) {
+            search += pos;
         } else {
-            0
-        };
-        let cmp_end = std::cmp::min(src_pos + max_len, src_end);
+            break;
+        }
 
-        let c1 = *src_ptr;
-        let mut search = search_start;
+        let mut cmp1 = search + 1;
+        let mut cmp2 = src_pos + 1;
 
-        while search < src_pos {
-            if let Some(pos) = memchr(c1, &src[search..src_pos]) {
-                search += pos;
-            } else {
+        while cmp2 < cmp_end && src[cmp1] == src[cmp2] {
+            cmp1 += 1;
+            cmp2 += 1;
+        }
+
+        let len_ = cmp2 - src_pos;
+
+        if result.found_len < len_ as u32 {
+            result.found_len = len_ as u32;
+            result.found = search as u32;
+            if result.found_len == max_len as u32 {
                 break;
             }
-
-            let mut cmp1 = search + 1;
-            let mut cmp2 = src_pos + 1;
-
-            while cmp2 < cmp_end && src[cmp1] == src[cmp2] {
-                cmp1 += 1;
-                cmp2 += 1;
-            }
-
-            let len_ = cmp2 - src_pos;
-
-            if result.found_len < len_ as u32 {
-                result.found_len = len_ as u32;
-                result.found = search as u32;
-                if result.found_len == max_len as u32 {
-                    break;
-                }
-            }
-
-            search += 1;
         }
+
+        search += 1;
     }
 
     result

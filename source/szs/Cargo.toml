@@ -34,3 +34,6 @@ harness = false
 [[bench]]
 name = "mkw_bench"
 harness = false
+
+[dependencies]
+memchr = "2.7.4"
