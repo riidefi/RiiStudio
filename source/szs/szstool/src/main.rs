@@ -16,7 +16,7 @@ fn to_encode_algo(s: &str) -> anyhow::Result<EncodeAlgo> {
         "ct-lib" => Ok(EncodeAlgo::CTLib),
         "lib-yaz0" => Ok(EncodeAlgo::LibYaz0),
         "mk8" => Ok(EncodeAlgo::MK8),
-        // "mk8-rust" => Ok(EncodeAlgo::MK8_Rust),
+        "mk8-rust" => Ok(EncodeAlgo::MK8_Rust),
         _ => Err(anyhow::Error::msg(format!("Invalid Yaz0 algorithm: '{}'", s))),
     }
 }

@@ -2,6 +2,7 @@ use core::ffi::c_char;
 use core::slice;
 use std::convert::TryInto;
 
+mod algo_mk8;
 mod algo_mkw;
 mod szs_to_szp;
 
@@ -144,7 +145,7 @@ pub enum EncodeAlgo {
     /// Benchmarking C encoder: Warming up for 3.0000 s
     /// Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 419.8s, or reduce sample /// count to 10.
     /// C encoder               time:   [4.5949 s 4.6555 s 4.7145 s]
-    /// 
+    ///
     /// Benchmarking Rust encoder: Warming up for 3.0000 s
     /// Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 451.2s, or reduce sample /// count to 10.
     /// Rust encoder            time:   [4.3288 s 4.3696 s 4.4075 s]
@@ -204,6 +205,8 @@ pub enum EncodeAlgo {
     /// Speed: F
     /// Compression Rate: A
     MKW,
+
+    MK8_Rust,
 }
 
 impl EncodeAlgo {
@@ -274,6 +277,9 @@ impl std::error::Error for Error {}
 pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, Error> {
     if algo == EncodeAlgo::MKW {
         return Ok(algo_mkw::encode_boyer_moore_horspool(src, dst) as u32);
+    }
+    if algo == EncodeAlgo::MK8_Rust {
+        return Ok(algo_mk8::compress_mk8(src, dst) as u32);
     }
 
     let mut used_len: u32 = 0;
@@ -1018,6 +1024,16 @@ mod tests {
             EncodeAlgo::MK8,
             "17db5fa76ceb987b706a87fe1a0392edfc81915c605c674306614ead48b5efe8",
             true,
+        );
+    }
+    #[test]
+    fn test_encode_mk8_Rust() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::MK8_Rust,
+            "17db5fa76ceb987b706a87fe1a0392edfc81915c605c674306614ead48b5efe8",
+            false,
         );
     }
 

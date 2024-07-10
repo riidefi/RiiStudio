@@ -11,13 +11,16 @@ pub fn mkw_benches(c: &mut Criterion) {
 
     c.bench_function("C encoder", |b| {
         b.iter(|| {
-            szs::encode(black_box(&data), black_box(szs::EncodeAlgo::MKW)).expect("encode failed")
+            szs::encode(
+                black_box(&data),
+                black_box(szs::EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION),
+            )
+            .expect("encode failed")
         })
     });
     c.bench_function("Rust encoder", |b| {
         b.iter(|| {
-            szs::encode(black_box(&data), black_box(szs::EncodeAlgo::MKW_Rust))
-                .expect("encode failed")
+            szs::encode(black_box(&data), black_box(szs::EncodeAlgo::MKW)).expect("encode failed")
         })
     });
 }
