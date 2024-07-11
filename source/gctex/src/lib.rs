@@ -463,6 +463,7 @@ fn decode_texture_i4(dst: &mut [u8], src: &[u8], width: usize, height: usize) {
     }
 }
 
+#[cfg(feature = "simd")]
 use core::arch::x86_64::*;
 
 // Based on Dolphin implementation
