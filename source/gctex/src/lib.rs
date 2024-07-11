@@ -1,5 +1,13 @@
+// #![cfg_attr(not(test), no_std)]
+
 #![doc = include_str!("../README.md")]
-use std::slice;
+use core::slice;
+
+extern crate alloc;
+use alloc::vec::Vec;
+use alloc::vec;
+use alloc::string::String;
+use alloc::format;
 
 #[allow(non_upper_case_globals)]
 #[allow(non_camel_case_types)]
@@ -455,7 +463,7 @@ fn decode_texture_i4(dst: &mut [u8], src: &[u8], width: usize, height: usize) {
     }
 }
 
-use std::arch::x86_64::*;
+use core::arch::x86_64::*;
 
 // Based on Dolphin implementation
 #[cfg(feature = "simd")]
@@ -578,7 +586,7 @@ unsafe fn u8_to_u16_slice(u8_slice: &[u8]) -> &[u16] {
         "Length of the u8 slice must be a multiple of 2"
     );
 
-    unsafe { std::slice::from_raw_parts(u8_slice.as_ptr() as *mut u16, u8_slice.len() / 2) }
+    unsafe { core::slice::from_raw_parts(u8_slice.as_ptr() as *mut u16, u8_slice.len() / 2) }
 }
 
 fn decode_texture_rgb5a3(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
@@ -719,6 +727,10 @@ fn decode_texture_cmpr(dst: &mut [u32], src: &[u8], width: usize, height: usize)
     }
 }
 
+// For `is_x86_feature_detected!`
+#[cfg(feature = "simd")]
+use std::arch::x86_64::*;
+
 // Based on Dolphin implementation
 #[cfg(feature = "simd")]
 #[target_feature(enable = "ssse3")]
@@ -775,7 +787,7 @@ unsafe fn u8_to_u32_slice(u8_slice: &mut [u8]) -> &mut [u32] {
         "Length of the u8 slice must be a multiple of 4"
     );
 
-    unsafe { std::slice::from_raw_parts_mut(u8_slice.as_mut_ptr() as *mut u32, u8_slice.len() / 4) }
+    unsafe { core::slice::from_raw_parts_mut(u8_slice.as_mut_ptr() as *mut u32, u8_slice.len() / 4) }
 }
 
 // Requires expanded size to be block-aligned
@@ -1075,7 +1087,7 @@ pub fn decode(
     dst
 }
 
-use std::cmp::min;
+use core::cmp::min;
 
 fn calc_distance(v1: &[u8], v2: &[u8]) -> u32 {
     let d0 = v1[0] as i32 - v2[0] as i32;
@@ -2308,7 +2320,7 @@ pub mod c_api {
 
         let buffer_slice = unsafe {
             assert!(!buffer.is_null());
-            std::slice::from_raw_parts_mut(buffer, length as usize)
+            core::slice::from_raw_parts_mut(buffer, length as usize)
         };
 
         for (i, byte) in version_info.as_bytes().iter().enumerate() {
