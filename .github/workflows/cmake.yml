@@ -64,3 +64,40 @@ jobs:
       with:
         name: riistudio-binary
         path: ${{github.workspace}}/build/source/frontend/${{env.BUILD_TYPE}}
+
+  build_macos_aarch64:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: brew install cmake assimp glfw freetype llvm ninja
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Create `/build` folder
+      run: cmake -E make_directory ${{github.workspace}}/build
+
+    - name: CMake -- configure
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -GNinja -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DRust_CARGO_TARGET=aarch64-apple-darwin -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=/opt/homebrew/Cellar/llvm/18.1.8/bin/clang++
+
+    - name: CMake -- build
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --parallel
+    
+    - uses: actions/upload-artifact@v2
+      with:
+        name: tests-binary
+        path: ${{github.workspace}}/build/source/tests/${{env.BUILD_TYPE}}
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: riistudio-binary
+        path: ${{github.workspace}}/build/source/frontend/${{env.BUILD_TYPE}}
