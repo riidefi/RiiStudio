@@ -37,10 +37,6 @@ template <class T, std::size_t growSize = 1024> class MemoryPool {
 
 public:
   MemoryPool() = default;
-  MemoryPool(MemoryPool&& memoryPool) = delete;
-  MemoryPool(const MemoryPool& memoryPool) = delete;
-  MemoryPool operator=(MemoryPool&& memoryPool) = delete;
-  MemoryPool operator=(const MemoryPool& memoryPool) = delete;
 
   ~MemoryPool() {
     while (firstBuffer) {

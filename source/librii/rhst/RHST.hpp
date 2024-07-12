@@ -43,7 +43,7 @@ inline std::partial_ordering operator<=>(const glm::vec2& l,
   return l.y <=> r.y;
 }
 
-#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__)
 namespace std {
 template <class I1, class I2, class Cmp>
 constexpr auto lexicographical_compare_three_way(I1 f1, I1 l1, I2 f2, I2 l2,

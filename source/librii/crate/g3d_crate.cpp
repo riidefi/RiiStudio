@@ -9,6 +9,8 @@
 #include <rsl/ArrayUtil.hpp>
 #include <rsl/WriteFile.hpp>
 
+#include <rsl/Expected.hpp>
+#define BRRES_SYS_NO_EXPECTED
 #include <brres/lib/brres-sys/include/brres_sys.h>
 
 namespace librii::crate {

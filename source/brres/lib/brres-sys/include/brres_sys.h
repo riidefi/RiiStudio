@@ -39,7 +39,9 @@ uint32_t brres_read_mdl0mat_preset(CResult* result, const char* path,
 
 #ifdef __cplusplus
 
+#ifndef BRRES_SYS_NO_EXPECTED
 #include <expected>
+#endif
 #include <span>
 #include <string>
 #include <string_view>

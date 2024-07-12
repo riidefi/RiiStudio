@@ -6,6 +6,8 @@
 #include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
 
+#include <rsl/Expected.hpp>
+#define BRRES_SYS_NO_EXPECTED
 #include <brres/lib/brres-sys/include/brres_sys.h>
 #include <rsl/WriteFile.hpp>
 

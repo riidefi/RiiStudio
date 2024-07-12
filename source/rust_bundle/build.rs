@@ -47,9 +47,9 @@ fn main() {
         println!("cargo:rustc-link-lib=framework={}", "Security");
         println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/freetype/2.13.2/lib/");
         println!("cargo:rustc-link-lib=static={}", "freetype");
-        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/glfw/3.3.8/lib/");
+        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/glfw/3.4/lib/");
         println!("cargo:rustc-link-lib=static={}", "glfw");
-        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/assimp/5.2.5/lib/");
+        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/assimp/5.4.2/lib/");
         println!("cargo:rustc-link-lib=static={}", "assimp");
         println!("cargo:rustc-link-lib=static={}", "dl");
         println!("cargo:rustc-link-lib=static={}", "c++");
@@ -59,6 +59,7 @@ fn main() {
     let libs = vec![
         (format!("{}{}", out_dir, "frontend"), "lib_frontend"),
         (format!("{}{}", out_dir, "core"), "core"),
+        (format!("{}{}", out_dir, "imgui-gradient"), "imgui_gradient"),
         (format!("{}{}", out_dir, "LibBadUIFramework"), "LibBadUIFramework"),
         (format!("{}{}", out_dir, "librii"), "librii"),
         (format!("{}{}", out_dir, "oishii"), "oishii"),
@@ -120,9 +121,11 @@ fn main() {
     }
 
     println!("cargo:rustc-link-search=native={}", cargo_dir);
+    println!("cargo:rustc-link-lib=static=brres_sys");
     println!("cargo:rustc-link-lib=static=gctex");
     println!("cargo:rustc-link-lib=static=wiitrig");
     println!("cargo:rustc-link-lib=static=rsmeshopt");
+    #[cfg(windows)]
     println!("cargo:rustc-link-lib=dylib=llvm_sighandler");
     println!("cargo:rustc-link-lib=static=avir_rs");
     println!("cargo:rustc-link-lib=static=riistudio_rs");

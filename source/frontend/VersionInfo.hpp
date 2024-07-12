@@ -1,5 +1,7 @@
 #pragma once
 
+#include <rsl/Expected.hpp>
+#define BRRES_SYS_NO_EXPECTED
 #include <brres/lib/brres-sys/include/brres_sys.h>
 #include <core/util/timestamp.hpp>
 #include <librii/image/ImagePlatform.hpp>
