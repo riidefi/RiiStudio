@@ -205,9 +205,9 @@ dependencies = [
 
 [[package]]
 name = "gctex"
-version = "0.3.7"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e729c7d407cbb418b44d2a0bb2866ebfaff64f98dd1dcdb185964b75e067423"
+checksum = "bb8006ce0e74e3a097e1bbd9ecd8a7f2d361d4394b58c3ac0f6fd62b727140f6"
 dependencies = [
  "cc",
  "heapless",
