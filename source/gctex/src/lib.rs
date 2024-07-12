@@ -964,6 +964,7 @@ pub fn decode_fast(
                 );
                 return;
             }
+            #[cfg(not(feature = "cpp_fallback"))]
             panic!("Unsupported format (C++ fallback is disabled)");
         }
     }
@@ -1170,7 +1171,6 @@ fn rgb565_to_rgba8(rgb565: u16) -> [u8; 4] {
 }
 
 const CMPR_MAX_COL: u32 = 16;
-const CMPR_DATA_SIZE: usize = 64;
 
 struct DXTEncodingPalette {
     opaque_count: u32,
@@ -1192,7 +1192,7 @@ impl DXTEncodingPalette {
         }
     }
 
-    fn calculate_values(mut self: &mut Self, data: &[u8]) {
+    fn calculate_values(self: &mut Self, data: &[u8]) {
         assert!(!data.is_empty());
         assert!(self.opaque_count <= CMPR_MAX_COL);
 
