@@ -38,6 +38,12 @@ jobs:
       working-directory: ${{github.workspace}}/source/rust_bundle
       shell: bash
       run: cargo install cargo-bundle && cargo bundle --release
+
+    - name: Download and run bundle-dylibs script
+      run: |
+        curl -o bundle-dylibs https://raw.githubusercontent.com/imrehorvath/bundle-dylibs/main/bundle-dylibs
+        chmod +x bundle-dylibs
+        ./bundle-dylibs ${{github.workspace}}/source/rust_bundle/target/release/bundle/osx/RiiStudio.app
     
     - uses: actions/upload-artifact@v2
       with:
@@ -52,4 +58,4 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: riistudio-app
-        path: ${{github.workspace}}/source/rust_bundle/target/release
+        path: ${{github.workspace}}/source/rust_bundle/target/release/bundle/osx
