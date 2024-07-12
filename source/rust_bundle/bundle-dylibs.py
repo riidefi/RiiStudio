@@ -49,6 +49,7 @@ def process_executable(executable, libdir):
         os.makedirs(libdir, exist_ok=True)
         process_dylibs(dylibs, executable, libdir, os.path.dirname(executable))
         subprocess.run(["install_name_tool", "-add_rpath", f"@executable_path/{relpath}", executable])
+        subprocess.run(["chmod", "+x", executable])
 
 def main(argv):
     global relpath
