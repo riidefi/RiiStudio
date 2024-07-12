@@ -464,10 +464,12 @@ fn decode_texture_i4(dst: &mut [u8], src: &[u8], width: usize, height: usize) {
 }
 
 #[cfg(feature = "simd")]
+#[cfg(target_arch  = "x86_64")]
 use core::arch::x86_64::*;
 
 // Based on Dolphin implementation
 #[cfg(feature = "simd")]
+#[cfg(target_arch  = "x86_64")]
 #[target_feature(enable = "ssse3")]
 unsafe fn decode_texture_i4_ssse3(
     dst: *mut u32,
@@ -730,10 +732,12 @@ fn decode_texture_cmpr(dst: &mut [u32], src: &[u8], width: usize, height: usize)
 
 // For `is_x86_feature_detected!`
 #[cfg(feature = "simd")]
+#[cfg(target_arch  = "x86_64")]
 use std::arch::x86_64::*;
 
 // Based on Dolphin implementation
 #[cfg(feature = "simd")]
+#[cfg(target_arch  = "x86_64")]
 #[target_feature(enable = "ssse3")]
 unsafe fn decode_texture_rgba8_ssse3(
     dst: *mut u32,
@@ -828,6 +832,7 @@ pub fn decode_fast(
     assert!(src.len() as u32 >= compute_image_size(texformat, width, height));
 
     #[cfg(feature = "simd")]
+    #[cfg(target_arch  = "x86_64")]
     {
         if texformat == TextureFormat::I4 {
             if is_x86_feature_detected!("sse3") {
