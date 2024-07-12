@@ -22,7 +22,7 @@ simd = ["cpp_fallback"]
 cpp_fallback = ["cc"]
 
 [lib]
-crate-type=["cdylib", "lib", "staticlib", "rlib"]
+crate-type=["cdylib", "lib", "staticlib"]
 
 [build-dependencies]
 bindgen = { version = "0.66", optional = true }
