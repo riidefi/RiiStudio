@@ -50,7 +50,7 @@ elseif (APPLE)
       set(HOMEBREW_CELLAR "/usr/local/Cellar")
     endif()
 
-    set(ASSIMP_VERSION "5.2.5")
+    set(ASSIMP_VERSION "5.4.2")
     set(GLFW_VERSION "3.3.8")
 	set(FREETYPE_VERSION "2.13.2")
 
