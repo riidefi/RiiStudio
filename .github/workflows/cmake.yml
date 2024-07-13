@@ -11,7 +11,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -44,17 +44,25 @@ jobs:
         cd ${{github.workspace}}/source/rust_bundle
         python3 bundle-dylibs.py target/release/bundle/osx/RiiStudio.app
     
-    - uses: actions/upload-artifact@v2
+    - name: Create a DMG
+      continue-on-error: true
+      run: |
+        cd ${{github.workspace}}/source/rust_bundle
+        npm install --global create-dmg
+        cd target/release/bundle/osx
+        create-dmg RiiStudio.app
+    
+    - uses: actions/upload-artifact@v4
       with:
         name: tests-binary
         path: ${{github.workspace}}/build/source/tests
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: riistudio-binary
         path: ${{github.workspace}}/build/source/frontend
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: riistudio-app
         path: ${{github.workspace}}/source/rust_bundle/target/release/bundle/osx
