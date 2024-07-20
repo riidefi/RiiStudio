@@ -1,3 +1,6 @@
+// Reference C implementation:
+// https://github.com/riidefi/RiiStudio/blob/master/source/szs/src/LibYaz.hpp
+
 use memchr::memchr;
 use std::convert::TryInto;
 
@@ -28,6 +31,7 @@ fn memchr_template<const USE_C: bool>(c: u8, src: &[u8]) -> Option<usize> {
     }
 }
 
+// https://github.com/riidefi/RiiStudio/blob/master/source/szs/src/LibYaz.hpp#L9
 fn compression_search<const USE_LIBC: bool>(
     src_pos: usize,
     src: &[u8],
@@ -85,10 +89,11 @@ fn compression_search<const USE_LIBC: bool>(
     result
 }
 
-pub fn compress_yaz<const USE_LIBC: bool>(src: &[u8], level: u8, dst: &mut [u8]) -> u32 {
-    let yaz0_magic: u32 = 0x59617A30; // "Yaz0" in ASCII
+const YAZ0_MAGIC: u32 = 0x59617A30; // "Yaz0" in ASCII
 
-    dst[0..4].copy_from_slice(&yaz0_magic.to_be_bytes());
+// https://github.com/riidefi/RiiStudio/blob/master/source/szs/src/LibYaz.hpp#L63
+pub fn compress_yaz<const USE_LIBC: bool>(src: &[u8], level: u8, dst: &mut [u8]) -> u32 {
+    dst[0..4].copy_from_slice(&YAZ0_MAGIC.to_be_bytes());
     dst[4..8].copy_from_slice(&(src.len() as u32).to_be_bytes());
     dst[8..12].copy_from_slice(&0u32.to_be_bytes());
     dst[12..16].copy_from_slice(&0u32.to_be_bytes());
@@ -109,6 +114,7 @@ pub fn compress_yaz<const USE_LIBC: bool>(src: &[u8], level: u8, dst: &mut [u8])
 
     let max_len = 18 + 255;
 
+    // Fast compression algorithm
     if search_range == 0 {
         while src_end - src_pos >= 8 {
             dst[dst_pos] = 0xFF;
@@ -125,61 +131,64 @@ pub fn compress_yaz<const USE_LIBC: bool>(src: &[u8], level: u8, dst: &mut [u8])
             dst[dst_pos..dst_pos + delta].copy_from_slice(&src[src_pos..src_pos + delta]);
             dst_pos += delta;
         }
-    } else if src_pos < src_end {
-        let mut res = compression_search::<USE_LIBC>(src_pos, src, max_len, search_range);
-        let mut found = res.found as usize;
-        let mut found_len = res.found_len as usize;
+        return dst_pos as u32;
+    }
 
-        let mut next_found = 0;
-        let mut next_found_len = 0;
+    // Trivial case
+    if src_pos >= src_end {
+        return dst_pos as u32;
+    }
 
-        while src_pos < src_end {
-            code_byte_pos = dst_pos;
-            dst[dst_pos] = 0;
-            dst_pos += 1;
+    let mut res = compression_search::<USE_LIBC>(src_pos, src, max_len, search_range);
+    let mut found = res.found as usize;
+    let mut found_len = res.found_len as usize;
 
-            for i in (0..8).rev() {
-                if src_pos >= src_end {
-                    break;
-                }
+    let mut next_found = 0;
+    let mut next_found_len = 0;
 
-                if src_pos + 1 < src_end {
-                    let res_ = compression_search::<USE_LIBC>(src_pos + 1, src, max_len, search_range);
-                    next_found = res_.found as usize;
-                    next_found_len = res_.found_len as usize;
-                }
+    while src_pos < src_end {
+        code_byte_pos = dst_pos;
+        dst[dst_pos] = 0;
+        dst_pos += 1;
 
-                if found_len > 2 && next_found_len <= found_len {
-                    let delta = src_pos - found - 1;
+        for i in (0..8).rev() {
+            if src_pos >= src_end {
+                break;
+            }
 
-                    if found_len < 18 {
-                        dst[dst_pos] = (delta >> 8 | (found_len - 2) << 4) as u8;
-                        dst_pos += 1;
-                        dst[dst_pos] = (delta & 0xFF) as u8;
-                        dst_pos += 1;
-                    } else {
-                        dst[dst_pos] = (delta >> 8) as u8;
-                        dst_pos += 1;
-                        dst[dst_pos] = (delta & 0xFF) as u8;
-                        dst_pos += 1;
-                        dst[dst_pos] = (found_len - 18) as u8;
-                        dst_pos += 1;
-                    }
+            if src_pos + 1 < src_end {
+                let res_ = compression_search::<USE_LIBC>(src_pos + 1, src, max_len, search_range);
+                next_found = res_.found as usize;
+                next_found_len = res_.found_len as usize;
+            }
 
-                    src_pos += found_len;
+            if found_len > 2 && next_found_len <= found_len {
+                let delta = src_pos - found - 1;
 
-                    res = compression_search::<USE_LIBC>(src_pos, src, max_len, search_range);
-                    found = res.found as usize;
-                    found_len = res.found_len as usize;
+                if found_len < 18 {
+                    dst[dst_pos] = (delta >> 8 | (found_len - 2) << 4) as u8;
+                    dst[dst_pos + 1] = (delta & 0xFF) as u8;
+                    dst_pos += 2;
                 } else {
-                    dst[code_byte_pos] |= 1 << i;
-                    dst[dst_pos] = src[src_pos];
-                    dst_pos += 1;
-                    src_pos += 1;
-
-                    found = next_found;
-                    found_len = next_found_len;
+                    dst[dst_pos] = (delta >> 8) as u8;
+                    dst[dst_pos + 1] = (delta & 0xFF) as u8;
+                    dst[dst_pos + 2] = (found_len - 18) as u8;
+                    dst_pos += 3;
                 }
+
+                src_pos += found_len;
+
+                res = compression_search::<USE_LIBC>(src_pos, src, max_len, search_range);
+                found = res.found as usize;
+                found_len = res.found_len as usize;
+            } else {
+                dst[code_byte_pos] |= 1 << i;
+                dst[dst_pos] = src[src_pos];
+                dst_pos += 1;
+                src_pos += 1;
+
+                found = next_found;
+                found_len = next_found_len;
             }
         }
     }

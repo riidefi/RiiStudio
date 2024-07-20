@@ -215,6 +215,8 @@ pub enum EncodeAlgo {
     // Rust encoder (memchr)           time:   [1.2965 s 1.3416 s 1.3904 s]
     LibYaz0_RustLibc,
     LibYaz0_RustMemchr,
+
+    WorstCaseEncoding_Rust,
 }
 
 impl EncodeAlgo {
@@ -294,6 +296,9 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
     }
     if algo == EncodeAlgo::LibYaz0_RustMemchr {
         return Ok(algo_libyaz0::compress_yaz::<false>(src, 10, dst) as u32);
+    }
+    if algo == EncodeAlgo::WorstCaseEncoding_Rust {
+        return Ok(algo_libyaz0::compress_yaz::<false>(src, 0, dst) as u32);
     }
 
     let mut used_len: u32 = 0;

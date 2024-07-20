@@ -17,14 +17,20 @@ pub fn mkw_benches(c: &mut Criterion) {
     });
     c.bench_function("Rust encoder (`memchr` crate)", |b| {
         b.iter(|| {
-            szs::encode(black_box(&data), black_box(szs::EncodeAlgo::LibYaz0_RustMemchr))
-                .expect("encode failed")
+            szs::encode(
+                black_box(&data),
+                black_box(szs::EncodeAlgo::LibYaz0_RustMemchr),
+            )
+            .expect("encode failed")
         })
     });
     c.bench_function("Rust encoder (`libc` crate)", |b| {
         b.iter(|| {
-            szs::encode(black_box(&data), black_box(szs::EncodeAlgo::LibYaz0_RustLibc))
-                .expect("encode failed")
+            szs::encode(
+                black_box(&data),
+                black_box(szs::EncodeAlgo::LibYaz0_RustLibc),
+            )
+            .expect("encode failed")
         })
     });
 }
