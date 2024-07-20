@@ -141,6 +141,8 @@ static inline bool search(Match& match, const s32 search_pos_immut,
   if (match_len >= 3) {
     return true;
   }
+
+  return false;
 }
 
 static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {

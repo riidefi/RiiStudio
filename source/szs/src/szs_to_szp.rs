@@ -78,7 +78,8 @@ fn get_expanded_size_copy(src: &[u8]) -> Result<u32, String> {
     Ok(u32::from_be_bytes(src[4..8].try_into().unwrap()))
 }
 
-fn szp_to_szp_upper_bound_size(szs_size: u32) -> u32 {
+pub fn szp_to_szp_upper_bound_size(szs_size: u32) -> u32 {
+    // u8stream padding when converted to u32stream
     szs_size + 3
 }
 
@@ -125,7 +126,7 @@ fn szs_to_szp(src: &[u8]) -> Result<Vec<u8>, String> {
             }
 
             let group = take16(&mut in_position);
-            let reverse = (group & 0xfff) + 1;
+            let _reverse = (group & 0xfff) + 1;
             let g_size = (group >> 12) as usize;
             result.link_table.push(group);
 

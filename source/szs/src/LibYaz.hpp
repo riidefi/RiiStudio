@@ -68,6 +68,7 @@ static inline void CompressYaz(const u8* src, u32 src_len, u8 level, u8* dst,
   writeU32(dst, 0xc, 0x0);
 
   // TOOD: Check dest_len
+  (void)dst_len;
   u32 search_range;
 
   if (level == 0)

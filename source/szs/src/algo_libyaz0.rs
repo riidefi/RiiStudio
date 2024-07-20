@@ -2,15 +2,12 @@
 // https://github.com/riidefi/RiiStudio/blob/master/source/szs/src/LibYaz.hpp
 
 use memchr::memchr;
-use std::convert::TryInto;
+use std::ffi::c_void;
 
 struct SearchResult {
     found: u32,
     found_len: u32,
 }
-
-use libc;
-use std::ffi::c_void;
 
 fn c_memchr(c: u8, src: &[u8]) -> Option<usize> {
     unsafe {
@@ -101,7 +98,7 @@ pub fn compress_yaz<const USE_LIBC: bool>(src: &[u8], level: u8, dst: &mut [u8])
     let search_range = if level == 0 {
         0
     } else if level < 9 {
-        (0x10E0 * level as u32 / 9 - 0x0E0) as u32
+        0x10E0 * level as u32 / 9 - 0x0E0
     } else {
         0x1000
     };
@@ -109,8 +106,9 @@ pub fn compress_yaz<const USE_LIBC: bool>(src: &[u8], level: u8, dst: &mut [u8])
     let mut src_pos = 0;
     let src_end = src.len();
 
+    #[allow(unused_assignments)]
     let mut dst_pos = 16;
-    let mut code_byte_pos = dst_pos;
+    let mut code_byte_pos;
 
     let max_len = 18 + 255;
 

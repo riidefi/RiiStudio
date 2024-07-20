@@ -33,31 +33,31 @@ impl EGGContext {
             return;
         }
 
-        let mut windowOffset = 0;
-        let mut foundMatchOffset = 0;
+        let mut window_offset = 0;
+        let mut found_match_offset = 0;
         while window < src_pos && {
-            windowOffset = self.search_window(
+            window_offset = self.search_window(
                 &src[src_pos..src_pos + window_size],
                 &src[window..src_pos + window_size],
             );
-            windowOffset < src_pos - window
+            window_offset < src_pos - window
         } {
             for _ in window_size..max_match_size {
-                if src[window + windowOffset + window_size] != src[src_pos + window_size] {
+                if src[window + window_offset + window_size] != src[src_pos + window_size] {
                     break;
                 }
                 window_size += 1;
             }
             if window_size == max_match_size {
-                *match_offset = window + windowOffset;
+                *match_offset = window + window_offset;
                 *match_size = max_match_size;
                 return;
             }
-            foundMatchOffset = window + windowOffset;
+            found_match_offset = window + window_offset;
             window_size += 1;
-            window += windowOffset + 1;
+            window += window_offset + 1;
         }
-        *match_offset = foundMatchOffset;
+        *match_offset = found_match_offset;
         *match_size = if window_size > 3 { window_size - 1 } else { 0 };
     }
     fn search_window(&mut self, needle: &[u8], haystack: &[u8]) -> usize {

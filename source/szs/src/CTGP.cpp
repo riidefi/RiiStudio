@@ -85,7 +85,7 @@ struct Yaz_file_struct {
   u8 codeBuffer[256];
 };
 
-int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file);
+int Yaz_fputc_r(int value, Yaz_file_struct* file);
 bool Yaz_open(Yaz_file_struct* file, WRITE_FN fptr);
 
 namespace rlibrii::szs {
@@ -105,13 +105,11 @@ Result<std::vector<u8>> encodeCTGP(std::span<const u8> buf) {
     return tl::unexpected("encodeCTGP: Yaz_open failed");
   }
   for (u8 c : buf) {
-    int reent = 0; // ?
-    if (Yaz_fputc_r(&reent, c, &stream) != c) {
+    if (Yaz_fputc_r(c, &stream) != c) {
       return tl::unexpected("encodeCTGP: Yaz_fputc_r failed");
     }
   }
-  int reent;
-  Yaz_fputc_r(&reent, -1, &stream);
+  Yaz_fputc_r(-1, &stream);
   result[4] = stream.iteration >> 24;
   result[5] = stream.iteration >> 16;
   result[6] = stream.iteration >> 8;
@@ -141,14 +139,12 @@ u32 hash1(u32 value) {
          (HASH_MAP_SIZE - 1);
 }
 
-int Yaz_buffer_putcode_r(int* reent, u8* file2) {
-  Yaz_file_struct* file = (Yaz_file_struct*)file2;
-
+int Yaz_buffer_putcode_r(Yaz_file_struct* file) {
   file->file_write(file->codeBuffer, file->codeBufferLocation, 1);
   return 0;
 }
 
-static int WriteMatchToFile(Yaz_file_struct* file, int* reent) {
+static int WriteMatchToFile(Yaz_file_struct* file) {
   // TODO: Should this be while(copyLen > 3)?
   if (file->copyLength > 3) {
     while (file->copyLength > 2) {
@@ -161,8 +157,7 @@ static int WriteMatchToFile(Yaz_file_struct* file, int* reent) {
       assert(file->copyDistance < BACK_BUF_SIZE);
       u32 written = file->writeSzsMatchToCodeBufWithTruncation(
           file->copyDistance, file->copyLength);
-      if ((file->codeBufferIndex == 0) &&
-          Yaz_buffer_putcode_r(reent, (u8*)file)) {
+      if ((file->codeBufferIndex == 0) && Yaz_buffer_putcode_r(file)) {
         return -1;
       }
       file->copyLength -= written;
@@ -171,8 +166,7 @@ static int WriteMatchToFile(Yaz_file_struct* file, int* reent) {
   return 0;
 }
 
-static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int* reent,
-                                             int value) {
+static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
   bool bVar1;
   u32 copyLen;
   u32 uVar3;
@@ -344,14 +338,14 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int* reent,
       assert(file->copyDistance == ((copyLen - 1) - uVar17 & 0xfff));
       return value;
     }
-    if (WriteMatchToFile(file, reent) != 0) {
+    if (WriteMatchToFile(file) != 0) {
       return -1;
     }
   }
   return std::nullopt;
 }
 
-static std::optional<int> HandleResidue(Yaz_file_struct* file, int* reent) {
+static std::optional<int> HandleResidue(Yaz_file_struct* file) {
   while (file->copyLength != 0x0) {
     while (true) {
       assert(file->copyLocation != -1);
@@ -379,7 +373,7 @@ static std::optional<int> HandleResidue(Yaz_file_struct* file, int* reent) {
         if (bufferIndex != 0)
           break;
       }
-      if (Yaz_buffer_putcode_r(reent, (u8*)file) != 0) {
+      if (Yaz_buffer_putcode_r(file) != 0) {
         return -1;
       }
       if (file->copyLength == 0)
@@ -390,7 +384,7 @@ static std::optional<int> HandleResidue(Yaz_file_struct* file, int* reent) {
   return std::nullopt;
 }
 
-static int FinalizeSimple(Yaz_file_struct* file, int* reent, int value) {
+static int FinalizeSimple(Yaz_file_struct* file, int value) {
   int iVar7;
   int iVar10;
 
@@ -409,7 +403,7 @@ static int FinalizeSimple(Yaz_file_struct* file, int* reent, int value) {
           file->field5_0x1010 >> file->byteShifterRemaining * (-8 + 0x20));
       file->byteShifterRemaining -= 1;
       if (file->codeBufferIndex == 0) {
-        if (Yaz_buffer_putcode_r(reent, (u8*)file) != 0) {
+        if (Yaz_buffer_putcode_r(file) != 0) {
           return value;
         }
         loop_again = true;
@@ -418,9 +412,9 @@ static int FinalizeSimple(Yaz_file_struct* file, int* reent, int value) {
     }
     if (!loop_again) {
       break;
-	}
+    }
   }
-  if (file->codeBufferIndex != 0 && Yaz_buffer_putcode_r(reent, (u8*)file)) {
+  if (file->codeBufferIndex != 0 && Yaz_buffer_putcode_r(file)) {
     return -1;
   }
   if (file->field12_0x9028 == 0) {
@@ -433,7 +427,7 @@ static int FinalizeSimple(Yaz_file_struct* file, int* reent, int value) {
   return -1;
 }
 
-static int FinalizeComplex(Yaz_file_struct* file, int* reent, int value) {
+static int FinalizeComplex(Yaz_file_struct* file, int value) {
   u32 copyLen;
   u8 bVar4;
   u32 hh;
@@ -470,7 +464,7 @@ static int FinalizeComplex(Yaz_file_struct* file, int* reent, int value) {
       file->codeBuffer[0] |= (u8)(1 << bVar4);
 
       if (bVar4 == 0) {
-        iVar7 = Yaz_buffer_putcode_r(reent, (u8*)file);
+        iVar7 = Yaz_buffer_putcode_r(file);
         if (iVar7 != 0) {
           return -1;
         }
@@ -545,30 +539,30 @@ static int FinalizeComplex(Yaz_file_struct* file, int* reent, int value) {
   return value;
 }
 
-int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file) {
+int Yaz_fputc_r(int value, Yaz_file_struct* file) {
   if (value == -1) {
     if (file->copyLocation != -1) {
-      if (WriteMatchToFile(file, reent) != 0) {
+      if (WriteMatchToFile(file) != 0) {
         return -1;
       }
     }
   } else {
-    auto res = HandleNewInputByte(file, reent, value);
+    auto res = HandleNewInputByte(file, value);
     if (res.has_value()) {
       return *res;
     }
   }
 
-  auto t = HandleResidue(file, reent);
+  auto t = HandleResidue(file);
 
   if (t.has_value()) {
     return *t;
   }
 
   if (value == -1) {
-    return FinalizeSimple(file, reent, value);
+    return FinalizeSimple(file, value);
   } else {
-    return FinalizeComplex(file, reent, value);
+    return FinalizeComplex(file, value);
   }
 }
 

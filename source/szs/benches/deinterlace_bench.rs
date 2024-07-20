@@ -16,7 +16,7 @@ pub fn deinterlace_benchmark(c: &mut Criterion) {
     });
 
     // C version was slower so no reason to make available
-    
+
     c.bench_function("deinterlace with C version", |b| {
         b.iter(|| {
             szs::deinterlace(black_box(&data), black_box(true)).expect("Deinterlace failed")

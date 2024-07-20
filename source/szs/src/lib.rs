@@ -136,6 +136,7 @@ enum EncodeAlgoForCInternals {
 /// Algorithms available for encoding.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[allow(non_camel_case_types)]
 pub enum EncodeAlgo {
     WorstCaseEncoding_Rust = 0,
 
@@ -348,13 +349,13 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
         return Ok(algo_mk8::compress_mk8(src, dst) as u32);
     }
     if algo == EncodeAlgo::LibYaz0_RustLibc {
-        return Ok(algo_libyaz0::compress_yaz::<true>(src, 10, dst) as u32);
+        return Ok(algo_libyaz0::compress_yaz::<true>(src, 10, dst));
     }
     if algo == EncodeAlgo::LibYaz0_RustMemchr {
-        return Ok(algo_libyaz0::compress_yaz::<false>(src, 10, dst) as u32);
+        return Ok(algo_libyaz0::compress_yaz::<false>(src, 10, dst));
     }
     if algo == EncodeAlgo::WorstCaseEncoding {
-        return Ok(algo_libyaz0::compress_yaz::<false>(src, 0, dst) as u32);
+        return Ok(algo_libyaz0::compress_yaz::<false>(src, 0, dst));
     }
 
     let mut used_len: u32 = 0;
@@ -670,8 +671,7 @@ pub fn decode_yay0(src: &[u8]) -> Result<Vec<u8>, Error> {
 /// assert!(upper_bound >= original_length);
 /// ```
 pub fn deinterlaced_upper_bound(len: u32) -> u32 {
-    // u8stream padding when converted to u32stream
-    len + 3
+    szs_to_szp::szp_to_szp_upper_bound_size(len)
 }
 
 /// Converts an interlaced SZS (YAZ0) stream into a deinterlaced SZP (YAY0) stream.
@@ -709,8 +709,6 @@ pub fn deinterlaced_upper_bound(len: u32) -> u32 {
 /// }
 /// ```
 pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, Error> {
-    let mut used_len: u32 = 0;
-
     match szs_to_szp::szs_to_szp_c(dst, src) {
         Ok(u) => Ok(u),
         Err(e) => Err(Error::Error(e)),
@@ -867,7 +865,6 @@ mod tests {
     use super::*;
     use sha2::{Digest, Sha256};
     use std::fs;
-    use std::path::Path;
 
     fn calculate_hash(data: &[u8]) -> String {
         let mut hasher = Sha256::new();
@@ -979,7 +976,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_mkw_C() {
+    fn test_encode_mkw_c() {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
@@ -1084,7 +1081,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_libyaz0_RustLibc() {
+    fn test_encode_libyaz0_rust_libc() {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
@@ -1094,7 +1091,7 @@ mod tests {
         );
     }
     #[test]
-    fn test_encode_libyaz0_RustMemchr() {
+    fn test_encode_libyaz0_rust_memchr() {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,

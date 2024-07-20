@@ -1,6 +1,4 @@
-use std::cmp::min;
 use std::cmp::PartialOrd;
-use std::convert::TryInto;
 
 // Type aliases for ease of use.
 type S32 = i32;
@@ -17,7 +15,11 @@ const DATA_BUFFER_SIZE: S32 = 0x2000 * 100;
 
 // Helper function, seadMathMin in the original C++ code.
 fn sead_math_min<T: PartialOrd>(a: T, b: T) -> T {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 // Structs ported from the C++ code.
@@ -96,17 +98,16 @@ fn search(
     search_pos_immut: S32,
     data_pos: U32,
     data_buffer_size: S32,
-    work: &Work
+    work: &Work,
 ) -> bool {
     let mut search_pos = search_pos_immut;
     let cmp2 = &work.data_buffer[data_pos as usize..];
 
-    let search_pos_min =
-        if data_pos > SEARCH_WINDOW_SIZE as U32 {
-            data_pos.saturating_sub(SEARCH_WINDOW_SIZE as U32) as S32
-        } else {
-            -1
-        };
+    let search_pos_min = if data_pos > SEARCH_WINDOW_SIZE as U32 {
+        data_pos.saturating_sub(SEARCH_WINDOW_SIZE as U32) as S32
+    } else {
+        -1
+    };
 
     let mut match_len = 2;
     match_info.len = match_len;
@@ -160,14 +161,14 @@ fn search(
 }
 
 fn encode(p_dst: &mut [U8], p_src: &[U8], src_size: U32, p_work: &mut [U8]) -> U32 {
-    let mut work = unsafe { &mut *(p_work.as_mut_ptr() as *mut Work) };
+    let work = unsafe { &mut *(p_work.as_mut_ptr() as *mut Work) };
     let mut tmp = TempBuffer::new();
-    let mut search_pos : i32 = -1;
+    let mut search_pos: i32 = -1;
     let mut found_next_match = false;
     let mut bit = 8;
 
-    let mut data_pos : u32;
-    let mut data_buffer_size : i32;
+    let mut data_pos: u32;
+    let mut data_buffer_size: i32;
 
     work.pos_temp_buffer.iter_mut().for_each(|x| *x = -1);
     work.search_pos_buffer.iter_mut().for_each(|x| *x = -1);
@@ -182,13 +183,14 @@ fn encode(p_dst: &mut [U8], p_src: &[U8], src_size: U32, p_work: &mut [U8]) -> U
     p_dst[4] = (src_size >> 24) as u8;
     p_dst[5] = (src_size >> 16) as u8;
     p_dst[6] = (src_size >> 8) as u8;
-    p_dst[7] = (src_size >> 0) as u8;
+    p_dst[7] = src_size as u8;
     p_dst[8..16].fill(0);
 
     let mut pos_temp_buffer_idx = PosTempBufferIndex::new();
 
     data_buffer_size = sead_math_min(DATA_BUFFER_SIZE, src_size as S32);
-    work.data_buffer[..data_buffer_size as usize].copy_from_slice(&p_src[..data_buffer_size as usize]);
+    work.data_buffer[..data_buffer_size as usize]
+        .copy_from_slice(&p_src[..data_buffer_size as usize]);
 
     pos_temp_buffer_idx.push_back(work.data_buffer[0] as U32);
     pos_temp_buffer_idx.push_back(work.data_buffer[1] as U32);
@@ -210,7 +212,13 @@ fn encode(p_dst: &mut [U8], p_src: &[U8], src_size: U32, p_work: &mut [U8]) -> U
             }
 
             if search_pos != -1 {
-                search(&mut match_info, search_pos, data_pos, data_buffer_size, &work);
+                search(
+                    &mut match_info,
+                    search_pos,
+                    data_pos,
+                    data_buffer_size,
+                    work,
+                );
 
                 if 2 < match_info.len && match_info.len < MATCH_LEN_MAX {
                     data_pos += 1;
@@ -221,7 +229,13 @@ fn encode(p_dst: &mut [U8], p_src: &[U8], src_size: U32, p_work: &mut [U8]) -> U
                     search_pos = work.insert(data_pos, &pos_temp_buffer_idx) as S32;
 
                     if search_pos != -1 {
-                        search(&mut next_match, search_pos, data_pos, data_buffer_size, &work);
+                        search(
+                            &mut next_match,
+                            search_pos,
+                            data_pos,
+                            data_buffer_size,
+                            work,
+                        );
 
                         if match_info.len < next_match.len {
                             match_info.len = 2;
@@ -303,7 +317,8 @@ fn encode(p_dst: &mut [U8], p_src: &[U8], src_size: U32, p_work: &mut [U8]) -> U
         next_read_end_pos = current_read_end_pos;
 
         if data_pos >= (SEARCH_WINDOW_SIZE + 14 * MATCH_LEN_MAX) as u32 {
-            work.data_buffer.copy_within(copy_pos as usize..DATA_BUFFER_SIZE as usize, 0);
+            work.data_buffer
+                .copy_within(copy_pos as usize..DATA_BUFFER_SIZE as usize, 0);
 
             let mut next_read_size = DATA_BUFFER_SIZE - copy_size;
             next_read_end_pos = current_read_end_pos + next_read_size;
@@ -337,7 +352,11 @@ fn encode(p_dst: &mut [U8], p_src: &[U8], src_size: U32, p_work: &mut [U8]) -> U
         current_read_end_pos = next_read_end_pos;
     }
 
-    p_dst[out_size as usize] = if (bit & 0x3f) == 8 { 0 } else { (flag << (bit & 0x3f)) as U8 };
+    p_dst[out_size as usize] = if (bit & 0x3f) == 8 {
+        0
+    } else {
+        (flag << (bit & 0x3f)) as U8
+    };
     out_size += 1;
 
     p_dst[out_size as usize..(out_size + tmp.temp_size) as usize]
