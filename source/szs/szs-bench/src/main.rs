@@ -17,7 +17,7 @@ struct Args {
     input: PathBuf,
 }
 
-pub const SZS_ALGOS: [EncodeAlgo; 9] = [
+pub const SZS_ALGOS: [EncodeAlgo; 12] = [
     EncodeAlgo::WorstCaseEncoding,
     EncodeAlgo::MKW,
     EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION,
@@ -27,6 +27,9 @@ pub const SZS_ALGOS: [EncodeAlgo; 9] = [
     EncodeAlgo::CTLib,
     EncodeAlgo::MK8,
     EncodeAlgo::LibYaz0,
+    EncodeAlgo::LibYaz0_RustLibc,
+    EncodeAlgo::LibYaz0_RustMemchr,
+    EncodeAlgo::WorstCaseEncoding_Rust,
 ];
 
 pub fn szs_algo_from_str(s: &str) -> Result<EncodeAlgo> {
@@ -40,6 +43,9 @@ pub fn szs_algo_from_str(s: &str) -> Result<EncodeAlgo> {
         "ct-lib" => Ok(EncodeAlgo::CTLib),
         "lib-yaz0" => Ok(EncodeAlgo::LibYaz0),
         "mk8" => Ok(EncodeAlgo::MK8),
+        "lib-yaz0-rustlibc" => Ok(EncodeAlgo::LibYaz0_RustLibc),
+        "lib-yaz0-rustmemchr" => Ok(EncodeAlgo::LibYaz0_RustMemchr),
+        "worst-case-encoding-rust" => Ok(EncodeAlgo::WorstCaseEncoding_Rust),
         _ => Err(anyhow::Error::msg(format!(
             "Invalid Yaz0 algorithm: '{}'",
             s
@@ -57,7 +63,11 @@ pub fn szs_algo_to_str(algo: EncodeAlgo) -> &'static str {
         EncodeAlgo::CTLib => "ct-lib",
         EncodeAlgo::LibYaz0 => "lib-yaz0",
         EncodeAlgo::MK8 => "mk8",
+        EncodeAlgo::MK8_Rust => "mk8-rust",
         EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION => "mkw (C++)",
+        EncodeAlgo::LibYaz0_RustLibc => "lib-yaz0-rustlibc",
+        EncodeAlgo::LibYaz0_RustMemchr => "lib-yaz0-rustmemchr",
+        EncodeAlgo::WorstCaseEncoding_Rust => "worst-case-encoding-rust",
         // _ => "invalid",
     }
 }

@@ -120,6 +120,20 @@ pub fn encoded_upper_bound(len: u32) -> u32 {
     unsafe { bindings::impl_rii_worst_encoding_size(len) }
 }
 
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum EncodeAlgoForCInternals {
+    WorstCaseEncoding_ReferenceCVersion,
+    MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION,
+    MkwSp,
+    CTGP,
+    Haroohie,
+    CTLib,
+    LibYaz0,
+    MK8,
+    MKW,
+}
+
 /// Algorithms available for encoding.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -131,6 +145,16 @@ pub enum EncodeAlgo {
     ///
     /// Speed: A+
     /// Compression Rate: F
+    /// Benchmark results comparing C (Clang) and Rust implementations.
+    ///
+    /// - Ran on old_koopa_64.szs sample data.
+    /// - Both use the same LLVM version (17.0.6)
+    /// - i9-13900K, Windows 11
+    ///
+    /// ```txt
+    /// WorstCaseEncoding       time:   [1.1411 ms 1.1685 ms 1.1905 ms]
+    /// WorstCaseEncoding_Rust  time:   [702.83 µs 706.40 µs 710.18 µs]
+    /// ```
     WorstCaseEncoding = 0,
 
     /// Reference matching decompilation impl. You probably don't want this. It's slightly slower and has fewer safety guarantees.
@@ -225,6 +249,32 @@ impl EncodeAlgo {
     pub const Nintendo: EncodeAlgo = EncodeAlgo::MKW;
 }
 
+impl From<EncodeAlgo> for EncodeAlgoForCInternals {
+    fn from(algo: EncodeAlgo) -> Self {
+        match algo {
+            EncodeAlgo::WorstCaseEncoding => {
+                EncodeAlgoForCInternals::WorstCaseEncoding_ReferenceCVersion
+            }
+            EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION => {
+                EncodeAlgoForCInternals::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION
+            }
+            EncodeAlgo::MkwSp => EncodeAlgoForCInternals::MkwSp,
+            EncodeAlgo::CTGP => EncodeAlgoForCInternals::CTGP,
+            EncodeAlgo::Haroohie => EncodeAlgoForCInternals::Haroohie,
+            EncodeAlgo::CTLib => EncodeAlgoForCInternals::CTLib,
+            EncodeAlgo::LibYaz0 => EncodeAlgoForCInternals::LibYaz0,
+            EncodeAlgo::MK8 => EncodeAlgoForCInternals::MK8,
+            EncodeAlgo::MKW => EncodeAlgoForCInternals::MKW,
+            EncodeAlgo::MK8_Rust => EncodeAlgoForCInternals::MK8,
+            EncodeAlgo::LibYaz0_RustLibc => EncodeAlgoForCInternals::LibYaz0,
+            EncodeAlgo::LibYaz0_RustMemchr => EncodeAlgoForCInternals::LibYaz0,
+            EncodeAlgo::WorstCaseEncoding_Rust => {
+                EncodeAlgoForCInternals::WorstCaseEncoding_ReferenceCVersion
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Error {
     Error(String),
@@ -303,6 +353,8 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
 
     let mut used_len: u32 = 0;
 
+    let c_algo = EncodeAlgoForCInternals::from(algo);
+
     let result = unsafe {
         bindings::impl_rii_encodeAlgo(
             dst.as_mut_ptr() as *mut _,
@@ -310,7 +362,7 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
             src.as_ptr() as *const _,
             src.len() as u32,
             &mut used_len,
-            algo as u32,
+            c_algo as u32,
         )
     };
 
