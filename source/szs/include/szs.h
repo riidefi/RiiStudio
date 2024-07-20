@@ -70,7 +70,7 @@ enum class Algo {
   Haroohie = RII_SZS_ENCODE_ALGO_HAROOHIE,
   CTLib = RII_SZS_ENCODE_ALGO_CTLIB,
   LibYaz0 = RII_SZS_ENCODE_ALGO_LIBYAZ0,
-  MK8 = RII_SZS_ENCODE_ALGO_MK8,
+  // MK8 = RII_SZS_ENCODE_ALGO_MK8,
 };
 
 static inline std::string get_version() {

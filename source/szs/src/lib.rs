@@ -186,7 +186,7 @@ pub enum EncodeAlgo {
     /// Compression Rate: B+
     MK8_ReferenceCVersion = 7,
 
-    MK8_Rust = 107,
+    // MK8_Rust = 107,
 }
 
 #[allow(non_upper_case_globals)]
@@ -277,7 +277,7 @@ impl From<EncodeAlgo> for EncodeAlgoForCInternals {
             EncodeAlgo::LibYaz0_RustLibc => EncodeAlgoForCInternals::LibYaz0,
             EncodeAlgo::LibYaz0_RustMemchr => EncodeAlgoForCInternals::LibYaz0,
             EncodeAlgo::MK8_ReferenceCVersion => EncodeAlgoForCInternals::MK8,
-            EncodeAlgo::MK8_Rust => EncodeAlgoForCInternals::MK8,
+            // EncodeAlgo::MK8_Rust => EncodeAlgoForCInternals::MK8,
         }
     }
 }
@@ -345,9 +345,9 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
     if algo == EncodeAlgo::MKW {
         return Ok(algo_mkw::encode_boyer_moore_horspool(src, dst) as u32);
     }
-    if algo == EncodeAlgo::MK8_Rust {
-        return Ok(algo_mk8::compress_mk8(src, dst) as u32);
-    }
+    // if algo == EncodeAlgo::MK8_Rust {
+    //     return Ok(algo_mk8::compress_mk8(src, dst) as u32);
+    // }
     if algo == EncodeAlgo::LibYaz0_RustLibc {
         return Ok(algo_libyaz0::compress_yaz::<true>(src, 10, dst));
     }
