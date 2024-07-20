@@ -97,46 +97,50 @@ static inline bool search(Match& match, const s32 search_pos_immut,
   s32 match_len = 2;
   match.len = match_len;
 
-  if (data_pos - search_pos <= SEARCH_WINDOW_SIZE) {
-    for (u32 i = 0; i < SEARCH_WINDOW_SIZE; i++) {
-      std::span<const u8> cmp1(work.data_buffer + search_pos,
-                               DATA_BUFFER_SIZE - search_pos);
-      if (cmp1[0] == cmp2[0] && cmp1[1] == cmp2[1] &&
-          cmp1[static_cast<size_t>(match_len)] ==
-              cmp2[static_cast<size_t>(match_len)]) {
-        s32 len_local = 2;
+  if (data_pos - search_pos > SEARCH_WINDOW_SIZE) {
+    return false;
+  }
+  for (u32 i = 0; i < SEARCH_WINDOW_SIZE; i++) {
+    std::span<const u8> cmp1(work.data_buffer + search_pos,
+                             DATA_BUFFER_SIZE - search_pos);
+    if (cmp1[0] == cmp2[0] && cmp1[1] == cmp2[1] &&
+        cmp1[static_cast<size_t>(match_len)] ==
+            cmp2[static_cast<size_t>(match_len)]) {
+      s32 len_local = 2;
 
-        while (len_local < MATCH_LEN_MAX) {
-          if (cmp1[len_local] != cmp2[len_local])
-            break;
-          len_local++;
+      while (len_local < MATCH_LEN_MAX) {
+        if (cmp1[len_local] != cmp2[len_local]) {
+          break;
         }
-
-        if (len_local > match_len) {
-          match.len = len_local;
-          match.pos = static_cast<s32>(data_pos - search_pos);
-
-          match_len = data_buffer_size;
-          if (static_cast<s64>(match.len) <= static_cast<s64>(match_len))
-            match_len = match.len;
-          else
-            match.len = match_len;
-
-          if (len_local >= MATCH_LEN_MAX)
-            break;
-        }
+        len_local++;
       }
 
-      search_pos = work.search_pos(search_pos);
-      if (search_pos <= search_pos_min)
-        break;
+      if (len_local > match_len) {
+        match.len = len_local;
+        match.pos = static_cast<s32>(data_pos - search_pos);
+
+        match_len = data_buffer_size;
+        if (static_cast<s64>(match.len) <= static_cast<s64>(match_len)) {
+          match_len = match.len;
+        } else {
+          match.len = match_len;
+        }
+
+        if (len_local >= MATCH_LEN_MAX) {
+          break;
+        }
+      }
     }
 
-    if (match_len >= 3)
-      return true;
+    search_pos = work.search_pos(search_pos);
+    if (search_pos <= search_pos_min) {
+      break;
+    }
   }
 
-  return false;
+  if (match_len >= 3) {
+    return true;
+  }
 }
 
 static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
@@ -184,7 +188,6 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
     while (true) {
       if (!found_next_match) {
         pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
-
         search_pos = work.insert(data_pos, pos_temp_buffer_idx);
       } else {
         found_next_match = false;
@@ -198,16 +201,13 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
           data_buffer_size -= 1;
 
           pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
-
           search_pos = work.insert(data_pos, pos_temp_buffer_idx);
 
           if (search_pos != -1) {
             search(next_match, search_pos, data_pos, data_buffer_size, work);
-
             if (match_info.len < next_match.len)
               match_info.len = 2;
           }
-
           found_next_match = true;
         }
       }
@@ -308,10 +308,12 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
     current_read_end_pos = next_read_end_pos;
   }
 
-  p_dst[out_size++] = ((bit & 0x3f) == 8) ? 0 : (flag << (bit & 0x3f));
+  flag = ((bit & 0x3f) == 8) ? 0 : (flag << (bit & 0x3f));
 
+  p_dst[out_size++] = flag;
   memcpy(p_dst + out_size, tmp.temp_buffer, tmp.temp_size);
   out_size += tmp.temp_size;
+  tmp.temp_size = 0;
 
   return out_size;
 }
