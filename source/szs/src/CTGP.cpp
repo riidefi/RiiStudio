@@ -352,56 +352,37 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int* reent,
 }
 
 static std::optional<int> HandleResidue(Yaz_file_struct* file, int* reent) {
-  u32 copyLen;
-  u8 bVar5;
-  u8 uVar6;
-  int iVar7;
-  u32 uVar9;
-  u32 uVar11;
-  u32 uVar17;
-
-  copyLen = file->copyLength;
-  while (copyLen != 0x0) {
+  while (file->copyLength != 0x0) {
     while (true) {
       assert(file->copyLocation != -1);
-      if (file->codeBufferIndex == '\0') {
-        file->codeBuffer[0] = '\0';
-        uVar17 = 7;
-        bVar5 = 0x80;
-        uVar6 = '\x02';
-        uVar11 = 1;
-        // Copied
-        uVar9 = file->backBufferLocation - copyLen;
-        copyLen = copyLen - 1;
-        file->codeBuffer[uVar11] = file->backBuffer[uVar9 % BACK_BUF_SIZE];
-        file->codeBufferLocation = uVar6;
-        file->codeBufferIndex = (u8)uVar17;
-        file->copyLength = copyLen;
-        file->codeBuffer[0x0] = bVar5 | file->codeBuffer[0x0];
-        if (uVar17 != 0x0)
+      if (file->codeBufferIndex == 0) {
+        file->codeBuffer[0] = 0;
+        file->codeBuffer[1] =
+            file->backBuffer[(file->backBufferLocation - file->copyLength) %
+                             BACK_BUF_SIZE];
+        file->codeBufferLocation = 2;
+        file->codeBufferIndex = 7;
+        file->codeBuffer[0] |= 0x80;
+        file->copyLength--;
+        if (file->codeBufferIndex != 0)
           break;
       } else {
-        uVar11 = (u32)file->codeBufferLocation;
-        uVar17 = (u32)(u8)(file->codeBufferIndex - 1);
-        uVar6 = file->codeBufferLocation + 1;
-        bVar5 = (u8)(1 << uVar17);
-        // Copied
-        uVar9 = file->backBufferLocation - copyLen;
-        copyLen = copyLen - 1;
-        file->codeBuffer[uVar11] = file->backBuffer[uVar9 % BACK_BUF_SIZE];
-        file->codeBufferLocation = uVar6;
-        file->codeBufferIndex = (u8)uVar17;
-        file->copyLength = copyLen;
-        file->codeBuffer[0x0] = bVar5 | file->codeBuffer[0x0];
-        if (uVar17 != 0x0)
+        u32 bufferLocation = file->codeBufferLocation;
+        u32 bufferIndex = file->codeBufferIndex - 1;
+        file->codeBuffer[bufferLocation] =
+            file->backBuffer[(file->backBufferLocation - file->copyLength) %
+                             BACK_BUF_SIZE];
+        file->codeBufferLocation++;
+        file->codeBufferIndex = bufferIndex;
+        file->codeBuffer[0] |= (1 << bufferIndex);
+        file->copyLength--;
+        if (bufferIndex != 0)
           break;
       }
-      iVar7 = Yaz_buffer_putcode_r(reent, (u8*)file);
-      if (iVar7 != 0x0) {
+      if (Yaz_buffer_putcode_r(reent, (u8*)file) != 0) {
         return -1;
       }
-      copyLen = file->copyLength;
-      if (copyLen == 0x0)
+      if (file->copyLength == 0)
         return std::nullopt;
     }
   }
@@ -410,14 +391,12 @@ static std::optional<int> HandleResidue(Yaz_file_struct* file, int* reent) {
 }
 
 static int FinalizeSimple(Yaz_file_struct* file, int* reent, int value) {
-  u8 bVar5;
   int iVar7;
   int iVar10;
 
   while (true) {
-  START:
-
     iVar10 = file->byteShifterRemaining * -8 + 0x20;
+    bool loop_again = false;
     for (iVar7 = file->byteShifterRemaining; iVar7 != 0; --iVar7) {
       file->pushBackBuf(file->field5_0x1010 >> iVar10);
       iVar10 += 8;
@@ -433,22 +412,25 @@ static int FinalizeSimple(Yaz_file_struct* file, int* reent, int value) {
         if (Yaz_buffer_putcode_r(reent, (u8*)file) != 0) {
           return value;
         }
-        goto START;
+        loop_again = true;
+        break;
       }
     }
-    if (file->codeBufferIndex != 0 && Yaz_buffer_putcode_r(reent, (u8*)file)) {
-      return -1;
-    }
-    if (file->field12_0x9028 == 0) {
-      return 0;
-    }
-    if (file->file_write(file->field13_0x902c, 1, file->field12_0x9028) ==
-        file->field12_0x9028) {
-      return 0;
-    }
+    if (!loop_again) {
+      break;
+	}
+  }
+  if (file->codeBufferIndex != 0 && Yaz_buffer_putcode_r(reent, (u8*)file)) {
     return -1;
   }
-  return value;
+  if (file->field12_0x9028 == 0) {
+    return 0;
+  }
+  if (file->file_write(file->field13_0x902c, 1, file->field12_0x9028) ==
+      file->field12_0x9028) {
+    return 0;
+  }
+  return -1;
 }
 
 static int FinalizeComplex(Yaz_file_struct* file, int* reent, int value) {
@@ -463,19 +445,21 @@ static int FinalizeComplex(Yaz_file_struct* file, int* reent, int value) {
   u32 uVar17;
 
   assert(file->byteShifterRemaining == 3);
+
   uVar17 = file->field5_0x1010;
   copyLen = file->backBufferLocation;
-  uVar6 = (u8)(uVar17 >> 0x8);
+  uVar6 = (u8)(uVar17 >> 8);
   file->backBuffer[copyLen] = uVar6;
   copyLen = (copyLen + 1) % BACK_BUF_SIZE;
   file->backBufferLocation = copyLen;
   file->byteShifterRemaining = 2;
+
   if ((u32)file->iteration < 3) {
   LAB_807eb248:
-    if (file->codeBufferIndex == '\0') {
+    if (file->codeBufferIndex == 0) {
       file->codeBuffer[1] = uVar6;
-      file->codeBufferLocation = '\x02';
-      file->codeBufferIndex = '\a';
+      file->codeBufferLocation = 2;
+      file->codeBufferIndex = 7;
       file->codeBuffer[0] = 0x80;
     } else {
       bVar5 = file->codeBufferLocation;
@@ -483,7 +467,8 @@ static int FinalizeComplex(Yaz_file_struct* file, int* reent, int value) {
       file->codeBuffer[bVar5] = uVar6;
       file->codeBufferLocation = bVar5 + 1;
       file->codeBufferIndex = bVar4;
-      file->codeBuffer[0] |= (u8)(1 << (u32)bVar4);
+      file->codeBuffer[0] |= (u8)(1 << bVar4);
+
       if (bVar4 == 0) {
         iVar7 = Yaz_buffer_putcode_r(reent, (u8*)file);
         if (iVar7 != 0) {
@@ -493,54 +478,70 @@ static int FinalizeComplex(Yaz_file_struct* file, int* reent, int value) {
         uVar17 = file->field5_0x1010;
       }
     }
+
     file->copyLength = 0;
     file->copyDistance = 0;
     uVar11 = (copyLen - 1) % BACK_BUF_SIZE;
     file->copyLocation = -1;
-    uVar17 = uVar17 >> 0x10 & 0xff;
+    uVar17 = (uVar17 >> 16) & 0xff;
+
     if (file->backBuffer[uVar11] == uVar17) {
       file->copyLocation = uVar11;
     }
+
     copyLen = (copyLen - 2) % BACK_BUF_SIZE;
     if (uVar17 == file->backBuffer[copyLen]) {
       file->copyLocation = copyLen;
       file->copyDistance = 1;
     }
   } else {
-    uVar11 = hash1(uVar17 >> 0x8);
+    uVar11 = hash1(uVar17 >> 8);
     iVar7 = 0x4001;
     assert(uVar11 < HASH_MAP_SIZE);
     uVar9 = (u32)file->hashMap[uVar11];
-    if ((file->hashMap[uVar11] & 0x4000) == 0x0)
+
+    if ((file->hashMap[uVar11] & 0x4000) == 0) {
       goto LAB_807eb408;
+    }
+
     while (true) {
       assert((uVar9 & 0x8000) != 0);
       hh = uVar9 % BACK_BUF_SIZE;
-      if (uVar17 >> 0x8 ==
-          ((u32)file->backBuffer[(uVar9 + 1) % BACK_BUF_SIZE] << 0x8 |
-           (u32)file->backBuffer[(uVar9 + 0x2) % BACK_BUF_SIZE] << 0x10 |
-           (u32)file->backBuffer[hh]))
+
+      if (uVar17 >> 8 ==
+          ((u32)file->backBuffer[(uVar9 + 1) % BACK_BUF_SIZE] << 8 |
+           (u32)file->backBuffer[(uVar9 + 2) % BACK_BUF_SIZE] << 16 |
+           (u32)file->backBuffer[hh])) {
         break;
+      }
+
       while (true) {
-        iVar7 -= 1;
+        iVar7--;
         assert(iVar7 != 0);
         uVar11 = (uVar11 + 1) % HASH_MAP_SIZE;
         uVar9 = (u32)file->hashMap[uVar11];
-        if ((file->hashMap[uVar11] & 0x4000) != 0x0)
+
+        if ((file->hashMap[uVar11] & 0x4000) != 0) {
           break;
+        }
+
       LAB_807eb408:
-        if ((uVar9 & 0x8000) == 0x0)
+        if ((uVar9 & 0x8000) == 0) {
           goto LAB_807eb248;
+        }
       }
     }
+
     uVar17 = (copyLen - 1) % BACK_BUF_SIZE;
     assert(file->backBuffer[uVar17] == file->backBuffer[hh]);
     assert(uVar17 != hh);
+
     uVar17 = (hh + 1) % BACK_BUF_SIZE;
     file->copyLength = 1;
     file->copyLocation = uVar17;
     file->copyDistance = ((copyLen - 1) - uVar17) % BACK_BUF_SIZE;
   }
+
   return value;
 }
 
