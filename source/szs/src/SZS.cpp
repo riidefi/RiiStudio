@@ -152,7 +152,7 @@ Result<void> decode(std::span<u8> dst, std::span<const u8> src) {
   return {};
 }
 
-u32 getWorstEncodingSize(u32 src) { return 16 + roundUp(src, 8) / 8 * 9 - 1; }
+u32 getWorstEncodingSize(u32 src) { return (src + (src >> 3) + 0x18) & ~0x7; }
 u32 getWorstEncodingSize(std::span<const u8> src) {
   return getWorstEncodingSize(static_cast<u32>(src.size()));
 }

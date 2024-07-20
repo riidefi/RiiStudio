@@ -926,7 +926,7 @@ mod tests {
         test_encode_helper(
             &src,
             EncodeAlgo::WorstCaseEncoding,
-            "f13a115669f980c7ffde6373c42233c2a9eb2a86f14f75e6747604cddc2d161e",
+            "cf4ec29d34fa87925f8553185e96e58c89017d83f652cd958c55e05d91ecc4e2",
             false,
         );
     }
@@ -936,7 +936,7 @@ mod tests {
         test_encode_helper(
             &src,
             EncodeAlgo::WorstCaseEncoding,
-            "e2143bd7477ab063c5cf76e35efd75c9b5cdc03dc87af7f3f73f7f392d734832",
+            "b130de73782be84dded74b882b667f6fe0df060418caa21bcdcbca6f16f74a9a",
             true,
         );
     }
