@@ -123,62 +123,29 @@ pub fn encoded_upper_bound(len: u32) -> u32 {
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum EncodeAlgoForCInternals {
-    WorstCaseEncoding_ReferenceCVersion,
-    MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION,
+    WorstCaseEncoding,
+    MKW,
     MkwSp,
     CTGP,
     Haroohie,
     CTLib,
     LibYaz0,
     MK8,
-    MKW,
 }
 
 /// Algorithms available for encoding.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EncodeAlgo {
-    /// Uses the `WorstCaseEncoding` algorithm.
-    ///
-    /// Use Case: `INSTANT` preset.
-    /// Description: This is literally the worst possible compression output, resulting in files genuinely larger than their decompressed form.
-    ///
-    /// Speed: A+
-    /// Compression Rate: F
-    /// Benchmark results comparing C (Clang) and Rust implementations.
-    ///
-    /// - Ran on old_koopa_64.szs sample data.
-    /// - Both use the same LLVM version (17.0.6)
-    /// - i9-13900K, Windows 11
-    ///
-    /// ```txt
-    /// WorstCaseEncoding       time:   [1.1411 ms 1.1685 ms 1.1905 ms]
-    /// WorstCaseEncoding_Rust  time:   [702.83 µs 706.40 µs 710.18 µs]
-    /// ```
-    WorstCaseEncoding = 0,
+    WorstCaseEncoding_Rust = 0,
 
-    /// Reference matching decompilation impl. You probably don't want this. It's slightly slower and has fewer safety guarantees.
-    ///
-    /// Benchmark results comparing C (Clang) and Rust implementations.
-    ///
-    /// - Ran on old_koopa_64.szs sample data.
-    /// - Both use the same LLVM version (17.0.6)
-    /// - i9-13900K, Windows 11
-    ///
-    /// ```txt
-    ///      Running benches\mkw_bench.rs (target\release\deps\mkw_bench-83198710c2ecf8a9.exe)
-    /// Benchmarking C encoder: Warming up for 3.0000 s
-    /// Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 419.8s, or reduce sample /// count to 10.
-    /// C encoder               time:   [4.5949 s 4.6555 s 4.7145 s]
-    ///
-    /// Benchmarking Rust encoder: Warming up for 3.0000 s
-    /// Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 451.2s, or reduce sample /// count to 10.
-    /// Rust encoder            time:   [4.3288 s 4.3696 s 4.4075 s]
-    /// Found 18 outliers among 100 measurements (18.00%)
-    ///   14 (14.00%) low severe
-    ///   4 (4.00%) low mild
-    /// ```
-    MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION,
+    /// Slower, reference C version of `WorstCaseEncoding`
+    WorstCaseEncoding_ReferenceCVersion = 100,
+
+    MKW_Rust = 1,
+
+    /// Slower, reference C version of `MKW`
+    MKW_ReferenceCVersion = 101,
 
     /// Uses the `MkwSp` algorithm.
     ///
@@ -186,24 +153,59 @@ pub enum EncodeAlgo {
     ///
     /// Speed: D
     /// Compression Rate: B+
-    MkwSp,
+    MkwSp_ReferenceCVersion = 2,
 
     /// Uses the `CTGP` algorithm.
     ///
     /// Use Case: CTGP work (Reverse engineered. 1:1 matching).
-    CTGP,
+    CTGP_ReferenceCVersion = 3,
 
     /// Uses the `Haroohie` algorithm.
     ///
     /// Speed: B+
     /// Compression Rate: B+
-    Haroohie,
+    Haroohie_ReferenceCVersion = 4,
 
     /// Uses the `CTLib` algorithm.
     ///
     /// Speed: A-
     /// Compression Rate: B+
-    CTLib,
+    CTLib_ReferenceCVersion = 5,
+
+    LibYaz0_ReferenceCVersion = 6,
+    LibYaz0_RustLibc = 102,
+    LibYaz0_RustMemchr = 103,
+
+    /// Uses the `MK8` algorithm.
+    ///
+    /// Use Case: General `FAST` preset.
+    /// Description: This is the Mario Kart 8 compression algorithm reverse-engineered.
+    ///
+    /// Speed: A+
+    /// Compression Rate: B+
+    MK8_ReferenceCVersion = 7,
+
+    MK8_Rust = 107,
+}
+
+#[allow(non_upper_case_globals)]
+impl EncodeAlgo {
+    /// Alias for the `MKW` algorithm.
+    pub const Nintendo: EncodeAlgo = EncodeAlgo::MKW;
+
+    // Only a C version is available:
+    pub const MkwSp: EncodeAlgo = EncodeAlgo::MkwSp_ReferenceCVersion;
+    pub const CTGP: EncodeAlgo = EncodeAlgo::CTGP_ReferenceCVersion;
+    pub const Haroohie: EncodeAlgo = EncodeAlgo::Haroohie_ReferenceCVersion;
+    pub const CTLib: EncodeAlgo = EncodeAlgo::CTLib_ReferenceCVersion;
+    pub const MK8: EncodeAlgo = EncodeAlgo::MK8_ReferenceCVersion;
+
+    //
+    // Unless otherwise specified, benchmark results comparing C (Clang) and Rust implementations:
+    // - Ran on old_koopa_64.szs sample data.
+    // - Both use the same LLVM version (17.0.6)
+    // - i9-13900K, Windows 11
+    //
 
     /// Uses the `LibYaz0` algorithm.
     ///
@@ -211,66 +213,70 @@ pub enum EncodeAlgo {
     ///
     /// Speed: C
     /// Compression Rate: A+
-    LibYaz0,
-
-    /// Uses the `MK8` algorithm.
     ///
-    /// Use Case: General `FAST` preset.
-    /// Description: This is the Mario Kart 8 compression algorithm reverse-engineered. In practice it's a sliding Monte Carlo hash table.
+    /// # Benchmarks: M1 (ARM)
+    /// ```txt
+    /// C encoder               time:   [3.4859 s 3.5206 s 3.5760 s]
+    /// Rust (`memchr` crate)   time:   [3.1268 s 3.1316 s 3.1372 s]
+    /// Rust (`libc` crate)     time:   [3.8466 s 3.8526 s 3.8593 s]
+    /// ```
+    /// # Benchmarks: i9-13900KF
+    /// ```txt
+    /// C encoder               time:   [1.6801 s 1.7064 s 1.7276 s]
+    /// Rust (`memchr` crate)   time:   [1.8455 s 1.8485 s 1.8516 s]
+    /// Rust (`libc` crate)     time:   [1.8143 s 1.8628 s 1.9060 s]
+    /// ```
+    ///
+    /// # Conclusion
+    /// On x86-64, `LibYaz0_ReferenceCVersion` is selected. On all other architectures, `LibYaz0_RustMemchr` is selected.
+    #[cfg(target_arch = "x86_64")]
+    pub const LibYaz0: EncodeAlgo = EncodeAlgo::LibYaz0_ReferenceCVersion;
+    #[cfg(not(target_arch = "x86_64"))]
+    pub const LibYaz0: EncodeAlgo = EncodeAlgo::LibYaz0_RustMemchr;
+
+    /// Matching N64-Wii SZS/YAZ0 encoder.
+    ///
+    /// # Benchmarks: i9-13900KF
+    /// ```txt
+    /// Rust encoder            time:   [4.3288 s 4.3696 s 4.4075 s]
+    /// C encoder               time:   [4.5949 s 4.6555 s 4.7145 s]
+    /// ```
+    pub const MKW: EncodeAlgo = EncodeAlgo::MKW_Rust;
+
+    /// Uses the `WorstCaseEncoding` algorithm.
+    ///
+    /// Use Case: `INSTANT` preset.
+    /// Description: This is literally the worst possible compression output, resulting in files genuinely larger than their decompressed form.
     ///
     /// Speed: A+
-    /// Compression Rate: B+
-    MK8,
-
-    /// Uses the `MKW` algorithm.
+    /// Compression Rate: F
     ///
-    /// Use Case: Matching decompilation projects.
-    /// Description: This is the Mario Kart Wii compression algorithm reverse-engineered. In practice it's a Boyer-moore-horspool search with a second opinion mechanism.
-    ///
-    /// Speed: F
-    /// Compression Rate: A
-    MKW,
-
-    MK8_Rust,
-
-    // Slower than C implementation :(
-    //
-    // C encoder                       time:   [1.1488 s 1.1546 s 1.1610 s]
-    // Rust encoder (memchr)           time:   [1.2965 s 1.3416 s 1.3904 s]
-    LibYaz0_RustLibc,
-    LibYaz0_RustMemchr,
-
-    WorstCaseEncoding_Rust,
-}
-
-impl EncodeAlgo {
-    /// Alias for the `MKW` algorithm.
-    #[allow(non_upper_case_globals)]
-    pub const Nintendo: EncodeAlgo = EncodeAlgo::MKW;
+    /// # Benchmarks: i9-13900KF
+    /// ```txt
+    /// WorstCaseEncoding_Rust              time:   [702.83 µs 706.40 µs 710.18 µs]
+    /// WorstCaseEncoding_ReferenceCVersion time:   [1.1411 ms 1.1685 ms 1.1905 ms]
+    /// ```
+    pub const WorstCaseEncoding: EncodeAlgo = EncodeAlgo::WorstCaseEncoding_Rust;
 }
 
 impl From<EncodeAlgo> for EncodeAlgoForCInternals {
     fn from(algo: EncodeAlgo) -> Self {
         match algo {
-            EncodeAlgo::WorstCaseEncoding => {
-                EncodeAlgoForCInternals::WorstCaseEncoding_ReferenceCVersion
+            EncodeAlgo::WorstCaseEncoding_Rust => EncodeAlgoForCInternals::WorstCaseEncoding,
+            EncodeAlgo::WorstCaseEncoding_ReferenceCVersion => {
+                EncodeAlgoForCInternals::WorstCaseEncoding
             }
-            EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION => {
-                EncodeAlgoForCInternals::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION
-            }
-            EncodeAlgo::MkwSp => EncodeAlgoForCInternals::MkwSp,
-            EncodeAlgo::CTGP => EncodeAlgoForCInternals::CTGP,
-            EncodeAlgo::Haroohie => EncodeAlgoForCInternals::Haroohie,
-            EncodeAlgo::CTLib => EncodeAlgoForCInternals::CTLib,
-            EncodeAlgo::LibYaz0 => EncodeAlgoForCInternals::LibYaz0,
-            EncodeAlgo::MK8 => EncodeAlgoForCInternals::MK8,
-            EncodeAlgo::MKW => EncodeAlgoForCInternals::MKW,
-            EncodeAlgo::MK8_Rust => EncodeAlgoForCInternals::MK8,
+            EncodeAlgo::MKW_Rust => EncodeAlgoForCInternals::MKW,
+            EncodeAlgo::MKW_ReferenceCVersion => EncodeAlgoForCInternals::MKW,
+            EncodeAlgo::MkwSp_ReferenceCVersion => EncodeAlgoForCInternals::MkwSp,
+            EncodeAlgo::CTGP_ReferenceCVersion => EncodeAlgoForCInternals::CTGP,
+            EncodeAlgo::Haroohie_ReferenceCVersion => EncodeAlgoForCInternals::Haroohie,
+            EncodeAlgo::CTLib_ReferenceCVersion => EncodeAlgoForCInternals::CTLib,
+            EncodeAlgo::LibYaz0_ReferenceCVersion => EncodeAlgoForCInternals::LibYaz0,
             EncodeAlgo::LibYaz0_RustLibc => EncodeAlgoForCInternals::LibYaz0,
             EncodeAlgo::LibYaz0_RustMemchr => EncodeAlgoForCInternals::LibYaz0,
-            EncodeAlgo::WorstCaseEncoding_Rust => {
-                EncodeAlgoForCInternals::WorstCaseEncoding_ReferenceCVersion
-            }
+            EncodeAlgo::MK8_ReferenceCVersion => EncodeAlgoForCInternals::MK8,
+            EncodeAlgo::MK8_Rust => EncodeAlgoForCInternals::MK8,
         }
     }
 }
@@ -347,7 +353,7 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
     if algo == EncodeAlgo::LibYaz0_RustMemchr {
         return Ok(algo_libyaz0::compress_yaz::<false>(src, 10, dst) as u32);
     }
-    if algo == EncodeAlgo::WorstCaseEncoding_Rust {
+    if algo == EncodeAlgo::WorstCaseEncoding {
         return Ok(algo_libyaz0::compress_yaz::<false>(src, 0, dst) as u32);
     }
 
@@ -925,7 +931,17 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::WorstCaseEncoding,
+            EncodeAlgo::WorstCaseEncoding_Rust,
+            "cf4ec29d34fa87925f8553185e96e58c89017d83f652cd958c55e05d91ecc4e2",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_worst_case_szs_c() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::WorstCaseEncoding_ReferenceCVersion,
             "cf4ec29d34fa87925f8553185e96e58c89017d83f652cd958c55e05d91ecc4e2",
             false,
         );
@@ -935,7 +951,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::WorstCaseEncoding,
+            EncodeAlgo::WorstCaseEncoding_Rust,
             "b130de73782be84dded74b882b667f6fe0df060418caa21bcdcbca6f16f74a9a",
             true,
         );
@@ -946,7 +962,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::MKW,
+            EncodeAlgo::MKW_Rust,
             "4671c3aeb8e6c50237043af870bd1ed8cae20a56c9f44a5e793caa677f656774",
             false,
         );
@@ -956,7 +972,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::MKW,
+            EncodeAlgo::MKW_Rust,
             "b6d8d06846a29b966f8fc19779f886f3bcae906d492df9d75ac1ba055c6592e2",
             true,
         );
@@ -967,7 +983,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION,
+            EncodeAlgo::MKW_ReferenceCVersion,
             "4671c3aeb8e6c50237043af870bd1ed8cae20a56c9f44a5e793caa677f656774",
             false,
         );
@@ -978,7 +994,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::MkwSp,
+            EncodeAlgo::MkwSp_ReferenceCVersion,
             "1e69f92435555c89e092208685480f7b4a1aa3c033fdcdb953397bd24c45a181",
             false,
         );
@@ -988,7 +1004,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::MkwSp,
+            EncodeAlgo::MkwSp_ReferenceCVersion,
             "0f4ded82b8a5718d0f82c98ba935ed662c8e85c50b9fb0dc3e63f89186328e1a",
             true,
         );
@@ -999,7 +1015,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::CTGP,
+            EncodeAlgo::CTGP_ReferenceCVersion,
             "423e6d6b89842350f2e825cfaed439f253f597a43d67dedf74c27f432d82abd5",
             false,
         );
@@ -1009,7 +1025,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::CTGP,
+            EncodeAlgo::CTGP_ReferenceCVersion,
             "7fa1c8b791f9009638edf8f4cca14480281114002004c8fb987bbf6c6c18c864",
             true,
         );
@@ -1020,7 +1036,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::Haroohie,
+            EncodeAlgo::Haroohie_ReferenceCVersion,
             "e1042ca2e8a138c6b39b45b2c6e7aba794f949949f73eaa11a739248ad67e969",
             false,
         );
@@ -1030,7 +1046,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::Haroohie,
+            EncodeAlgo::Haroohie_ReferenceCVersion,
             "ef7dc6f5ddb3141841b6b85f0dfc34a206f973c7c458fc69bbb0c72f05439880",
             true,
         );
@@ -1040,7 +1056,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::CTLib,
+            EncodeAlgo::CTLib_ReferenceCVersion,
             "1e66fd9b33361b07df33442268b0c2e36120538515a528edd7484889767032ad",
             false,
         );
@@ -1050,7 +1066,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::CTLib,
+            EncodeAlgo::CTLib_ReferenceCVersion,
             "38896b86b05b8329bdda5447927efa594b9d149522105c9e051cfd9c9e628c0c",
             true,
         );
@@ -1061,7 +1077,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::LibYaz0,
+            EncodeAlgo::LibYaz0_ReferenceCVersion,
             "fb8a40ee24422c79cdb8f6525a05d463232830fc39bc29f2db6dfc6902b54827",
             false,
         );
@@ -1093,7 +1109,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::LibYaz0,
+            EncodeAlgo::LibYaz0_ReferenceCVersion,
             "7ac44e628252a4d252c0f9c21ba7e28480ff825b6e6b43fb1f06093d0106e486",
             true,
         );
@@ -1104,7 +1120,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::MK8,
+            EncodeAlgo::MK8_ReferenceCVersion,
             "13388da38a6f09cf95a2372a8b0a93f1b87b72bf2f1ff0e898e9d3afa7a5999d",
             false,
         );
@@ -1114,7 +1130,7 @@ mod tests {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::MK8,
+            EncodeAlgo::MK8_ReferenceCVersion,
             "17db5fa76ceb987b706a87fe1a0392edfc81915c605c674306614ead48b5efe8",
             true,
         );

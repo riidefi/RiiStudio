@@ -131,7 +131,11 @@ pub fn compress_yaz<const USE_LIBC: bool>(src: &[u8], level: u8, dst: &mut [u8])
             dst[dst_pos..dst_pos + delta].copy_from_slice(&src[src_pos..src_pos + delta]);
             dst_pos += delta;
         }
-        return dst_pos as u32;
+
+        // Less optimal but for matching sake,
+        return ((src_end + (src_end >> 3) + 0x18) & !0x7) as u32;
+
+        // return dst_pos as u32;
     }
 
     // Trivial case
