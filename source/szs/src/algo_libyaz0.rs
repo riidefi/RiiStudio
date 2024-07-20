@@ -6,7 +6,29 @@ struct SearchResult {
     found_len: u32,
 }
 
-fn compression_search(
+use libc;
+use std::ffi::c_void;
+
+fn c_memchr(c: u8, src: &[u8]) -> Option<usize> {
+    unsafe {
+        let result = libc::memchr(src.as_ptr() as *const c_void, c.into(), src.len());
+        if result.is_null() {
+            None
+        } else {
+            Some(result as usize - src.as_ptr() as usize)
+        }
+    }
+}
+
+fn memchr_template<const USE_C: bool>(c: u8, src: &[u8]) -> Option<usize> {
+    if USE_C {
+        c_memchr(c, src)
+    } else {
+        memchr(c, src)
+    }
+}
+
+fn compression_search<const USE_LIBC: bool>(
     src_pos: usize,
     src: &[u8],
     max_len: usize,
@@ -33,7 +55,7 @@ fn compression_search(
     let mut search = search_start;
 
     while search < src_pos {
-        if let Some(pos) = memchr(c1, &src[search..src_pos]) {
+        if let Some(pos) = memchr_template::<USE_LIBC>(c1, &src[search..src_pos]) {
             search += pos;
         } else {
             break;
@@ -63,7 +85,7 @@ fn compression_search(
     result
 }
 
-pub fn compress_yaz(src: &[u8], level: u8, dst: &mut [u8]) -> u32 {
+pub fn compress_yaz<const USE_LIBC: bool>(src: &[u8], level: u8, dst: &mut [u8]) -> u32 {
     let yaz0_magic: u32 = 0x59617A30; // "Yaz0" in ASCII
 
     dst[0..4].copy_from_slice(&yaz0_magic.to_be_bytes());
@@ -104,7 +126,7 @@ pub fn compress_yaz(src: &[u8], level: u8, dst: &mut [u8]) -> u32 {
             dst_pos += delta;
         }
     } else if src_pos < src_end {
-        let mut res = compression_search(src_pos, src, max_len, search_range);
+        let mut res = compression_search::<USE_LIBC>(src_pos, src, max_len, search_range);
         let mut found = res.found as usize;
         let mut found_len = res.found_len as usize;
 
@@ -122,7 +144,7 @@ pub fn compress_yaz(src: &[u8], level: u8, dst: &mut [u8]) -> u32 {
                 }
 
                 if src_pos + 1 < src_end {
-                    let res_ = compression_search(src_pos + 1, src, max_len, search_range);
+                    let res_ = compression_search::<USE_LIBC>(src_pos + 1, src, max_len, search_range);
                     next_found = res_.found as usize;
                     next_found_len = res_.found_len as usize;
                 }
@@ -146,7 +168,7 @@ pub fn compress_yaz(src: &[u8], level: u8, dst: &mut [u8]) -> u32 {
 
                     src_pos += found_len;
 
-                    res = compression_search(src_pos, src, max_len, search_range);
+                    res = compression_search::<USE_LIBC>(src_pos, src, max_len, search_range);
                     found = res.found as usize;
                     found_len = res.found_len as usize;
                 } else {

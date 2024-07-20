@@ -674,6 +674,7 @@ dependencies = [
  "bindgen",
  "cc",
  "criterion",
+ "libc",
  "memchr",
  "sha2",
 ]

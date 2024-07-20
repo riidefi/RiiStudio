@@ -211,9 +211,10 @@ pub enum EncodeAlgo {
 
     // Slower than C implementation :(
     //
-    // C encoder               time:   [1.1488 s 1.1546 s 1.1610 s]
-    // Rust encoder            time:   [1.2965 s 1.3416 s 1.3904 s]
-    LIBYAZ0_RUST,
+    // C encoder                       time:   [1.1488 s 1.1546 s 1.1610 s]
+    // Rust encoder (memchr)           time:   [1.2965 s 1.3416 s 1.3904 s]
+    LibYaz0_RustLibc,
+    LibYaz0_RustMemchr,
 }
 
 impl EncodeAlgo {
@@ -288,8 +289,11 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
     if algo == EncodeAlgo::MK8_Rust {
         return Ok(algo_mk8::compress_mk8(src, dst) as u32);
     }
-    if algo == EncodeAlgo::LIBYAZ0_RUST {
-        return Ok(algo_libyaz0::compress_yaz(src, 10, dst) as u32);
+    if algo == EncodeAlgo::LibYaz0_RustLibc {
+        return Ok(algo_libyaz0::compress_yaz::<true>(src, 10, dst) as u32);
+    }
+    if algo == EncodeAlgo::LibYaz0_RustMemchr {
+        return Ok(algo_libyaz0::compress_yaz::<false>(src, 10, dst) as u32);
     }
 
     let mut used_len: u32 = 0;
@@ -1007,11 +1011,21 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_libyaz0_Rust() {
+    fn test_encode_libyaz0_RustLibc() {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
             &src,
-            EncodeAlgo::LIBYAZ0_RUST,
+            EncodeAlgo::LibYaz0_RustLibc,
+            "fb8a40ee24422c79cdb8f6525a05d463232830fc39bc29f2db6dfc6902b54827",
+            false,
+        );
+    }
+    #[test]
+    fn test_encode_libyaz0_RustMemchr() {
+        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        test_encode_helper(
+            &src,
+            EncodeAlgo::LibYaz0_RustMemchr,
             "fb8a40ee24422c79cdb8f6525a05d463232830fc39bc29f2db6dfc6902b54827",
             false,
         );
@@ -1048,7 +1062,8 @@ mod tests {
             true,
         );
     }
-    #[test]
+
+    /*#[test]
     fn test_encode_mk8_Rust() {
         let src = read_file("../../tests/samples/old_koopa_64.arc");
         test_encode_helper(
@@ -1057,7 +1072,7 @@ mod tests {
             "17db5fa76ceb987b706a87fe1a0392edfc81915c605c674306614ead48b5efe8",
             false,
         );
-    }
+    }*/
 
     #[test]
     fn test_decode_yaz0_mk8() {

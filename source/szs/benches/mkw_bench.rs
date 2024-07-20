@@ -15,13 +15,26 @@ pub fn mkw_benches(c: &mut Criterion) {
                 .expect("encode failed")
         })
     });
-    c.bench_function("Rust encoder", |b| {
+    c.bench_function("Rust encoder (`memchr` crate)", |b| {
         b.iter(|| {
-            szs::encode(black_box(&data), black_box(szs::EncodeAlgo::LIBYAZ0_RUST))
+            szs::encode(black_box(&data), black_box(szs::EncodeAlgo::LibYaz0_RustMemchr))
+                .expect("encode failed")
+        })
+    });
+    c.bench_function("Rust encoder (`libc` crate)", |b| {
+        b.iter(|| {
+            szs::encode(black_box(&data), black_box(szs::EncodeAlgo::LibYaz0_RustLibc))
                 .expect("encode failed")
         })
     });
 }
 
-criterion_group!(benches, mkw_benches);
+pub fn configure() -> Criterion {
+    Criterion::default().sample_size(100)
+}
+criterion_group! {
+    name = benches;
+    config = configure();
+    targets = mkw_benches
+}
 criterion_main!(benches);
