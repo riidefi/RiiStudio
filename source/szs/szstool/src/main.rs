@@ -8,13 +8,15 @@ use szs::{encode, EncodeAlgo, Error};
 fn to_encode_algo(s: &str) -> anyhow::Result<EncodeAlgo> {
     match s {
         "worst-case-encoding" => Ok(EncodeAlgo::WorstCaseEncoding),
-        "mkw" => Ok(EncodeAlgo::MKW),
-        "mkw (C++)" => Ok(EncodeAlgo::MKW_REFERENCE_MATCHING_DECOMPILED_C_IMPLEMENTATION),
+        "mkw" => Ok(EncodeAlgo::MKW_Rust),
+        "mkw (C++)" => Ok(EncodeAlgo::MKW_ReferenceCVersion),
         "mkw-sp" => Ok(EncodeAlgo::MkwSp),
         "ctgp" => Ok(EncodeAlgo::CTGP),
         "haroohie" => Ok(EncodeAlgo::Haroohie),
         "ct-lib" => Ok(EncodeAlgo::CTLib),
-        "lib-yaz0" => Ok(EncodeAlgo::LibYaz0),
+        "lib-yaz0" => Ok(EncodeAlgo::LibYaz0_ReferenceCVersion),
+        "lib-yaz0-rustlibc" => Ok(EncodeAlgo::LibYaz0_RustLibc),
+        "lib-yaz0-rustmemchr" => Ok(EncodeAlgo::LibYaz0_RustMemchr),
         "mk8" => Ok(EncodeAlgo::MK8),
         "mk8-rust" => Ok(EncodeAlgo::MK8_Rust),
         _ => Err(anyhow::Error::msg(format!("Invalid Yaz0 algorithm: '{}'", s))),
