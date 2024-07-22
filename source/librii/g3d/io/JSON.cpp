@@ -5,6 +5,7 @@
 
 #include <rsl/Types.hpp>
 
+#include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/data/Archive.hpp>
 #include <librii/g3d/data/BoneData.hpp>
 #include <librii/g3d/data/MaterialData.hpp>

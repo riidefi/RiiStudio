@@ -23,18 +23,6 @@ struct VIS0Track {
   std::vector<VIS0KeyFrame> keyframes;
 
   bool operator==(const VIS0Track&) const = default;
-
-  Result<void> read(rsl::SafeReader& reader, u32 numFrames) {
-    for (u32 i = 0; i < numFrames; ++i) {
-      keyframes.push_back(VIS0KeyFrame{.data = TRY(reader.U32())});
-    }
-    return {};
-  }
-  void write(oishii::Writer& writer) const {
-    for (auto data : keyframes) {
-      writer.write<u32>(data.data);
-    }
-  }
 };
 
 // index to CLR0Track. Just let keyFrameCount == 1 when constant
@@ -51,33 +39,6 @@ struct VIS0Bone {
   std::optional<VIS0Track> target; // 1 track, just for this bone
 
   bool operator==(const VIS0Bone&) const = default;
-
-  // realNumKeyFrames = roundUp(header.numFrames + 1, 32) // 32
-  Result<void> read(rsl::SafeReader& reader, u32 realNumKeyFrames) {
-    auto start = reader.tell();
-    name = TRY(reader.StringOfs(start));
-    flags = TRY(reader.U32());
-    if (flags & (FLAG_CONSTANT << (0 * 2))) {
-      // Value is not stored, refer to FLAG_CONSTANT_IS_VISIBLE
-    } else {
-      // Rather than specifying a track offset, it's simply inlined in VIS0. No
-      // clue why. Super inconsistent.
-      VIS0Track track;
-      TRY(track.read(reader, realNumKeyFrames));
-      target.emplace(track);
-    }
-    return {};
-  }
-  void write(oishii::Writer& writer, NameTable& names) const {
-    auto start = writer.tell();
-    writeNameForward(names, writer, start, name, true);
-    writer.write<u32>(flags);
-    if (target.has_value()) {
-      // Rather than specifying a track offset, it's simply inlined in VIS0. No
-      // clue why. Super inconsistent.
-      target->write(writer);
-    }
-  }
 };
 
 struct BinaryVis {
@@ -91,9 +52,6 @@ struct BinaryVis {
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
 
   bool operator==(const BinaryVis&) const = default;
-
-  Result<void> read(oishii::BinaryReader& reader);
-  void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
 };
 
 } // namespace librii::g3d

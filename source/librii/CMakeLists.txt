@@ -111,9 +111,9 @@ add_library(librii STATIC
   "g3d/io/ArchiveIO.cpp"
   "crate/g3d_crate.cpp"
   "egg/Blight.cpp"
-  "g3d/io/AnimTexPatIO.cpp"
-  "g3d/io/AnimClrIO.cpp"
-  "g3d/io/AnimVisIO.cpp"
+  
+  
+  
   "egg/LTEX.cpp"
   "trig/WiiTrig.cpp"
 
@@ -170,7 +170,7 @@ add_library(librii STATIC
 
  "tev/TevSolver.cpp"
  "assimp/LRAssimp.cpp"
- "assimp/LRAssimpJSON.cpp" "objflow/ObjFlow.cpp" "lettuce/LettuceLEX.cpp" "j3d/BinaryBTK.cpp" "g3d/io/AnimChrIO.cpp" "live_mkw/live_mkw.cpp" "wbz/WBZ.cpp" "dolphin/Dolphin.cpp" "crate/j3d_crate.cpp" "j3d/PreciseBMDDump.cpp" "g3d/io/JSON.cpp" "jparticle/Sections/JPAKeyBlock.cpp" "g3d/io/G3dJson.cpp")
+ "assimp/LRAssimpJSON.cpp" "objflow/ObjFlow.cpp" "lettuce/LettuceLEX.cpp" "j3d/BinaryBTK.cpp"  "live_mkw/live_mkw.cpp" "wbz/WBZ.cpp" "dolphin/Dolphin.cpp" "crate/j3d_crate.cpp" "j3d/PreciseBMDDump.cpp" "g3d/io/JSON.cpp" "jparticle/Sections/JPAKeyBlock.cpp" "g3d/io/G3dJson.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 # CMake GCC on Linux: species -Xclang and -fpch-instantiate-templates
