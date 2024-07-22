@@ -7,6 +7,10 @@ WIP Rust/C++ crate for reading BRRES files
 BRRES (.brres) is Nintendo's first-party 3D model format for the Nintendo Wii. Used in games like *Mario Kart Wii*, *Twilight Princess* and *Super Smash Bros: Brawl*, .brres is a versatile and efficient file format.
 Nearly all data is stored as raw GPU display lists that are directly read by the Wii's "flipper" GPU.
 
+## Related crates
+- `gctex`[https://crates.io/crates/gctex]: For encoding/decoding raw Wii texture data
+- `rsmeshopt`[https://crates.io/crates/rsmeshopt]: For performing "triangle strip" mesh optimization for Wii.
+
 ## File format: .brres
 
 At the very root, ".brres" is an archive format for the following sub-files. All but SHP0 are supported.

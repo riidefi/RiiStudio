@@ -169,7 +169,9 @@ pub struct Model {
     pub matrices: Vec<JSONDrawMatrix>,
 }
 
-/// Holds triangle data
+/// Holds triangle data.
+///
+/// If you want to optimize the mesh data, see https://crates.io/crates/rsmeshopt
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh {
     pub name: String,
@@ -221,6 +223,7 @@ pub struct MatrixPrimitive {
 
         struct IndexedVertex {
             u16 indices[26]; // e.g. indices[9] is position (GXAttr enum, GX_POSITION == 9)
+                             // little endian
         };
     ```
 
@@ -237,7 +240,7 @@ pub struct MatrixPrimitive {
                 raw_vertex = buf[cursor:cursor+26*2]
                 cursor += 26*2
 
-                decoded_vertex = [(raw_vertex[p*2] << 8) | raw_vertex[p*2 + 1]) for p in range(26)]
+                decoded_vertex = [raw_vertex[p*2] | (raw_vertex[p*2 + 1] << 8)) for p in range(26)]
                 print(f"  -> Vertex: {decoded_vertex}")
     ```
     */
