@@ -120,9 +120,12 @@ pub fn encoded_upper_bound(len: u32) -> u32 {
     unsafe { bindings::impl_rii_worst_encoding_size(len) }
 }
 
+//
+// NOTE: Also used for the public C API at the moment.
+//
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-enum EncodeAlgoForCInternals {
+pub enum EncodeAlgoForCApi {
     WorstCaseEncoding,
     MKW,
     MkwSp,
@@ -134,19 +137,18 @@ enum EncodeAlgoForCInternals {
 }
 
 /// Algorithms available for encoding.
-#[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum EncodeAlgo {
-    WorstCaseEncoding_Rust = 0,
+    WorstCaseEncoding_Rust,
 
     /// Slower, reference C version of `WorstCaseEncoding`
-    WorstCaseEncoding_ReferenceCVersion = 100,
+    WorstCaseEncoding_ReferenceCVersion,
 
-    MKW_Rust = 1,
+    MKW_Rust,
 
     /// Slower, reference C version of `MKW`
-    MKW_ReferenceCVersion = 101,
+    MKW_ReferenceCVersion,
 
     /// Uses the `MkwSp` algorithm.
     ///
@@ -154,28 +156,28 @@ pub enum EncodeAlgo {
     ///
     /// Speed: D
     /// Compression Rate: B+
-    MkwSp_ReferenceCVersion = 2,
+    MkwSp_ReferenceCVersion,
 
     /// Uses the `CTGP` algorithm.
     ///
     /// Use Case: CTGP work (Reverse engineered. 1:1 matching).
-    CTGP_ReferenceCVersion = 3,
+    CTGP_ReferenceCVersion,
 
     /// Uses the `Haroohie` algorithm.
     ///
     /// Speed: B+
     /// Compression Rate: B+
-    Haroohie_ReferenceCVersion = 4,
+    Haroohie_ReferenceCVersion,
 
     /// Uses the `CTLib` algorithm.
     ///
     /// Speed: A-
     /// Compression Rate: B+
-    CTLib_ReferenceCVersion = 5,
+    CTLib_ReferenceCVersion,
 
-    LibYaz0_ReferenceCVersion = 6,
-    LibYaz0_RustLibc = 102,
-    LibYaz0_RustMemchr = 103,
+    LibYaz0_ReferenceCVersion,
+    LibYaz0_RustLibc,
+    LibYaz0_RustMemchr,
 
     /// Uses the `MK8` algorithm.
     ///
@@ -184,8 +186,7 @@ pub enum EncodeAlgo {
     ///
     /// Speed: A+
     /// Compression Rate: B+
-    MK8_ReferenceCVersion = 7,
-
+    MK8_ReferenceCVersion,
     // MK8_Rust = 107,
 }
 
@@ -260,24 +261,37 @@ impl EncodeAlgo {
     pub const WorstCaseEncoding: EncodeAlgo = EncodeAlgo::WorstCaseEncoding_Rust;
 }
 
-impl From<EncodeAlgo> for EncodeAlgoForCInternals {
+impl From<EncodeAlgo> for EncodeAlgoForCApi {
     fn from(algo: EncodeAlgo) -> Self {
         match algo {
-            EncodeAlgo::WorstCaseEncoding_Rust => EncodeAlgoForCInternals::WorstCaseEncoding,
-            EncodeAlgo::WorstCaseEncoding_ReferenceCVersion => {
-                EncodeAlgoForCInternals::WorstCaseEncoding
-            }
-            EncodeAlgo::MKW_Rust => EncodeAlgoForCInternals::MKW,
-            EncodeAlgo::MKW_ReferenceCVersion => EncodeAlgoForCInternals::MKW,
-            EncodeAlgo::MkwSp_ReferenceCVersion => EncodeAlgoForCInternals::MkwSp,
-            EncodeAlgo::CTGP_ReferenceCVersion => EncodeAlgoForCInternals::CTGP,
-            EncodeAlgo::Haroohie_ReferenceCVersion => EncodeAlgoForCInternals::Haroohie,
-            EncodeAlgo::CTLib_ReferenceCVersion => EncodeAlgoForCInternals::CTLib,
-            EncodeAlgo::LibYaz0_ReferenceCVersion => EncodeAlgoForCInternals::LibYaz0,
-            EncodeAlgo::LibYaz0_RustLibc => EncodeAlgoForCInternals::LibYaz0,
-            EncodeAlgo::LibYaz0_RustMemchr => EncodeAlgoForCInternals::LibYaz0,
-            EncodeAlgo::MK8_ReferenceCVersion => EncodeAlgoForCInternals::MK8,
-            // EncodeAlgo::MK8_Rust => EncodeAlgoForCInternals::MK8,
+            EncodeAlgo::WorstCaseEncoding_Rust => EncodeAlgoForCApi::WorstCaseEncoding,
+            EncodeAlgo::WorstCaseEncoding_ReferenceCVersion => EncodeAlgoForCApi::WorstCaseEncoding,
+            EncodeAlgo::MKW_Rust => EncodeAlgoForCApi::MKW,
+            EncodeAlgo::MKW_ReferenceCVersion => EncodeAlgoForCApi::MKW,
+            EncodeAlgo::MkwSp_ReferenceCVersion => EncodeAlgoForCApi::MkwSp,
+            EncodeAlgo::CTGP_ReferenceCVersion => EncodeAlgoForCApi::CTGP,
+            EncodeAlgo::Haroohie_ReferenceCVersion => EncodeAlgoForCApi::Haroohie,
+            EncodeAlgo::CTLib_ReferenceCVersion => EncodeAlgoForCApi::CTLib,
+            EncodeAlgo::LibYaz0_ReferenceCVersion => EncodeAlgoForCApi::LibYaz0,
+            EncodeAlgo::LibYaz0_RustLibc => EncodeAlgoForCApi::LibYaz0,
+            EncodeAlgo::LibYaz0_RustMemchr => EncodeAlgoForCApi::LibYaz0,
+            EncodeAlgo::MK8_ReferenceCVersion => EncodeAlgoForCApi::MK8,
+            // EncodeAlgo::MK8_Rust => EncodeAlgoForCApi::MK8,
+        }
+    }
+}
+
+impl From<EncodeAlgoForCApi> for EncodeAlgo {
+    fn from(algo: EncodeAlgoForCApi) -> Self {
+        match algo {
+            EncodeAlgoForCApi::WorstCaseEncoding => EncodeAlgo::WorstCaseEncoding,
+            EncodeAlgoForCApi::MKW => EncodeAlgo::MKW,
+            EncodeAlgoForCApi::MkwSp => EncodeAlgo::MkwSp,
+            EncodeAlgoForCApi::CTGP => EncodeAlgo::CTGP,
+            EncodeAlgoForCApi::Haroohie => EncodeAlgo::Haroohie,
+            EncodeAlgoForCApi::CTLib => EncodeAlgo::CTLib,
+            EncodeAlgoForCApi::LibYaz0 => EncodeAlgo::LibYaz0,
+            EncodeAlgoForCApi::MK8 => EncodeAlgo::MK8,
         }
     }
 }
@@ -360,7 +374,7 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
 
     let mut used_len: u32 = 0;
 
-    let c_algo = EncodeAlgoForCInternals::from(algo);
+    let c_algo = EncodeAlgoForCApi::from(algo);
 
     let result = unsafe {
         bindings::impl_rii_encodeAlgo(
@@ -1233,12 +1247,12 @@ pub mod c_api {
         src: *const u8,
         src_len: u32,
         result: *mut u32,
-        algo: EncodeAlgo, // u32
+        algo: EncodeAlgoForCApi, // u32
     ) -> *const c_char {
         let dst_slice = unsafe { std::slice::from_raw_parts_mut(dst, dst_len as usize) };
         let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
 
-        match encode_into(dst_slice, src_slice, algo) {
+        match encode_into(dst_slice, src_slice, EncodeAlgo::from(algo)) {
             Ok(used_len) => {
                 unsafe {
                     *result = used_len;

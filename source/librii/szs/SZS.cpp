@@ -1,8 +1,10 @@
 #include "SZS.hpp"
 
-// RIISZS_NO_INCLUDE_EXPECTED: We prefer to use our definition, which may be a
+// SZS_EXPECTED: We prefer to use our definition, which may be a
 // shim for tl::expected on incompatible systems*
-#define RIISZS_NO_INCLUDE_EXPECTED
+//
+// (Setting this definition prevents #include'ing the STL expected header)
+#define SZS_EXPECTED std::expected
 #include <szs/include/szs.h>
 
 namespace librii::szs {
@@ -25,7 +27,7 @@ Result<u32> getExpandedSize(std::span<const u8> src) {
 
   EXPECT(src[0] == 'Y' && src[1] == 'a' && (src[2] == 'z' || src[2] == 'y') &&
          (src[3] == '0' || src[3] == '1'));
-  return (src[4] << 24) | (src[5] << 16) | (src[6] << 8) | src[7];
+  return ::szs::decoded_size(src);
 }
 
 Result<void> decode(std::span<u8> dst, std::span<const u8> src, bool yay0) {
