@@ -17,9 +17,21 @@ struct CResult {
   void (*freeResult)(struct CResult* self);
   void* opaque;
 };
+
+enum {
+  BRRES_SYS_WRITE_TYPE_BRRES,
+  // Outputs the first material as a .mdl0mat file
+  BRRES_SYS_WRITE_TYPE_MDL0MAT,
+  // Outputs the first material as a .mdl0shade file
+  BRRES_SYS_WRITE_TYPE_MDL0SHADE,
+  // Outputs the first srt as a .srt0 file
+  // BRRES_SYS_WRITE_TYPE_SRT0,
+};
+
 uint32_t brres_read_from_bytes(CResult* result, const void* buf, uint32_t len);
 uint32_t brres_write_bytes(CResult* result, const char* json, uint32_t json_len,
-                           const void* buffer, uint32_t buffer_len);
+                           const void* buffer, uint32_t buffer_len,
+                           uint32_t write_type);
 static inline void brres_free(CResult* result) {
   // There is actually a brres_free symbol that can be imported*
   if (result->freeResult) {
@@ -99,11 +111,12 @@ read_from_bytes(std::span<const uint8_t> bytes) {
 }
 
 static inline std::expected<std::vector<u8>, std::string>
-write_bytes(std::string_view json, std::span<const uint8_t> buffer) {
+write_bytes(std::string_view json, std::span<const uint8_t> buffer,
+            uint32_t write_type = BRRES_SYS_WRITE_TYPE_BRRES) {
   CResult result = {};
   uint32_t res = brres_write_bytes(
       &result, json.data(), static_cast<uint32_t>(json.size()), buffer.data(),
-      static_cast<uint32_t>(buffer.size()));
+      static_cast<uint32_t>(buffer.size()), write_type);
   impl::Defer _([&]() { brres_free(&result); });
 
   if (res != 1) {
@@ -117,6 +130,15 @@ write_bytes(std::string_view json, std::span<const uint8_t> buffer) {
                                result.len_buffer_data);
 
   return buf;
+}
+
+static inline std::expected<std::vector<u8>, std::string>
+brres_to_mdl0mat(std::string_view json, std::span<const uint8_t> buffer) {
+  return write_bytes(json, buffer, BRRES_SYS_WRITE_TYPE_MDL0MAT);
+}
+static inline std::expected<std::vector<u8>, std::string>
+brres_to_mdl0shade(std::string_view json, std::span<const uint8_t> buffer) {
+  return write_bytes(json, buffer, BRRES_SYS_WRITE_TYPE_MDL0SHADE);
 }
 
 static inline std::expected<std::vector<u8>, std::string>

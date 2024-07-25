@@ -27,6 +27,7 @@ pub mod bindings {
             json_len: u32,
             buffer: *const c_void,
             buffer_len: u32,
+            write_type: u32,
         ) -> u32;
         pub fn imp_brres_free(result: *mut CBrres);
 
@@ -104,6 +105,7 @@ impl<'a> CBrresWrapper<'a> {
                 json_len,
                 buffer_ptr,
                 buffer_len,
+                0, // write_type
             );
 
             let json_metadata = {
@@ -256,8 +258,9 @@ pub mod c_api {
         json_len: u32,
         buffer: *const c_void,
         buffer_len: u32,
+        write_type: u32,
     ) -> u32 {
-        ffi::bindings::imp_brres_write_bytes(result, json, json_len, buffer, buffer_len)
+        ffi::bindings::imp_brres_write_bytes(result, json, json_len, buffer, buffer_len, write_type)
     }
     #[cfg(feature = "c_api")]
     #[no_mangle]

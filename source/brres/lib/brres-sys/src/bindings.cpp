@@ -134,24 +134,35 @@ WASM_EXPORT void imp_brres_free(CResult* result) {
 
 } // extern "C"
 
-static Result<std::vector<u8>> WriteArchive(std::string_view json,
-                                            std::span<const u8> blob) {
+static Result<std::vector<u8>>
+WriteArchive(std::string_view json, std::span<const u8> blob, u32 write_type) {
   auto arc = TRY(librii::g3d::ReadJsonArc(json, blob));
-  auto bin = TRY(arc.write());
-
-  return bin;
+  if (write_type == 0) {
+    return arc.write();
+  }
+  if (write_type == 1) {
+    EXPECT(arc.models.size() >= 1);
+    EXPECT(arc.models[0].materials.size() >= 1);
+    return librii::crate::WriteMDL0Mat(arc.models[0].materials[0]);
+  }
+  if (write_type == 2) {
+    EXPECT(arc.models.size() >= 1);
+    EXPECT(arc.models[0].materials.size() >= 1);
+    return librii::crate::WriteMDL0Shade(arc.models[0].materials[0]);
+  }
+  EXPECT(false && "Invalid `write_type`");
 }
 
 extern "C" {
 
 WASM_EXPORT u32 imp_brres_write_bytes(CResult* result, const char* json,
                                       u32 json_len, const void* buffer,
-                                      u32 buffer_len) {
+                                      u32 buffer_len, u32 write_type) {
   std::string_view json_view(json, json + json_len);
   std::span<const u8> buffer_span(reinterpret_cast<const u8*>(buffer),
                                   buffer_len);
 
-  auto arc = WriteArchive(json_view, buffer_span);
+  auto arc = WriteArchive(json_view, buffer_span, write_type);
 
   DumpResult dumped;
   bool ok = true;
