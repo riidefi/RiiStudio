@@ -23,8 +23,72 @@ jobs:
         cd ${{github.workspace}}/source/gctex
         cargo test --release
 
+  test_gctex_windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: cargo test
+      run: |
+        cd ${{github.workspace}}/source/gctex
+        cargo test --release
+
+  test_gctex_macos:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: cargo test
+      run: |
+        cd ${{github.workspace}}/source/gctex
+        cargo test --release
+
   test_szs:
     runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: cargo test
+      run: |
+        cd ${{github.workspace}}/source/szs
+        cargo test --release
+
+  test_szs_windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: cargo test
+      run: |
+        cd ${{github.workspace}}/source/szs
+        cargo test --release
+
+  test_szs_macos:
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v4
