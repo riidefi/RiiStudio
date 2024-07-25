@@ -2,6 +2,7 @@
 
 #include "SZS.hpp"
 #include <algorithm>
+#include <assert.h>
 #include <span>
 #include <string.h>
 
