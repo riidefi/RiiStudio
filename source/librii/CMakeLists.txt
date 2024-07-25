@@ -90,8 +90,7 @@ add_library(librii STATIC
   "g3d/io/AnimIO.cpp"
   "g3d/io/CommonIO.hpp"
   "g3d/io/AnimIO.hpp"
-  "g3d/io/TevIO.hpp"
-  "g3d/io/TevIO.cpp"
+  
   "g3d/io/NameTableIO.cpp"
   "g3d/io/DictWriteIO.hpp"
   "g3d/io/DictWriteIO.cpp"
@@ -103,7 +102,6 @@ add_library(librii STATIC
   "glhelper/GlTexture.hpp" "glhelper/GlTexture.cpp"
   "kcol/Model.hpp" "kcol/Model.cpp"
   "render/G3dGfx.hpp" "render/G3dGfx.cpp"
-  "g3d/io/MatIO.cpp" "g3d/io/MatIO.hpp"
   
   "g3d/data/VertexData.hpp"
   
