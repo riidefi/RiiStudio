@@ -937,9 +937,11 @@ mod tests {
         fs::read(path).expect("Unable to read file")
     }
 
+    const SAMPLE_DIR: &str = "../../tests/samples_szs/";
+
     #[test]
     fn test_encode_worst_case_szs() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::WorstCaseEncoding_Rust,
@@ -949,7 +951,7 @@ mod tests {
     }
     #[test]
     fn test_encode_worst_case_szs_c() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::WorstCaseEncoding_ReferenceCVersion,
@@ -959,7 +961,7 @@ mod tests {
     }
     #[test]
     fn test_encode_worst_case_szp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::WorstCaseEncoding_Rust,
@@ -970,7 +972,7 @@ mod tests {
 
     #[test]
     fn test_encode_mkw() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MKW_Rust,
@@ -980,7 +982,7 @@ mod tests {
     }
     #[test]
     fn test_encode_mkw_szp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MKW_Rust,
@@ -991,7 +993,7 @@ mod tests {
 
     #[test]
     fn test_encode_mkw_c() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MKW_ReferenceCVersion,
@@ -1002,7 +1004,7 @@ mod tests {
 
     #[test]
     fn test_encode_mkw_sp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MkwSp_ReferenceCVersion,
@@ -1012,7 +1014,7 @@ mod tests {
     }
     #[test]
     fn test_encode_mkw_sp_szp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MkwSp_ReferenceCVersion,
@@ -1023,7 +1025,7 @@ mod tests {
 
     #[test]
     fn test_encode_ctgp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::CTGP_ReferenceCVersion,
@@ -1033,7 +1035,7 @@ mod tests {
     }
     #[test]
     fn test_encode_ctgp_szp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::CTGP_ReferenceCVersion,
@@ -1044,7 +1046,7 @@ mod tests {
 
     #[test]
     fn test_encode_haroohie() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::Haroohie_ReferenceCVersion,
@@ -1054,7 +1056,7 @@ mod tests {
     }
     #[test]
     fn test_encode_haroohie_szp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::Haroohie_ReferenceCVersion,
@@ -1064,7 +1066,7 @@ mod tests {
     }
     #[test]
     fn test_encode_ctlib() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::CTLib_ReferenceCVersion,
@@ -1074,7 +1076,7 @@ mod tests {
     }
     #[test]
     fn test_encode_ctlib_szp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::CTLib_ReferenceCVersion,
@@ -1085,7 +1087,7 @@ mod tests {
 
     #[test]
     fn test_encode_libyaz0() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::LibYaz0_ReferenceCVersion,
@@ -1096,7 +1098,7 @@ mod tests {
 
     #[test]
     fn test_encode_libyaz0_rust_libc() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::LibYaz0_RustLibc,
@@ -1106,7 +1108,7 @@ mod tests {
     }
     #[test]
     fn test_encode_libyaz0_rust_memchr() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::LibYaz0_RustMemchr,
@@ -1117,7 +1119,7 @@ mod tests {
 
     #[test]
     fn test_encode_libyaz0_szp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::LibYaz0_ReferenceCVersion,
@@ -1128,7 +1130,7 @@ mod tests {
 
     #[test]
     fn test_encode_mk8() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MK8_ReferenceCVersion,
@@ -1138,7 +1140,7 @@ mod tests {
     }
     #[test]
     fn test_encode_mk8_szp() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MK8_ReferenceCVersion,
@@ -1149,7 +1151,7 @@ mod tests {
 
     /*#[test]
     fn test_encode_mk8_Rust() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MK8_Rust,
@@ -1160,7 +1162,7 @@ mod tests {
 
     #[test]
     fn test_decode_yaz0_mk8() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         let encoded = encode(&src, EncodeAlgo::MK8).unwrap();
         let decoded = decode(&encoded).unwrap();
         let hash = calculate_hash(&decoded);
@@ -1169,7 +1171,7 @@ mod tests {
 
     #[test]
     fn test_decode_yay0_mk8() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         let encoded = encode_yay0(&src, EncodeAlgo::MK8).unwrap();
         let decoded = decode_yay0(&encoded).unwrap();
         let hash = calculate_hash(&decoded);
@@ -1178,7 +1180,7 @@ mod tests {
 
     #[test]
     fn test_decode_yaz0_mkw() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         let encoded = encode(&src, EncodeAlgo::Nintendo).unwrap();
         let decoded = decode(&encoded).unwrap();
         let hash = calculate_hash(&decoded);
@@ -1186,7 +1188,7 @@ mod tests {
     }
     #[test]
     fn test_decode_yay0_mkw() {
-        let src = read_file("../../tests/samples/old_koopa_64.arc");
+        let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         let encoded = encode_yay0(&src, EncodeAlgo::Nintendo).unwrap();
         let decoded = decode_yay0(&encoded).unwrap();
         let hash = calculate_hash(&decoded);

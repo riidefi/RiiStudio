@@ -7,6 +7,38 @@ env:
   BUILD_TYPE: Release
 
 jobs:
+  test_gctex:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: cargo test
+      run: |
+        cd ${{github.workspace}}/source/gctex
+        cargo test --release
+
+  test_szs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: cargo test
+      run: |
+        cd ${{github.workspace}}/source/szs
+        cargo test --release
+
   build_macos_aarch64:
     runs-on: macos-latest
 
