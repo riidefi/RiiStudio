@@ -13,4 +13,13 @@
 
 namespace librii::g3d {
 
+struct DumpResult {
+  std::string jsonData;
+  std::vector<u8> collatedBuffer;
+};
+
+struct Archive;
+
+DumpResult DumpJson(const librii::g3d::Archive& archive);
+
 } // namespace librii::g3d

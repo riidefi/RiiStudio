@@ -16,11 +16,6 @@
 namespace librii::g3d {
 void TestJson(const librii::g3d::Archive& archive);
 
-struct DumpResult {
-  std::string jsonData;
-  std::vector<u8> collatedBuffer;
-};
-
 DumpResult DumpJson(const librii::g3d::Archive& archive);
 Result<librii::g3d::Archive> ReadJsonArc(std::string_view json,
                                          std::span<const u8> buffer);

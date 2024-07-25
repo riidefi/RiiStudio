@@ -209,11 +209,6 @@ void TestJson(const librii::g3d::Archive& archive) {
 #endif
 }
 
-struct DumpResult {
-  std::string jsonData;
-  std::vector<u8> collatedBuffer;
-};
-
 DumpResult DumpJson(const librii::g3d::Archive& archive) {
   JsonWriteCtx ctx;
   nlohmann::json j;

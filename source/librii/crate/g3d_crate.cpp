@@ -16,79 +16,23 @@
 namespace librii::crate {
 
 Result<std::vector<u8>> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
-  oishii::Writer writer(std::endian::big);
-
-  g3d::NameTable names;
-  g3d::RelocWriter linker(writer);
-  g3d::TextureSamplerMappingManager tex_sampler_mappings;
-  // This doesn't match the final output order; that is by the order in the
-  // textures folder. But it means we don't need to depend on a textures folder
-  // to determine this order.
-  for (int s = 0; s < mat.samplers.size(); ++s) {
-    if (tex_sampler_mappings.contains(mat.samplers[s].mTexture))
-      continue;
-    tex_sampler_mappings.add_entry(mat.samplers[s].mTexture, mat.name, s);
-  }
-#if 0
-  for (int sm_i = 0; sm_i < tex_sampler_mappings.size(); ++sm_i) {
-    auto& map = tex_sampler_mappings[sm_i];
-    for (int i = 0; i < map.entries.size(); ++i) {
-      tex_sampler_mappings.entries[sm_i].entries[i] = writer.tell();
-      writer.write<s32>(0);
-      writer.write<s32>(0);
-    }
-  }
-#endif
-  // NOTE: tex_sampler_mappings will point to garbage
-  linker.label("here");
-  linker.writeReloc<s32>("here", "end"); // size
-  writer.write<s32>(0);                  // mdl offset
-  // Differences:
-  // - Crate outputs the BRRES offset and mat index here
-  TRY(g3d::WriteMaterialBody(0, writer, names, mat, 0, linker,
-                             tex_sampler_mappings));
-  const auto end = writer.tell();
-  {
-    names.poolNames();
-    names.resolve(end);
-    writer.seekSet(end);
-    for (auto p : names.mPool)
-      writer.write<u8>(p);
-  }
-  linker.label("end");
-  writer.alignTo(64);
-  linker.resolve();
-  linker.printLabels();
-  return writer.takeBuf();
+  g3d::Model m;
+  m.materials.push_back(mat);
+  g3d::Archive a;
+  a.models.push_back(m);
+  auto d = g3d::DumpJson(a);
+  return brres::brres_to_mdl0mat(d.jsonData, d.collatedBuffer);
 }
 
 std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
-  oishii::Writer writer(std::endian::big);
-
-  g3d::NameTable names;
-  g3d::RelocWriter linker(writer);
-
-  librii::g3d::G3dShader shader(mat);
-
-  linker.label("here");
-  linker.writeReloc<s32>("here", "end"); // size
-  writer.write<s32>(0);                  // mdl offset
-  // Differences:
-  // - Crate outputs the BRRES offset and index here
-  g3d::WriteTevBody(writer, 0, shader);
-  const auto end = writer.tell();
-  {
-    names.poolNames();
-    names.resolve(end);
-    writer.seekSet(end);
-    for (auto p : names.mPool)
-      writer.write<u8>(p);
-  }
-  linker.label("end");
-  writer.alignTo(4);
-  linker.resolve();
-  linker.printLabels();
-  return writer.takeBuf();
+  g3d::Model m;
+  m.materials.push_back(mat);
+  g3d::Archive a;
+  a.models.push_back(m);
+  auto d = g3d::DumpJson(a);
+  auto res = brres::brres_to_mdl0shade(d.jsonData, d.collatedBuffer);
+  assert(res);
+  return *res;
 }
 
 Result<g3d::SrtAnimationArchive> ReadSRT0(std::span<const u8> file) {
