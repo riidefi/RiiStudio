@@ -8,10 +8,10 @@
 #include <frontend/renderer/Renderer.hpp>
 #include <frontend/widgets/AutoHistory.hpp>
 #include <frontend/widgets/DeltaTime.hpp>
-#include <librii/g3d/gfx/G3dGfx.hpp>
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/CourseMap.hpp>
 #include <librii/objflow/ObjFlow.hpp>
+#include <librii/render/G3dGfx.hpp>
 #include <plate/toolkit/Viewport.hpp>
 #include <plugins/g3d/collection.hpp>
 

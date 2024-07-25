@@ -102,7 +102,7 @@ add_library(librii STATIC
   "gfx/SceneNode.hpp" "gfx/SceneNode.cpp"
   "glhelper/GlTexture.hpp" "glhelper/GlTexture.cpp"
   "kcol/Model.hpp" "kcol/Model.cpp"
-  "g3d/gfx/G3dGfx.hpp" "g3d/gfx/G3dGfx.cpp"
+  "render/G3dGfx.hpp" "render/G3dGfx.cpp"
   "g3d/io/MatIO.cpp" "g3d/io/MatIO.hpp"
   
   "g3d/data/VertexData.hpp"

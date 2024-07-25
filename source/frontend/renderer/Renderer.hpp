@@ -2,14 +2,14 @@
 
 #include "MouseHider.hpp"
 #include <LibBadUIFramework/Node2.hpp>
-#include <plugins/3d/i3dmodel.hpp>
 #include <core/common.h>
 #include <frontend/renderer/CameraController.hpp>
 #include <frontend/widgets/DeltaTime.hpp>
 #include <glm/mat4x4.hpp>
 #include <librii/gfx/SceneState.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 
-#include <librii/g3d/gfx/G3dGfx.hpp>
+#include <librii/render/G3dGfx.hpp>
 
 namespace riistudio::frontend {
 
