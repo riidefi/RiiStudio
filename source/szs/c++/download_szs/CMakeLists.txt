@@ -10,8 +10,8 @@ FetchContent_MakeAvailable(Corrosion)
 # Install szs
 FetchContent_Declare(
   szs
-  URL      https://crates.io/api/v1/crates/szs/0.3.2/download
-  URL_HASH MD5=E10566899FE6F27E42125A6701CE51A9 # Necessary for offline builds
+  URL      https://crates.io/api/v1/crates/szs/0.3.7/download
+  URL_HASH MD5=F5A78B848263F7F5B1DF989D770C9F87 # Necessary for offline builds
 )
 FetchContent_MakeAvailable(szs)
 
