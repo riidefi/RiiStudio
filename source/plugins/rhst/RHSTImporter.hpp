@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LibBadUIFramework/Plugins.hpp>
+#include <librii/g3d/data/Archive.hpp>
 #include <librii/image/ImagePlatform.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <plugins/gc/Export/Scene.hpp>
@@ -39,6 +40,13 @@ struct MipGen {
     std::function<void(std::string, std::string)> info,
     std::function<void(std::string_view, float)> progress,
     std::optional<MipGen> mips = {}, bool tristrip = true, bool verbose = true);
+
+bool CompileRHST(librii::rhst::SceneTree& rhst, librii::g3d::Archive& scene,
+                 std::string path,
+                 std::function<void(std::string, std::string)> info,
+                 std::function<void(std::string_view, float)> progress,
+                 std::optional<MipGen> mips = {}, bool tristrip = true,
+                 bool verbose = true);
 
 [[nodiscard]] Result<librii::rhst::Mesh>
 decompileMesh(const libcube::IndexedPolygon& src, const libcube::Model& mdl);

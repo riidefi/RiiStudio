@@ -20,27 +20,62 @@ const libcube::Texture* Material::getTexture(const libcube::Scene& scn,
 
   return nullptr;
 }
+Result<void> ApplyCratePresetToMaterial(librii::g3d::G3dMaterialData& mat,
+                                        librii::crate::CrateAnimation anim,
+                                        bool overwrite_tex_same_name,
+                                        librii::g3d::Archive* scene) {
+  assert(scene);
+  anim.mat.name = mat.name;
+  TRY(RetargetCrateAnimation(anim));
+
+  static_cast<librii::g3d::G3dMaterialData&>(mat) = anim.mat;
+  // TODO: Texture replacement mode? Delete old textures?
+  // TODO: Old animations may cause issues and aren't deleted automatically
+  // (stale dependency)
+  for (auto& new_tex : anim.tex) {
+    if (!overwrite_tex_same_name) {
+      if (auto* x = findByName2(scene->textures, new_tex.name); x != nullptr) {
+        std::string old_name = new_tex.name;
+        new_tex.name += "_" + std::to_string(std::rand());
+        TryRenameSampler(mat, old_name, new_tex.name);
+      }
+    }
+
+    if (auto* x = findByName2(scene->textures, new_tex.name)) {
+      static_cast<librii::g3d::TextureData&>(*x) = new_tex;
+      continue;
+    }
+    scene->textures.push_back(new_tex);
+  }
+  for (auto& new_srt : anim.srt) {
+    if (auto* x = findByName2(scene->srts, new_srt.name); x != nullptr) {
+      new_srt.name += "_" + std::to_string(std::rand());
+    }
+    scene->srts.push_back(new_srt);
+  }
+  for (auto& new_clr : anim.clr) {
+    if (auto* x = findByName2(scene->clrs, new_clr.name)) {
+      new_clr.name += "_" + std::to_string(std::rand());
+    }
+    scene->clrs.emplace_back(new_clr);
+  }
+  for (auto& new_pat : anim.pat) {
+    if (auto* x = findByName2(scene->pats, new_pat.name)) {
+      new_pat.name += "_" + std::to_string(std::rand());
+    }
+    scene->pats.emplace_back(new_pat);
+  }
+  return {};
+}
 Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
                                         librii::crate::CrateAnimation anim,
-                                        bool overwrite_tex_same_name) {
+                                        bool overwrite_tex_same_name,
+                                        riistudio::g3d::Collection* scene) {
   anim.mat.name = mat.name;
   TRY(RetargetCrateAnimation(anim));
 
   static_cast<librii::g3d::G3dMaterialData&>(mat) = anim.mat;
   mat.onUpdate(); // Update viewport
-  if (!mat.childOf) {
-    return std::unexpected("Material is an orphan; needs to belong to a scene");
-  }
-  if (!mat.childOf->childOf) {
-    return std::unexpected("Model is an orphan; needs to belong to a scene");
-  }
-  // Model -> Scene
-  auto* scene = dynamic_cast<riistudio::g3d::Collection*>(mat.childOf->childOf);
-  if (!scene) {
-    return std::unexpected(
-        "Internal: This scene type does not support .mdl0mat presets. "
-        "Not a BRRES file?");
-  }
   // TODO: Texture replacement mode? Delete old textures?
   // TODO: Old animations may cause issues and aren't deleted automatically
   // (stale dependency)
@@ -82,6 +117,25 @@ Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
     scene->pats.emplace_back(new_pat);
   }
   return {};
+}
+Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
+                                        librii::crate::CrateAnimation anim,
+                                        bool overwrite_tex_same_name) {
+  if (!mat.childOf) {
+    return std::unexpected("Material is an orphan; needs to belong to a scene");
+  }
+  if (!mat.childOf->childOf) {
+    return std::unexpected("Model is an orphan; needs to belong to a scene");
+  }
+  // Model -> Scene
+  auto* scene = dynamic_cast<riistudio::g3d::Collection*>(mat.childOf->childOf);
+  if (!scene) {
+    return std::unexpected(
+        "Internal: This scene type does not support .mdl0mat presets. "
+        "Not a BRRES file?");
+  }
+
+  return ApplyCratePresetToMaterial(mat, anim, overwrite_tex_same_name, scene);
 }
 
 Result<void>

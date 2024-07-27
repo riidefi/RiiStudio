@@ -160,7 +160,7 @@ public:
     auto info = [&](std::string c, std::string v) {
       on_log(kpi::IOMessageClass::Information, c, v);
     };
-    auto m_result = std::make_unique<riistudio::g3d::Collection>();
+    auto m_result = std::make_unique<librii::g3d::Archive>();
     bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_from.string(),
                                            info, progress, GetMips(m_opt),
                                            !m_opt.no_tristrip, m_opt.verbose);
@@ -187,14 +187,14 @@ public:
           presets[it.path().stem().string()] = *preset;
         }
       }
-      auto& mdl = m_result->getModels()[0];
-      for (size_t i = 0; i < mdl.getMaterials().size(); ++i) {
-        auto& target_mat = mdl.getMaterials()[i];
+      auto& mdl = m_result->models[0];
+      for (size_t i = 0; i < mdl.materials.size(); ++i) {
+        auto& target_mat = mdl.materials[i];
         if (!presets.contains(target_mat.name))
           continue;
         auto& source_mat = presets[target_mat.name];
-        auto ok =
-            riistudio::g3d::ApplyCratePresetToMaterial(target_mat, source_mat);
+        auto ok = riistudio::g3d::ApplyCratePresetToMaterial(
+            target_mat, source_mat, true, m_result.get());
         if (!ok) {
           fmt::print(stderr,
                      "Attempted to merge {} into {}. Failed with error: {}\n",
@@ -202,9 +202,7 @@ public:
         }
       }
     }
-    oishii::Writer result(std::endian::big);
-    TRY(riistudio::g3d::WriteBRRES(*m_result, result));
-    result.saveToDisk(m_to.string());
+    TRY(m_result->write(m_to.string()));
     return {};
   }
 

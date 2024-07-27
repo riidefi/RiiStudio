@@ -1,3 +1,5 @@
+#define ARCHIVE_DEF
+
 #include "RHSTImporter.hpp"
 
 #include <LibBadUIFramework/Plugins.hpp>
@@ -25,6 +27,11 @@
 
 // XXX: Hack, though we'll refactor all of this way soon
 std::string rebuild_dest;
+
+namespace riistudio::g3d {
+Result<void> ReadBRRES(Collection& collection, librii::g3d::Archive& archive,
+                       std::string path);
+}
 
 namespace riistudio::rhst {
 
@@ -1343,6 +1350,26 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
     gscn->getTextures().resize(n);
   }
 
+  return true;
+}
+
+bool CompileRHST(librii::rhst::SceneTree& rhst, librii::g3d::Archive& scene,
+                 std::string path,
+                 std::function<void(std::string, std::string)> info,
+                 std::function<void(std::string_view, float)> progress,
+                 std::optional<MipGen> mips, bool tristrip, bool verbose) {
+  riistudio::g3d::Collection interface_g3d;
+  auto ok = riistudio::g3d::ReadBRRES(interface_g3d, scene, "todo_path");
+  if (!ok) {
+    return false;
+  }
+
+  if (!CompileRHST(rhst, interface_g3d, path, info, progress, mips, tristrip,
+                   verbose)) {
+    return false;
+  }
+
+  scene = interface_g3d.toLibRii();
   return true;
 }
 
