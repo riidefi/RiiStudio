@@ -154,7 +154,7 @@ if (NOT MSVC)
     set(GLFW_VERSION "3.4")
     set(FREETYPE_VERSION "2.13.2")
 
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -framework SystemConfiguration -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
     if (EMSCRIPTEN)
@@ -285,7 +285,7 @@ if (NOT EMSCRIPTEN)
 endif()
 
 # Disabled: No DLLs exist
-if (WIN32)  # AND CMAKE_BUILD_TYPE STREQUAL "Debug"
+if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_custom_command(TARGET frontend POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:frontend> $<TARGET_FILE_DIR:frontend> 
     COMMAND_EXPAND_LISTS

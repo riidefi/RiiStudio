@@ -54,7 +54,7 @@ elseif (APPLE)
     set(GLFW_VERSION "3.4")
 	set(FREETYPE_VERSION "2.13.2")
 
-    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -framework SystemConfiguration -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
 elseif(UNIX AND NOT EMSCRIPTEN)
 	# TODO: code duplication, extract FindBzip2.cmake to top level CMakeLists
 	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
@@ -94,12 +94,12 @@ if (WIN32)
 			$<TARGET_FILE_DIR:tests>
 	)
   # Disabled: No DLLs exist
-  #if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	  add_custom_command(TARGET tests POST_BUILD
 	    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests> 
 	    COMMAND_EXPAND_LISTS
 	  )
-  #endif()
+  endif()
 endif()
 
 add_custom_command(

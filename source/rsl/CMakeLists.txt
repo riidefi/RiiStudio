@@ -26,7 +26,7 @@ if (WIN32)
 endif()
 
 # Annoying bzip2 version conflict (so use dylib)
-corrosion_import_crate(MANIFEST_PATH rust/Cargo.toml CRATE_TYPES cdylib FLAGS --crate-type=cdylib)
+corrosion_import_crate(MANIFEST_PATH rust/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 
 target_link_libraries(rsl PUBLIC core riistudio_rs vendor)
 

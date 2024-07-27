@@ -50,7 +50,7 @@ elseif (APPLE)
   set(GLFW_VERSION "3.4")
   set(FREETYPE_VERSION "2.13.2")
  
-  SET_TARGET_PROPERTIES(cli PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+  SET_TARGET_PROPERTIES(cli PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -framework SystemConfiguration -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
 elseif (UNIX AND NOT EMSCRIPTEN)
   find_library(GLFW3_LIBRARY NAMES libglfw.so PATHS /usr/lib)
   find_library(FREETYPE_LIBRARY NAMES libfreetype.so PATHS /usr/lib)
@@ -100,7 +100,7 @@ add_custom_command(
 add_dependencies(cli rsl)
 
 # Disabled: No DLLs exist
-if (WIN32) # AND CMAKE_BUILD_TYPE STREQUAL "Debug"
+if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_custom_command(TARGET cli POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:cli> $<TARGET_FILE_DIR:cli> 
     COMMAND_EXPAND_LISTS

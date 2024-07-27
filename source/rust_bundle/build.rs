@@ -45,6 +45,7 @@ fn main() {
     {
         println!("cargo:rustc-link-lib=framework={}", "CoreFoundation");
         println!("cargo:rustc-link-lib=framework={}", "Security");
+        println!("cargo:rustc-link-lib=framework={}", "SystemConfiguration");
         println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/freetype/2.13.2/lib/");
         println!("cargo:rustc-link-lib=static={}", "freetype");
         println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/glfw/3.4/lib/");
