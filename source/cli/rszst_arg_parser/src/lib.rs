@@ -91,6 +91,10 @@ pub struct ImportCommand {
     #[clap(long, default_value = "false")]
     ai_json: bool,
 
+    /// (BRRES) MDL0 name (default: "course")
+    #[clap(long, default_value = "course")]
+    model_name: Option<String>,
+
     /// Read preset material/animation overrides from this folder
     #[clap(long)]
     preset_path: Option<String>,
@@ -421,10 +425,10 @@ pub enum Commands {
 pub struct CliOptions {
     pub c_type: c_uint,
 
-    // TYPE 1: "import-command"
     pub from: [c_char; 256],
     pub to: [c_char; 256],
     pub preset_path: [c_char; 256],
+    pub model_name: [c_char; 256],
     pub scale: c_float,
     pub brawlbox_scale: c_uint,
     pub mipmaps: c_uint,
@@ -446,8 +450,6 @@ pub struct CliOptions {
     pub szs_algo: c_uint,
     pub format: c_uint,
     pub yay0: c_uint,
-    // TYPE 2: "decompress"
-    // Uses "from", "to" and "verbose" above
 }
 
 fn is_valid_hexcode(value: String) -> Result<(), String> {
@@ -462,26 +464,28 @@ fn is_valid_hexcode(value: String) -> Result<(), String> {
     }
     Ok(())
 }
+
+fn string_to_cstring(src: &str) -> [i8; 256] {
+    let mut dest: [i8; 256] = [0; 256];
+    let bytes = src.as_bytes();
+    dest[..bytes.len()].copy_from_slice(unsafe { &*(bytes as *const _ as *const [i8]) });
+    dest
+}
+
 impl MyArgs {
     fn to_cli_options(&self) -> CliOptions {
+        let default_str = String::new();
+
         match &self.command {
             Commands::ImportCommand(i) => {
                 eprintln!("{}", "\n|--------------------------------\n|\n| Warning: `import-command` has been deprecated in favor of `import-brres`!\n|\n|--------------------------------\n".red().bold());
                 let tint_val = u32::from_str_radix(&i.tint[1..], 16).unwrap_or(0xFF_FFFF);
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let mut preset_path2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                let default_str2 = String::new();
-                let preset_str_bytes = i.preset_path.as_ref().unwrap_or(&default_str2).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
-                preset_path2[..preset_str_bytes.len()]
-                    .copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
+
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
+                let preset_path2 = string_to_cstring(i.preset_path.as_deref().unwrap_or(&default_str));
+                let model_name2 = string_to_cstring(i.model_name.as_deref().unwrap_or(&default_str));
+
                 CliOptions {
                     c_type: 1,
                     from: from2,
@@ -503,6 +507,7 @@ impl MyArgs {
                     no_tristrip: i.no_tristrip as c_uint,
                     ai_json: i.ai_json as c_uint,
                     verbose: i.verbose as c_uint,
+                    model_name: model_name2,
 
                     // Junk fields
                     no_compression: 0 as c_uint,
@@ -514,20 +519,11 @@ impl MyArgs {
             }
             Commands::ImportBrres(i) => {
                 let tint_val = u32::from_str_radix(&i.tint[1..], 16).unwrap_or(0xFF_FFFF);
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let mut preset_path2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                let default_str2 = String::new();
-                let preset_str_bytes = i.preset_path.as_ref().unwrap_or(&default_str2).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
-                preset_path2[..preset_str_bytes.len()]
-                    .copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
+
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
+                let preset_path2 = string_to_cstring(i.preset_path.as_deref().unwrap_or(&default_str));
+                let model_name2 = string_to_cstring(i.model_name.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 1,
                     from: from2,
@@ -556,24 +552,19 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+
+                    model_name: model_name2,
                 }
             }
             Commands::ImportBmd(i) => {
                 let tint_val = u32::from_str_radix(&i.tint[1..], 16).unwrap_or(0xFF_FFFF);
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let mut preset_path2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                let default_str2 = String::new();
-                let preset_str_bytes = i.preset_path.as_ref().unwrap_or(&default_str2).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
-                preset_path2[..preset_str_bytes.len()]
-                    .copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
+
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
+
+                let preset_path_str = i.preset_path.as_deref().unwrap_or(&default_str);
+
+                let preset_path2 = string_to_cstring(preset_path_str);
                 CliOptions {
                     c_type: 12,
                     from: from2,
@@ -602,18 +593,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::Decompress(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 2,
                     from: from2,
@@ -642,18 +627,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::Compress(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 3,
                     from: from2,
@@ -682,18 +661,12 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     format: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::KmpToJson(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 8,
                     from: from2,
@@ -722,18 +695,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::JsonToKmp(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 9,
                     from: from2,
@@ -762,18 +729,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::KclToJson(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 10,
                     from: from2,
@@ -802,18 +763,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::JsonToKcl(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 11,
                     from: from2,
@@ -842,18 +797,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::BrresToJson(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 17,
                     from: from2,
@@ -882,18 +831,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::JsonToBrres(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 18,
                     from: from2,
@@ -922,18 +865,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::Rhst2Brres(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 4,
                     from: from2,
@@ -962,18 +899,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::Rhst2Bmd(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 5,
                     from: from2,
@@ -1002,18 +933,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::Extract(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 6,
                     from: from2,
@@ -1042,18 +967,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::Create(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 7,
                     from: from2,
@@ -1082,18 +1001,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::DumpPresets(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 13,
                     from: from2,
@@ -1122,18 +1035,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::PreciseBMDDump(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 14,
                     from: from2,
@@ -1162,18 +1069,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::Optimize(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 15,
                     from: from2,
@@ -1202,18 +1103,12 @@ impl MyArgs {
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
             Commands::ImportTex0(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                let from2 = string_to_cstring(i.from.as_str());
+                let to2 = string_to_cstring(i.to.as_deref().unwrap_or(&default_str));
                 CliOptions {
                     c_type: 16,
                     from: from2,
@@ -1242,6 +1137,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     yay0: 0 as c_uint,
+                    model_name: [0; 256],
                 }
             }
         }

@@ -70,6 +70,7 @@ struct CliOptions {
   CFixedString<256> from;
   CFixedString<256> to;
   CFixedString<256> preset_path;
+  CFixedString<256> model_name;
   float scale = 1.0f;
   bool32 brawlbox_scale = false;
   bool32 mipmaps = true;

@@ -150,6 +150,10 @@ public:
     if (!tree) {
       return std::unexpected("Failed to parse: " + tree.error());
     }
+    fmt::println("Model name: {}", m_opt.model_name.view());
+    if (m_opt.model_name.view() != std::string_view("")) {
+      tree->name = std::string(m_opt.model_name.view());
+    }
     auto progress = [&](std::string_view s, float f) {
       progress_put(std::string(s), f);
     };
