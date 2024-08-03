@@ -231,12 +231,12 @@ pub mod c_api {
 
     #[no_mangle]
     pub unsafe extern "C" fn wii_sin2(x: f32) -> f32 {
-        wiitrig::librii::wii_sin(x)
+        wiitrig::wii_sin(x)
     }
 
     #[no_mangle]
     pub unsafe extern "C" fn wii_cos2(x: f32) -> f32 {
-        wiitrig::librii::wii_cos(x)
+        wiitrig::wii_cos(x)
     }
 
     use core::ffi::c_void;

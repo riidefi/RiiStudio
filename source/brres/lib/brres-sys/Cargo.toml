@@ -26,5 +26,5 @@ glob = "0.3.1"
 
 [dependencies]
 gctex = { version = "0.3.12", features = [] }
-wiitrig = "0.0.1"
+wiitrig = "0.0.4"
 anyhow = "1.0.86"

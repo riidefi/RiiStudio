@@ -458,9 +458,9 @@ dependencies = [
 
 [[package]]
 name = "wiitrig"
-version = "0.0.1"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff93bb12d07cad3111209eb365decbf02fe8b53f03e4532d877b2639df80c33e"
+checksum = "b23a1ec137d990ad14098ab34f219da8767ca6dae1d3b2e038befd5880f41f5b"
 dependencies = [
  "bindgen",
  "cc",
