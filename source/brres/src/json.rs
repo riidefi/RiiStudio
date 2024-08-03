@@ -184,7 +184,6 @@ pub struct JSONChrTrack {
     pub quant: ChrQuantization,
     pub scale: f32,
     pub offset: f32,
-    pub step: f32,
     pub framesDataBufferId: u32,
     pub numKeyFrames: u32,
 }

@@ -33,7 +33,6 @@
 #define JS_STD_OPTIONAL
 #include <vendor/json_struct.h>
 
-
 namespace librii::g3d {
 struct JsonWriteCtx {
   std::vector<std::vector<u8>> buffers;
@@ -1707,19 +1706,17 @@ struct JSONChrTrack {
   ChrQuantization quant{};
   f32 scale{};
   f32 offset{};
-  f32 step{};
   u32 framesDataBufferId{};
   u32 numKeyFrames{};
 
-  DEFINE_SERIALIZABLE(JSONChrTrack, quant, scale, offset, step,
-                      framesDataBufferId, numKeyFrames)
+  DEFINE_SERIALIZABLE(JSONChrTrack, quant, scale, offset, framesDataBufferId,
+                      numKeyFrames)
 
   static JSONChrTrack from(const ChrTrack& track, JsonWriteCtx& ctx) {
     JSONChrTrack jsonTrack;
     jsonTrack.quant = track.quant;
     jsonTrack.scale = track.scale;
     jsonTrack.offset = track.offset;
-    jsonTrack.step = track.step;
     jsonTrack.framesDataBufferId =
         ctx.save_buffer_with_move(ChrFramePacker::pack(track.frames));
     jsonTrack.numKeyFrames = track.frames.size();
@@ -1731,7 +1728,6 @@ struct JSONChrTrack {
     track.quant = quant;
     track.scale = scale;
     track.offset = offset;
-    track.step = step;
     if (framesDataBufferId >= buffers.size()) {
       return RSL_UNEXPECTED("Invalid buffer index");
     }
@@ -2248,7 +2244,7 @@ Result<g3d::Archive> JSONToArc(std::string_view json,
   if (err != JS::Error::NoError) {
     auto n = magic_enum::enum_name(err);
     return RSL_UNEXPECTED(std::format("JSONToArc failed: Parse error {} ({})",
-                                       n, context.makeErrorString()));
+                                      n, context.makeErrorString()));
   }
   return mdl.lift(buffers);
 }

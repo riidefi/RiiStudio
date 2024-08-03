@@ -6,7 +6,6 @@
 #include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
 
-
 namespace librii::g3d {
 
 Archive::Archive() __attribute__((weak)) = default;
@@ -98,8 +97,12 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
         EXPECT(sub.stream_pos);
         reader.seekSet(sub.stream_pos);
 
+        auto warn = [&](std::string_view msg) {
+          transaction.callback(kpi::IOMessageClass::Warning,
+                               std::format("CHR0 {}", sub.name), msg);
+        };
         auto& chr = chrs.emplace_back();
-        auto ok = chr.read(reader);
+        auto ok = chr.read(reader, warn);
         if (!ok) {
           return RSL_UNEXPECTED(
               std::format("Failed to read CHR0 {}: {}", sub.name, ok.error()));

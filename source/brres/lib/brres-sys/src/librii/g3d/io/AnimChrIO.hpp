@@ -622,9 +622,6 @@ struct ChrTrack {
   float scale{1.0f};
   float offset{0.0f};
 
-  // Cached value for BrawlBox compatibility
-  float step{0.0f};
-
   std::vector<ChrFrame> frames;
 
   bool operator==(const ChrTrack&) const = default;
@@ -643,7 +640,8 @@ struct ChrTrack {
   fromVariant(std::variant<CHR0BakedTrack8, CHR0BakedTrack16, CHR0BakedTrack32>
                   variant);
 
-  static ChrTrack fromAny(const CHR0AnyTrack& any);
+  static ChrTrack fromAny(const CHR0AnyTrack& any,
+                          std::function<void(std::string_view)> warn);
 
   std::variant<CHR0Track32, CHR0Track48, CHR0Track96, CHR0BakedTrack8,
                CHR0BakedTrack16, CHR0BakedTrack32>
@@ -671,10 +669,12 @@ struct ChrAnim {
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
   u32 scaleRule = 0;
 
-  static ChrAnim from(const BinaryChr& binaryChr);
+  static ChrAnim from(const BinaryChr& binaryChr,
+                      std::function<void(std::string_view)> warn);
   BinaryChr to() const;
 
-  Result<void> read(oishii::BinaryReader& reader);
+  Result<void> read(oishii::BinaryReader& reader,
+                    std::function<void(std::string_view)> warn);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
 
   bool operator==(const ChrAnim&) const = default;

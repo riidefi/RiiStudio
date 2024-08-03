@@ -326,10 +326,49 @@ ChrTrack ChrTrack::fromVariant(
                     variant);
 }
 
-ChrTrack ChrTrack::fromAny(const CHR0AnyTrack& any) {
+struct Steps {
+  float step;
+  float step_with_N_Q48_bug;
+};
+static Steps CalcStepWithBug(float start_frame, float stop_frame, bool is_Q48) {
+  float step = CalcStep(start_frame, stop_frame);
+
+  // It appears that the official N tooling overestimates CHR0Track48 intervals
+  // by 32 times (inducing a step value of about 1/32x). This presumably results
+  // from computing the step based on the pre-quantized value rather than the
+  // post-quantized values (48-bit frames have fixed-point values with divisor
+  // of 32).
+  float beta = is_Q48 ? 32.0f : 1.0f;
+  // CalcStep is nonlinear, so we can't factor beta out
+  float step_with_N_Q48_bug = CalcStep(start_frame * beta, stop_frame * beta);
+
+  // Of course, like blackjack, lower is worse [performance-wise] but not
+  // catastrophic.
+  return Steps{.step = step, .step_with_N_Q48_bug = step_with_N_Q48_bug};
+}
+
+ChrTrack ChrTrack::fromAny(const CHR0AnyTrack& any,
+                           std::function<void(std::string_view)> warn) {
   if (auto* x = std::get_if<CHR0Track>(&any.data)) {
     auto res = fromVariant(x->data);
-    res.step = x->step;
+
+    if (res.frames.size() < 2) {
+      return res;
+    }
+
+    float start_frame = res.frames.front().frame;
+    float stop_frame = res.frames.back().frame;
+
+    bool is_Q48 = std::holds_alternative<CHR0Track48>(x->data);
+    auto [step, step_with_N_Q48_bug] =
+        CalcStepWithBug(start_frame, stop_frame, is_Q48);
+
+    if (x->step != step && (x->step != step_with_N_Q48_bug || !is_Q48)) {
+      warn("Frame interval not properly computed.");
+      if (x->step > step) {
+        warn("--> And is too large (runtime UB/potential in-game crash)");
+      }
+    }
     return res;
   } else if (auto* x = std::get_if<CHR0BakedTrack>(&any.data)) {
     return fromVariant(x->data);
@@ -410,11 +449,22 @@ ChrTrack::to() const {
 }
 
 std::variant<CHR0AnyTrack, f32> ChrTrack::to_any() const {
-  float step = frames.size() >= 2
-                   ? CalcStep(frames.front().frame, frames.back().frame)
-                   : 0.0f;
+  float step = 0.0f;
+  if (frames.size() >= 2) {
+    float start_frame = frames.front().frame;
+    float stop_frame = frames.back().frame;
 
-  step = this->step;
+    bool is_Q48 = quant == ChrQuantization::Track48;
+    auto [step_, step_with_N_Q48_bug_] =
+        CalcStepWithBug(start_frame, stop_frame, is_Q48);
+
+    // Matching official tooling for validation convenience
+    if (is_Q48) {
+      step = step_with_N_Q48_bug_;
+    } else {
+      step = step_;
+    }
+  }
 
   // Determine the appropriate CHR0Track or CHR0BakedTrack variant
   CHR0Track chr0Track;
@@ -463,7 +513,8 @@ std::variant<CHR0AnyTrack, f32> ChrTrack::to_any() const {
   }
 }
 
-ChrAnim ChrAnim::from(const BinaryChr& binaryChr) {
+ChrAnim ChrAnim::from(const BinaryChr& binaryChr,
+                      std::function<void(std::string_view)> warn) {
   ChrAnim anim;
   anim.name = binaryChr.name;
   anim.sourcePath = binaryChr.sourcePath;
@@ -473,7 +524,7 @@ ChrAnim ChrAnim::from(const BinaryChr& binaryChr) {
 
   // Add tracks first
   for (const auto& track : binaryChr.tracks) {
-    anim.tracks.push_back(ChrTrack::fromAny(track));
+    anim.tracks.push_back(ChrTrack::fromAny(track, warn));
   }
 
   // Add nodes with track indices
@@ -551,10 +602,11 @@ BinaryChr ChrAnim::to() const {
   return binaryChr;
 }
 
-Result<void> ChrAnim::read(oishii::BinaryReader& reader) {
+Result<void> ChrAnim::read(oishii::BinaryReader& reader,
+                           std::function<void(std::string_view)> warn) {
   BinaryChr tmp;
   TRY(tmp.read(reader));
-  *this = ChrAnim::from(tmp);
+  *this = ChrAnim::from(tmp, warn);
 
 #if 0
   auto checked_tmp = to();

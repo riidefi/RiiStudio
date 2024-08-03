@@ -435,8 +435,6 @@ pub struct ChrTrack {
     pub scale: f32,
     /// For some animation formats, you will need to compute an optimal scale/offset affine transform that reduces the signed area of the curve.
     pub offset: f32,
-    /// This *should* be recomputed--we have this here for unit tests with BrawlBox. Should be made Optional.
-    pub step: f32,
     /// Keyframes for the Curve data.
     pub frames_data: Vec<ChrFrame>,
 }
@@ -925,7 +923,6 @@ impl ChrTrack {
             quant: json_track.quant,
             scale: json_track.scale,
             offset: json_track.offset,
-            step: json_track.step,
             frames_data,
         }
     }
@@ -937,7 +934,6 @@ impl ChrTrack {
             quant: self.quant,
             scale: self.scale,
             offset: self.offset,
-            step: self.step,
             framesDataBufferId: buffer_id as u32,
             numKeyFrames: self.frames_data.len() as u32,
         }
