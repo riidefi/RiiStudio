@@ -96,7 +96,8 @@ TEST_DATA = {
 
 	# moray.brres
 	# Contains a BrawlBox CHR0 file which was broken before 5.10.13 (Hotfix 7)
-	'45c201cb04fadee9a320a166cb493b91': '3c4502bdec02a4f5d7791d5d141340ab',
+	# Frame intervals are recomputed (5.11.3)
+	'45c201cb04fadee9a320a166cb493b91': 'f5fc1832237658f406180c5985547ea1',
 
 	#---------------------------------------------------------------------------------
 	# .dae -> BRRES tests
