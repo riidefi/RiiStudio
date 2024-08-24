@@ -146,12 +146,10 @@ static inline bool search(Match& match, const s32 search_pos_immut,
         match.pos = static_cast<s32>(data_pos - search_pos);
 
         // Truncation based on the data buffer size
-        best_match_len = data_buffer_size;
-        if (static_cast<s64>(match.len) <= static_cast<s64>(best_match_len)) {
-          best_match_len = match.len;
-        } else {
-          match.len = best_match_len;
+        if (static_cast<s64>(match.len) > static_cast<s64>(data_buffer_size)) {
+          match.len = data_buffer_size;
         }
+        best_match_len = match.len;
 
         // We can't do any better
         if (candidate_match_len >= MATCH_LEN_MAX) {
