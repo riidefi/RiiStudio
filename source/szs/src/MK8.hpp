@@ -97,42 +97,64 @@ static inline bool search(Match& match, const s32 search_pos_immut,
 
   assert(search_pos >= 0);
 
+  // Maximum backtrace amount, either the maximum backtrace for a SZS token (12
+  // bits => 0x1000) or how much actually precedes the buffer.
   s32 search_pos_min =
       data_pos > SEARCH_WINDOW_SIZE ? s32(data_pos - SEARCH_WINDOW_SIZE) : -1;
 
-  s32 match_len = 2;
-  match.len = match_len;
+  s32 best_match_len = 2;
+  match.len = best_match_len;
 
+  // There are no deletions from the hash chains; the algorithm
+  //  simply discards matches that are too old.
   if (data_pos - search_pos > SEARCH_WINDOW_SIZE) {
     return false;
   }
+
+  // The compressor searches the hash chains starting with the most recent
+  //  strings, to favor small distances and thus take advantage of the
+  //  Huffman encoding.  The hash chains are singly linked.
+  //
+  //  To avoid a worst-case situation, very long hash
+  //  chains are arbitrarily truncated at a certain length, determined by a
+  //  run-time parameter [SEARCH_WINDOW_SIZE in this case].
   for (u32 i = 0; i < SEARCH_WINDOW_SIZE; i++) {
     std::span<const u8> cmp1(work.data_buffer + search_pos,
                              DATA_BUFFER_SIZE - search_pos);
-    if (cmp1[0] == cmp2[0] && cmp1[1] == cmp2[1] &&
-        cmp1[static_cast<size_t>(match_len)] ==
-            cmp2[static_cast<size_t>(match_len)]) {
-      s32 len_local = 2;
+    // Before calling some heavy vectorized comparison function on the entire
+    // buffer, discard easy values:
+    // - Hash conflicts (likely the first two bytes will be different)
+    // - The last byte (The least likely byte to match given the longer the
+    //   prefix the greater number of matches)
+    //   (based on the best so far)
+    bool isMatchCandidate = cmp1[0] == cmp2[0] && cmp1[1] == cmp2[1] &&
+                            cmp1[static_cast<size_t>(best_match_len)] ==
+                                cmp2[static_cast<size_t>(best_match_len)];
+    if (isMatchCandidate) {
+      s32 candidate_match_len = 2;
 
-      while (len_local < MATCH_LEN_MAX) {
-        if (cmp1[len_local] != cmp2[len_local]) {
+      // Search for longest common prefix
+      while (candidate_match_len < MATCH_LEN_MAX) {
+        if (cmp1[candidate_match_len] != cmp2[candidate_match_len]) {
           break;
         }
-        len_local++;
+        candidate_match_len++;
       }
 
-      if (len_local > match_len) {
-        match.len = len_local;
+      if (candidate_match_len > best_match_len) {
+        match.len = candidate_match_len;
         match.pos = static_cast<s32>(data_pos - search_pos);
 
-        match_len = data_buffer_size;
-        if (static_cast<s64>(match.len) <= static_cast<s64>(match_len)) {
-          match_len = match.len;
+        // Truncation based on the data buffer size
+        best_match_len = data_buffer_size;
+        if (static_cast<s64>(match.len) <= static_cast<s64>(best_match_len)) {
+          best_match_len = match.len;
         } else {
-          match.len = match_len;
+          match.len = best_match_len;
         }
 
-        if (len_local >= MATCH_LEN_MAX) {
+        // We can't do any better
+        if (candidate_match_len >= MATCH_LEN_MAX) {
           break;
         }
       }
@@ -144,7 +166,7 @@ static inline bool search(Match& match, const s32 search_pos_immut,
     }
   }
 
-  if (match_len >= 3) {
+  if (best_match_len >= 3) {
     return true;
   }
 
