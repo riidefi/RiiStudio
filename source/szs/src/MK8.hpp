@@ -118,7 +118,7 @@ static inline bool search(Match& match, const s32 search_pos_immut,
   //  To avoid a worst-case situation, very long hash
   //  chains are arbitrarily truncated at a certain length, determined by a
   //  run-time parameter [SEARCH_WINDOW_SIZE in this case].
-  for (u32 i = 0; i < SEARCH_WINDOW_SIZE; i++) {
+  for (u32 chainDepth = 0; chainDepth < SEARCH_WINDOW_SIZE; ++chainDepth) {
     std::span<const u8> cmp1(work.data_buffer + search_pos,
                              DATA_BUFFER_SIZE - search_pos);
     // Before calling some heavy vectorized comparison function on the entire
@@ -215,19 +215,43 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
   s32 next_read_end_pos;
 
   while (data_buffer_size > 0) {
+    // [TODO: Potentially allow for this]
+    // If speed is most important, the compressor inserts new
+    //  strings in the hash table only when no match was found, or when the
+    //  match is not "too long".  This degrades the compression ratio but
+    //  saves time since there are both fewer insertions and fewer searches.
     if (!found_next_match) {
       xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
       search_pos = work.appendToHashChain(data_pos, xyz_hasher);
     }
     found_next_match = false;
 
+    // If the hash chain is not empty, indicating that
+    //  the sequence XYZ (or, if we are unlucky, some other 3 bytes with the
+    //  same hash function value) has occurred recently, the compressor
+    //  compares all strings on the XYZ hash chain with the actual input data
+    //  sequence starting at the current point, and selects the longest
+    //  match.
     if (search_pos != -1) {
       search(match_info, search_pos, data_pos, data_buffer_size, work);
 
-      if (2 < match_info.len && match_info.len < MATCH_LEN_MAX) {
+      if (match_info.len > 2 && match_info.len < MATCH_LEN_MAX) {
         data_pos += 1;
         data_buffer_size -= 1;
 
+        // To improve overall compression, the compressor optionally defers
+        //  the selection of matches ("lazy matching"): after a match of
+        //  length N has been found, the compressor searches for a longer
+        //  match starting at the next input byte.  If it finds a longer
+        //  match, it truncates the previous match to a length of one (thus
+        //  producing a single literal byte) and then emits the longer match.
+        //  Otherwise, it emits the original match, and, as described above,
+        //  advances N bytes before continuing.
+        //
+        //  Run-time parameters also control this "lazy match" procedure.  If
+        //  compression ratio is most important, the compressor attempts a
+        //  complete second search regardless of the length of the first
+        //  match.
         xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
         search_pos = work.appendToHashChain(data_pos, xyz_hasher);
 
@@ -240,6 +264,9 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
       }
     }
 
+    // First, the compressor examines the hash chain for XYZ.  If the chain is
+    //  empty, the compressor simply writes out X as a literal byte and advances
+    //  one byte in the input.
     if (match_info.len <= 2) {
       flag = (flag & 0x7f) << 1 | 1;
 
@@ -267,6 +294,11 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
       data_buffer_size -= match_info.len - s32(found_next_match);
       match_info.len -= s32(found_next_match) + 1;
 
+      // [TODO: Potentially allow for this]
+      // If speed is most important, the compressor inserts new
+      //  strings in the hash table only when no match was found, or when the
+      //  match is not "too long".  This degrades the compression ratio but
+      //  saves time since there are both fewer insertions and fewer searches.
       for (;;) {
         data_pos++;
 
