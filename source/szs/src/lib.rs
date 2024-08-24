@@ -187,7 +187,7 @@ pub enum EncodeAlgo {
     /// Speed: A+
     /// Compression Rate: B+
     MK8_ReferenceCVersion,
-    // MK8_Rust = 107,
+    MK8_Rust,
 }
 
 #[allow(non_upper_case_globals)]
@@ -276,7 +276,7 @@ impl From<EncodeAlgo> for EncodeAlgoForCApi {
             EncodeAlgo::LibYaz0_RustLibc => EncodeAlgoForCApi::LibYaz0,
             EncodeAlgo::LibYaz0_RustMemchr => EncodeAlgoForCApi::LibYaz0,
             EncodeAlgo::MK8_ReferenceCVersion => EncodeAlgoForCApi::MK8,
-            // EncodeAlgo::MK8_Rust => EncodeAlgoForCApi::MK8,
+            EncodeAlgo::MK8_Rust => EncodeAlgoForCApi::MK8,
         }
     }
 }
@@ -359,9 +359,9 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
     if algo == EncodeAlgo::MKW {
         return Ok(algo_mkw::encode_boyer_moore_horspool(src, dst) as u32);
     }
-    // if algo == EncodeAlgo::MK8_Rust {
-    //     return Ok(algo_mk8::compress_mk8(src, dst) as u32);
-    // }
+    if algo == EncodeAlgo::MK8_Rust {
+      return Ok(algo_mk8::compress_mk8(src, dst) as u32);
+    }
     if algo == EncodeAlgo::LibYaz0_RustLibc {
         return Ok(algo_libyaz0::compress_yaz::<true>(src, 10, dst));
     }
@@ -879,6 +879,7 @@ mod tests {
     use super::*;
     use sha2::{Digest, Sha256};
     use std::fs;
+    use std::path::Path;
 
     fn calculate_hash(data: &[u8]) -> String {
         let mut hasher = Sha256::new();
@@ -924,7 +925,20 @@ mod tests {
         } else {
             encode(src, algo).unwrap()
         };
+
         let hash = calculate_hash(&encoded);
+
+        let output_dir = "debug";
+
+        // Create the output directory if it doesn't exist
+        if !Path::new(output_dir).exists() {
+            fs::create_dir_all(output_dir).expect("Failed to create output directory");
+        }
+
+        // Save the encoded data to a file named based on the hash
+        let file_path = format!("{}/{}.bin", output_dir, hash);
+        fs::write(&file_path, &encoded).expect("Failed to write encoded data to file");
+
         if hash != expected_hash && !is_yay0 {
             let decoded = decode(&encoded).expect("Not even a valid SZS file");
             assert_buffers_equal(&decoded, src, "test_encode_helper");
@@ -1149,16 +1163,16 @@ mod tests {
         );
     }
 
-    /*#[test]
+    #[test]
     fn test_encode_mk8_Rust() {
         let src = read_file(&format!("{}{}", SAMPLE_DIR, "old_koopa_64.arc"));
         test_encode_helper(
             &src,
             EncodeAlgo::MK8_Rust,
-            "17db5fa76ceb987b706a87fe1a0392edfc81915c605c674306614ead48b5efe8",
+            "13388da38a6f09cf95a2372a8b0a93f1b87b72bf2f1ff0e898e9d3afa7a5999d",
             false,
         );
-    }*/
+    }
 
     #[test]
     fn test_decode_yaz0_mk8() {
