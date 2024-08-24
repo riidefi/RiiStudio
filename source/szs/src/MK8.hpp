@@ -218,9 +218,8 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
     if (!found_next_match) {
       xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
       search_pos = work.appendToHashChain(data_pos, xyz_hasher);
-    } else {
-      found_next_match = false;
     }
+    found_next_match = false;
 
     if (search_pos != -1) {
       search(match_info, search_pos, data_pos, data_buffer_size, work);
@@ -241,7 +240,16 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
       }
     }
 
-    if (match_info.len > 2) {
+    if (match_info.len <= 2) {
+      flag = (flag & 0x7f) << 1 | 1;
+
+      tmp.put(work.data_buffer[data_pos - s32(found_next_match)]);
+
+      if (!found_next_match) {
+        data_pos++;
+        data_buffer_size--;
+      }
+    } else {
       flag = (flag & 0x7f) << 1;
 
       u8 low = match_info.pos - 1;
@@ -274,15 +282,6 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
       data_pos++;
       found_next_match = false;
       match_info.len = 0;
-    } else {
-      flag = (flag & 0x7f) << 1 | 1;
-
-      tmp.put(work.data_buffer[data_pos - s32(found_next_match)]);
-
-      if (!found_next_match) {
-        data_pos++;
-        data_buffer_size--;
-      }
     }
 
     bit -= 1;
