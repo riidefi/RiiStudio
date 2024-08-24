@@ -2,6 +2,7 @@ use anyhow;
 use clap::{Arg, Command};
 use std::fs;
 use std::str::FromStr;
+use std::time::Instant;
 use szs;
 use szs::{encode, EncodeAlgo, Error};
 
@@ -71,18 +72,24 @@ fn main() {
         }
     };
 
-    match szs::encode(&input_data, algorithm) {
-        Ok(encoded_data) => {
-            if let Err(err) = fs::write(output_file, &encoded_data) {
-                eprintln!("Error writing output file: {}", err);
-                std::process::exit(1);
-            } else {
-                println!("Data encoded successfully.");
-            }
-        }
+    // Measure the time taken for the compression
+    let start_time = Instant::now();
+    let encoded_data = match szs::encode(&input_data, algorithm) {
+        Ok(data) => data,
         Err(err) => {
             eprintln!("Error encoding data: {:?}", err);
             std::process::exit(1);
         }
+    };
+    let duration = start_time.elapsed();
+    let compression_rate = encoded_data.len() as f64 / input_data.len() as f64;
+
+    if let Err(err) = fs::write(output_file, &encoded_data) {
+        eprintln!("Error writing output file: {}", err);
+        std::process::exit(1);
     }
+
+    println!("Data encoded successfully.");
+    println!("Time taken for compression: {:?}", duration);
+    println!("Compression rate: {:.2}", compression_rate);
 }
