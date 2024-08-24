@@ -215,127 +215,125 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
   s32 next_read_end_pos;
 
   while (data_buffer_size > 0) {
-    while (true) {
-      if (!found_next_match) {
+    if (!found_next_match) {
+      xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
+      search_pos = work.appendToHashChain(data_pos, xyz_hasher);
+    } else {
+      found_next_match = false;
+    }
+
+    if (search_pos != -1) {
+      search(match_info, search_pos, data_pos, data_buffer_size, work);
+
+      if (2 < match_info.len && match_info.len < MATCH_LEN_MAX) {
+        data_pos += 1;
+        data_buffer_size -= 1;
+
         xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
         search_pos = work.appendToHashChain(data_pos, xyz_hasher);
+
+        if (search_pos != -1) {
+          search(next_match, search_pos, data_pos, data_buffer_size, work);
+          if (match_info.len < next_match.len)
+            match_info.len = 2;
+        }
+        found_next_match = true;
+      }
+    }
+
+    if (match_info.len > 2) {
+      flag = (flag & 0x7f) << 1;
+
+      u8 low = match_info.pos - 1;
+      u8 high = (match_info.pos - 1) >> 8;
+
+      if (match_info.len < 18) {
+        tmp.put(u8((match_info.len - 2) << 4) | high);
+        tmp.put(low);
       } else {
-        found_next_match = false;
+        tmp.put(high);
+        tmp.put(low);
+        tmp.put(u8(match_info.len) - 18);
       }
 
-      if (search_pos != -1) {
-        search(match_info, search_pos, data_pos, data_buffer_size, work);
+      data_buffer_size -= match_info.len - s32(found_next_match);
+      match_info.len -= s32(found_next_match) + 1;
 
-        if (2 < match_info.len && match_info.len < MATCH_LEN_MAX) {
-          data_pos += 1;
-          data_buffer_size -= 1;
-
-          xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
-          search_pos = work.appendToHashChain(data_pos, xyz_hasher);
-
-          if (search_pos != -1) {
-            search(next_match, search_pos, data_pos, data_buffer_size, work);
-            if (match_info.len < next_match.len)
-              match_info.len = 2;
-          }
-          found_next_match = true;
-        }
-      }
-
-      if (match_info.len > 2) {
-        flag = (flag & 0x7f) << 1;
-
-        u8 low = match_info.pos - 1;
-        u8 high = (match_info.pos - 1) >> 8;
-
-        if (match_info.len < 18) {
-          tmp.put(u8((match_info.len - 2) << 4) | high);
-          tmp.put(low);
-        } else {
-          tmp.put(high);
-          tmp.put(low);
-          tmp.put(u8(match_info.len) - 18);
-        }
-
-        data_buffer_size -= match_info.len - s32(found_next_match);
-        match_info.len -= s32(found_next_match) + 1;
-
-        for (;;) {
-          data_pos++;
-
-          xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
-
-          search_pos = work.appendToHashChain(data_pos, xyz_hasher);
-          match_info.len -= 1;
-          if (match_info.len == 0) {
-            break;
-          }
-        }
-
+      for (;;) {
         data_pos++;
-        found_next_match = false;
-        match_info.len = 0;
-      } else {
-        flag = (flag & 0x7f) << 1 | 1;
 
-        tmp.put(work.data_buffer[data_pos - s32(found_next_match)]);
+        xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
 
-        if (!found_next_match) {
-          data_pos++;
-          data_buffer_size--;
+        search_pos = work.appendToHashChain(data_pos, xyz_hasher);
+        match_info.len -= 1;
+        if (match_info.len == 0) {
+          break;
         }
       }
 
-      bit -= 1;
+      data_pos++;
+      found_next_match = false;
+      match_info.len = 0;
+    } else {
+      flag = (flag & 0x7f) << 1 | 1;
 
-      if (bit == 0) {
-        p_dst[out_size++] = flag;
+      tmp.put(work.data_buffer[data_pos - s32(found_next_match)]);
 
-        memcpy(p_dst + out_size, tmp.temp_buffer, tmp.temp_size);
-        out_size += tmp.temp_size;
-
-        flag = 0;
-        tmp.temp_size = 0;
-        bit = 8;
+      if (!found_next_match) {
+        data_pos++;
+        data_buffer_size--;
       }
-
-      if (data_buffer_size < MATCH_LEN_MAX + 2)
-        break;
     }
-    // For search window for compression of next src read portion
-    s32 copy_pos = data_pos - SEARCH_WINDOW_SIZE;
-    s32 copy_size = DATA_BUFFER_SIZE - copy_pos;
 
-    next_read_end_pos = current_read_end_pos;
+    bit -= 1;
 
-    if (data_pos >= SEARCH_WINDOW_SIZE + 14 * MATCH_LEN_MAX) {
-      memcpy(work.data_buffer, work.data_buffer + copy_pos, copy_size);
+    if (bit == 0) {
+      p_dst[out_size++] = flag;
 
-      s32 next_read_size = DATA_BUFFER_SIZE - copy_size;
-      next_read_end_pos = current_read_end_pos + next_read_size;
-      if (src_size < u32(next_read_end_pos)) {
-        next_read_size = src_size - current_read_end_pos;
-        next_read_end_pos = src_size;
-      }
-      memcpy(work.data_buffer + copy_size, p_src + current_read_end_pos,
-             next_read_size);
-      data_buffer_size += next_read_size;
-      data_pos -= copy_pos;
+      memcpy(p_dst + out_size, tmp.temp_buffer, tmp.temp_size);
+      out_size += tmp.temp_size;
 
-      for (u32 i = 0; i < POS_TEMP_BUFFER_NUM; i++) {
-        work.pos_temp_buffer[i] = work.pos_temp_buffer[i] >= copy_pos
-                                      ? work.pos_temp_buffer[i] - copy_pos
-                                      : -1;
-      }
+      flag = 0;
+      tmp.temp_size = 0;
+      bit = 8;
+    }
 
-      for (u32 i = 0; i < SEARCH_POS_BUFFER_NUM; i++) {
-        work.search_pos_buffer[i] = work.search_pos_buffer[i] >= copy_pos
-                                        ? work.search_pos_buffer[i] - copy_pos
+    if (data_buffer_size < MATCH_LEN_MAX + 2) {
+      // For search window for compression of next src read portion
+      s32 copy_pos = data_pos - SEARCH_WINDOW_SIZE;
+      s32 copy_size = DATA_BUFFER_SIZE - copy_pos;
+
+      next_read_end_pos = current_read_end_pos;
+
+      if (data_pos >= SEARCH_WINDOW_SIZE + 14 * MATCH_LEN_MAX) {
+        memcpy(work.data_buffer, work.data_buffer + copy_pos, copy_size);
+
+        s32 next_read_size = DATA_BUFFER_SIZE - copy_size;
+        next_read_end_pos = current_read_end_pos + next_read_size;
+        if (src_size < u32(next_read_end_pos)) {
+          next_read_size = src_size - current_read_end_pos;
+          next_read_end_pos = src_size;
+        }
+        memcpy(work.data_buffer + copy_size, p_src + current_read_end_pos,
+               next_read_size);
+        data_buffer_size += next_read_size;
+        data_pos -= copy_pos;
+
+        for (u32 i = 0; i < POS_TEMP_BUFFER_NUM; i++) {
+          work.pos_temp_buffer[i] = work.pos_temp_buffer[i] >= copy_pos
+                                        ? work.pos_temp_buffer[i] - copy_pos
                                         : -1;
-      }
-    }
+        }
 
-    current_read_end_pos = next_read_end_pos;
+        for (u32 i = 0; i < SEARCH_POS_BUFFER_NUM; i++) {
+          work.search_pos_buffer[i] = work.search_pos_buffer[i] >= copy_pos
+                                          ? work.search_pos_buffer[i] - copy_pos
+                                          : -1;
+        }
+      }
+
+      current_read_end_pos = next_read_end_pos;
+    }
   }
 
   flag = ((bit & 0x3f) == 8) ? 0 : (flag << (bit & 0x3f));
