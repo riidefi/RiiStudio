@@ -107,7 +107,7 @@ static inline bool search(Match& match, const s32 search_pos_immut,
 
   // There are no deletions from the hash chains; the algorithm
   //  simply discards matches that are too old.
-  if (data_pos - search_pos > SEARCH_WINDOW_SIZE) {
+  if (search_pos > data_pos || data_pos > search_pos + SEARCH_WINDOW_SIZE) {
     return false;
   }
 
@@ -161,6 +161,8 @@ static inline bool search(Match& match, const s32 search_pos_immut,
     }
 
     search_pos = work.search_pos(search_pos);
+    // There are no deletions from the hash chains; the algorithm
+    //  simply discards matches that are too old.
     if (search_pos <= search_pos_min) {
       break;
     }
@@ -330,7 +332,7 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
     }
 
     if (data_buffer_size < MATCH_LEN_MAX + 2) {
-      // For search window for compression of next src read portion
+      // Refill the data buffer
       s32 copy_pos = data_pos - SEARCH_WINDOW_SIZE;
       s32 copy_size = DATA_BUFFER_SIZE - copy_pos;
 
@@ -367,6 +369,7 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
     }
   }
 
+  // Flush remaining bits
   flag = ((bit & 0x3f) == 8) ? 0 : (flag << (bit & 0x3f));
 
   p_dst[out_size++] = flag;
