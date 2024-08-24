@@ -37,15 +37,19 @@ struct Match {
   s32 pos;
 };
 
-class PosTempBufferIndex {
+// The compressor uses a chained hash table to find duplicated strings,
+//  using a hash function that operates on 3-byte sequences.  At any
+//  given point during compression, let XYZ be the next 3 input bytes to
+//  be examined (not necessarily all different, of course).
+class TripletHasher {
 public:
-  PosTempBufferIndex() : mValue(0) {}
+  TripletHasher() : mValue(0) {}
 
   void pushBack(u32 value) {
     mValue = ((mValue << 5) ^ value) % POS_TEMP_BUFFER_NUM;
   }
 
-  u32 value() const { return mValue; }
+  u32 getHash() const { return mValue; }
 
 private:
   u32 mValue;
@@ -72,10 +76,11 @@ struct Work {
   const s32& search_pos(u32 x) const {
     return search_pos_buffer[x % SEARCH_POS_BUFFER_NUM];
   }
-  u32 insert(u32 data_pos, const PosTempBufferIndex& pos_temp_buffer_idx) {
+  u32 appendToHashChain(u32 data_pos,
+                        const TripletHasher& pos_temp_buffer_idx) {
     search_pos_buffer[data_pos % SEARCH_POS_BUFFER_NUM] =
-        pos_temp_buffer[pos_temp_buffer_idx.value()];
-    pos_temp_buffer[pos_temp_buffer_idx.value()] = data_pos;
+        pos_temp_buffer[pos_temp_buffer_idx.getHash()];
+    pos_temp_buffer[pos_temp_buffer_idx.getHash()] = data_pos;
     return search_pos_buffer[data_pos % SEARCH_POS_BUFFER_NUM];
   }
 };
@@ -172,13 +177,13 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
   p_dst[7] = (src_size >> 0) & 0xff;
   memset(p_dst + 8, 0, 8);
 
-  PosTempBufferIndex pos_temp_buffer_idx;
+  TripletHasher xyz_hasher;
 
   data_buffer_size = seadMathMin<u32>(DATA_BUFFER_SIZE, src_size);
   memcpy(work.data_buffer, p_src, data_buffer_size);
 
-  pos_temp_buffer_idx.pushBack(work.data_buffer[0]);
-  pos_temp_buffer_idx.pushBack(work.data_buffer[1]);
+  xyz_hasher.pushBack(work.data_buffer[0]);
+  xyz_hasher.pushBack(work.data_buffer[1]);
 
   Match match_info, next_match;
   match_info.len = 2;
@@ -190,8 +195,8 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
   while (data_buffer_size > 0) {
     while (true) {
       if (!found_next_match) {
-        pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
-        search_pos = work.insert(data_pos, pos_temp_buffer_idx);
+        xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
+        search_pos = work.appendToHashChain(data_pos, xyz_hasher);
       } else {
         found_next_match = false;
       }
@@ -203,8 +208,8 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
           data_pos += 1;
           data_buffer_size -= 1;
 
-          pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
-          search_pos = work.insert(data_pos, pos_temp_buffer_idx);
+          xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
+          search_pos = work.appendToHashChain(data_pos, xyz_hasher);
 
           if (search_pos != -1) {
             search(next_match, search_pos, data_pos, data_buffer_size, work);
@@ -236,9 +241,9 @@ static inline u32 encode(u8* p_dst, const u8* p_src, u32 src_size, u8* p_work) {
         for (;;) {
           data_pos++;
 
-          pos_temp_buffer_idx.pushBack(work.data_buffer[data_pos + 2]);
+          xyz_hasher.pushBack(work.data_buffer[data_pos + 2]);
 
-          search_pos = work.insert(data_pos, pos_temp_buffer_idx);
+          search_pos = work.appendToHashChain(data_pos, xyz_hasher);
           match_info.len -= 1;
           if (match_info.len == 0) {
             break;
