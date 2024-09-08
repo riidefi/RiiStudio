@@ -600,7 +600,7 @@ public:
     }
     auto tree = librii::rhst::ReadSceneTree(*file);
     if (!tree) {
-      return std::unexpected("Failed to parse RHST");
+      return std::unexpected("Failed to parse RHST: " + tree.error());
     }
     auto progress = [&](std::string_view s, float f) {
       progress_put(std::string(s), f);

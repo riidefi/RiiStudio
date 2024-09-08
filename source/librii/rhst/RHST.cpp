@@ -350,6 +350,7 @@ public:
 
           if (mat.contains("samplers") && mat["samplers"].is_array()) {
             auto samplers = mat["samplers"];
+            EXPECT(samplers.size() <= 8);
             for (auto sam : samplers) {
               auto& sampler = b.samplers.emplace_back();
               sampler.texture_name =
