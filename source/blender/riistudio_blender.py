@@ -29,6 +29,7 @@ import subprocess
 import mmap
 import cProfile
 import json
+from enum import Enum
 
 BLENDER_30 = bpy.app.version[0] >= 3
 BLENDER_29 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 90) \
@@ -167,38 +168,123 @@ def get_filename_without_extension(file_path):
 
 # src\helpers\export_tex.py
 
-def export_tex(texture, out_folder, use_wimgt):
-	if not texture.image:
-		return
+# Enum for selecting the export mode
+class ExportMode(Enum):
+		LEGACY = 1
+		WIMGT = 2
+		RSZST = 3
 
-	tex_name = get_filename_without_extension(texture.image.name) if BLENDER_28 else texture.name
-	print("ExportTex: %s" % tex_name)
-	# Force PNG
-	texture.image.file_format = 'PNG'
-	# save image as PNNG
-	texture_outpath = os.path.join(out_folder, tex_name) + ".png"
-	if use_wimgt:
+# Doesn't support encoding settings. Just passes a PNG in
+def export_tex_legacy(texture, out_folder):
+		if not texture.image:
+				return
+
+		tex_name = get_filename_without_extension(texture.image.name) if BLENDER_28 else texture.name
+		print("ExportTex: %s" % tex_name)
+		
+		# Force PNG
+		texture.image.file_format = 'PNG'
+		
+		# Save image as PNG
+		texture_outpath = os.path.join(out_folder, tex_name) + ".png"
+		texture.image.save_render(texture_outpath)
+		
+# Uses WIMGT to encode the PNG first, with some settings
+def export_tex_wimgt(texture, out_folder):
+		if not texture.image:
+				return
+
+		tex_name = get_filename_without_extension(texture.image.name) if BLENDER_28 else texture.name
+		print("ExportTex: %s" % tex_name)
+		
+		# Force PNG
+		texture.image.file_format = 'PNG'
+		
+		# Save image as PNG with a temporary name
 		temp_output_name = str(binascii.b2a_hex(os.urandom(15)))
 		texture_outpath = os.path.join(out_folder, temp_output_name) + ".png"
-	tex0_outpath = os.path.join(out_folder, tex_name) + ".tex0"
-	texture.image.save_render(texture_outpath)
-	# determine format
-	# print(best_tex_format(texture))
-	tformat_string = (
-		texture.brres_manual_format if texture.brres_mode == 'manual' else best_tex_format(
-			texture)).upper()
-	# determine mipmaps
-	mm_string = "--mipmap-size=%s" % texture.brres_mipmap_minsize
-	if texture.brres_mipmap_mode == 'manual':
-		mm_string = "--n-mm=%s" % texture.brres_mipmap_manual
-	elif texture.brres_mipmap_mode == 'none':
-		mm_string = "--n-mm=0"
-	#Encode textures
-	if use_wimgt:
+		tex0_outpath = os.path.join(out_folder, tex_name) + ".tex0"
+		texture.image.save_render(texture_outpath)
+		
+		# Determine format
+		tformat_string = (
+				texture.brres_manual_format if texture.brres_mode == 'manual' else best_tex_format(
+						texture)).upper()
+		
+		# Determine mipmaps
+		mm_string = "--mipmap-size=%s" % texture.brres_mipmap_minsize
+		if texture.brres_mipmap_mode == 'manual':
+				mm_string = "--n-mm=%s" % texture.brres_mipmap_manual
+		elif texture.brres_mipmap_mode == 'none':
+				mm_string = "--n-mm=0"
+		
+		# Encode textures using wimgt
 		print("EncodeTex: %s" % tex_name)
 		wimgt = r'wimgt encode "{0}" --transform {1} {2} --dest "{3}" -o'.format(texture_outpath, tformat_string, mm_string, tex0_outpath)
 		os.system(wimgt)
 		os.remove(texture_outpath)
+
+# Uses RSZST to encode the PNG first, with options for mipmaps and format
+def export_tex_rszst(texture, out_folder):
+		if not texture.image:
+				return
+
+		tex_name = get_filename_without_extension(texture.image.name) if BLENDER_28 else texture.name
+		print("ExportTex: %s" % tex_name)
+		
+		# Force PNG
+		texture.image.file_format = 'PNG'
+		
+		# Save image as PNG with a temporary name
+		temp_output_name = str(binascii.b2a_hex(os.urandom(15)))
+		texture_outpath = os.path.join(out_folder, temp_output_name) + ".png"
+		tex0_outpath = os.path.join(out_folder, tex_name) + ".tex0"
+		texture.image.save_render(texture_outpath)
+		
+		# Determine format
+		tformat_string = (
+				texture.brres_manual_format if texture.brres_mode == 'manual' else best_tex_format(
+						texture)).upper()
+		
+		tformat_idx = str({
+				'I4': 0,
+				'I8': 1,
+				'IA4': 2,
+				'IA8': 3,
+				'RGB565': 4,
+				'RGB5A3': 5,
+				'RGBA8': 6,
+				'C4': 8,
+				'C8': 9,
+				# C14 not supported by NW4R g3d
+				'CMPR': 14,
+				}[tformat_string])
+
+		# Determine mipmaps
+		mipmaps_flag = "--mipmaps" if texture.brres_mipmap_mode != 'none' else ""
+		min_mip = "--min-mip=%s" % texture.brres_mipmap_minsize
+		max_mip = "--max-mip=%s" % texture.brres_mipmap_manual if texture.brres_mipmap_mode == 'manual' else "--max-mip=5"
+
+		# Construct the RSZST command
+		print("EncodeTex: %s" % tex_name)
+		context = bpy.context
+		bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
+		rszst = os.path.join(bin_root, "rszst.exe")
+		rszst_command = f'{rszst} import-tex0 {mipmaps_flag} {min_mip} {max_mip} --format {tformat_idx} "{texture_outpath}" "{tex0_outpath}"'
+		os.system(rszst_command)
+		
+		# Clean up the temporary PNG file
+		os.remove(texture_outpath)
+
+def export_tex(texture, out_folder, mode):
+		if mode == ExportMode.LEGACY:
+				export_tex_legacy(texture, out_folder)
+		elif mode == ExportMode.WIMGT:
+				export_tex_wimgt(texture, out_folder)
+		elif mode == ExportMode.RSZST:
+				export_tex_rszst(texture, out_folder)
+		else:
+				raise ValueError("Invalid export mode selected")
 
 # src\panels\BRRESTexturePanel.py
 
@@ -944,8 +1030,13 @@ def export_textures(textures_path,selection,params):
 		os.makedirs(textures_path)
 
 	for tex in all_textures(selection):
-		use_wimgt = wimgt_installed and params.flags.texture_encoder == 'wimgt'
-		export_tex(tex, textures_path, use_wimgt)
+		if params.flags.texture_encoder == 'rszst':
+			mode = ExportMode.RSZST
+		elif wimgt_installed and params.flags.texture_encoder == 'wimgt':
+			mode = ExportMode.WIMGT
+		else:
+			mode = ExportMode.LEGACY
+		export_tex(tex, textures_path, mode)
 
 def build_rs_mat(mat, texture_name):
 	# Swap Table
@@ -1305,7 +1396,7 @@ class Quantization:
 
 class ConverterFlags:
 	def __init__(self, split_mesh_by_material=True, mesh_conversion_mode='PREVIEW',
-		add_dummy_colors = True, ignore_cache = False, texture_encoder='wimgt', write_metadata = False):
+		add_dummy_colors = True, ignore_cache = False, texture_encoder='rszst', write_metadata = False):
 		
 		self.split_mesh_by_material = split_mesh_by_material
 		self.mesh_conversion_mode = mesh_conversion_mode
@@ -1575,12 +1666,13 @@ class RHST_RNA:
 	if BLENDER_29: verbose : verbose
 
 	texture_encoder = EnumProperty(
-		name="Encoder",
+		name="Texture Codec",
 		items=(
-		('wimgt',"wimgt","Use wimgt to encode textures"),
-		('rs',"RiiStudio","Use RiiStudio to encode textures")
+		('rszst', "rszst (RiiStudio)", "Use RiiStudio CLI to encode textures"),
+		('wimgt', "wimgt (Wiimm)", "Use wimgt to encode textures"),
+		('rs', "Legacy", "Don't pre-encode textures")
 		),
-		default="wimgt",
+		default="rszst",
 		description="Select which encoder to use",
 	)
 	if BLENDER_29: texture_encoder : texture_encoder
@@ -1663,9 +1755,11 @@ class RHST_RNA:
 		box.prop(self, 'verbose')
 
 		# Textures
-		if(self.get_wimgt_installed):
+		# This method was never actually called, replacing with True
+		# if(self.get_wimgt_installed):
+		if True:
 			box = layout.box()
-			box.label(text="Textures", icon='TEXTURE')
+			box.label(text="Texture Codec", icon='TEXTURE')
 			row = box.row(align=True)
 			row.label(text="Encoder")
 			row.prop(self, "texture_encoder", expand=True)
@@ -2529,7 +2623,7 @@ def register_tex():
 	)
 	tex_type.brres_mipmap_mode = EnumProperty(
 		items=(
-			('auto', "Auto", "Allow the conversion tool to determine best mipmapping level (currently wimgt)"),
+			('auto', "Auto", "Allow the conversion tool to determine best mipmapping level"),
 			('manual', "Manual", "Specify the number of mipmaps"),
 			('none', "None", "Do not perform mipmapping (the same as manual > 0)")
 		),
