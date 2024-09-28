@@ -15,6 +15,10 @@ enum class AnimationWrapMode {
 };
 
 static inline float CalcStep(float begin, float end) {
+  assert(begin >= 0.0f);
+  assert(end >= 0.0f);
+  assert(end >= begin);
+
   float interval = end - begin;
   while ((1.0f / interval) * (end - begin) >= 1.0f) {
     interval = std::nextafter(interval, std::numeric_limits<float>::max());

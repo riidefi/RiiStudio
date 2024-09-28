@@ -347,8 +347,8 @@ static Steps CalcStepWithBug(float start_frame, float stop_frame, bool is_Q48) {
   return Steps{.step = step, .step_with_N_Q48_bug = step_with_N_Q48_bug};
 }
 
-ChrTrack ChrTrack::fromAny(const CHR0AnyTrack& any,
-                           std::function<void(std::string_view)> warn) {
+Result<ChrTrack> ChrTrack::fromAny(const CHR0AnyTrack& any,
+                                   std::function<void(std::string_view)> warn) {
   if (auto* x = std::get_if<CHR0Track>(&any.data)) {
     auto res = fromVariant(x->data);
 
@@ -358,6 +358,10 @@ ChrTrack ChrTrack::fromAny(const CHR0AnyTrack& any,
 
     float start_frame = res.frames.front().frame;
     float stop_frame = res.frames.back().frame;
+
+    EXPECT(start_frame >= 0.0f);
+    EXPECT(stop_frame >= 0.0f);
+    EXPECT(stop_frame >= start_frame);
 
     bool is_Q48 = std::holds_alternative<CHR0Track48>(x->data);
     auto [step, step_with_N_Q48_bug] =
@@ -513,8 +517,8 @@ std::variant<CHR0AnyTrack, f32> ChrTrack::to_any() const {
   }
 }
 
-ChrAnim ChrAnim::from(const BinaryChr& binaryChr,
-                      std::function<void(std::string_view)> warn) {
+Result<ChrAnim> ChrAnim::from(const BinaryChr& binaryChr,
+                              std::function<void(std::string_view)> warn) {
   ChrAnim anim;
   anim.name = binaryChr.name;
   anim.sourcePath = binaryChr.sourcePath;
@@ -524,7 +528,7 @@ ChrAnim ChrAnim::from(const BinaryChr& binaryChr,
 
   // Add tracks first
   for (const auto& track : binaryChr.tracks) {
-    anim.tracks.push_back(ChrTrack::fromAny(track, warn));
+    anim.tracks.push_back(TRY(ChrTrack::fromAny(track, warn)));
   }
 
   // Add nodes with track indices
@@ -606,7 +610,7 @@ Result<void> ChrAnim::read(oishii::BinaryReader& reader,
                            std::function<void(std::string_view)> warn) {
   BinaryChr tmp;
   TRY(tmp.read(reader));
-  *this = ChrAnim::from(tmp, warn);
+  *this = TRY(ChrAnim::from(tmp, warn));
 
 #if 0
   auto checked_tmp = to();
