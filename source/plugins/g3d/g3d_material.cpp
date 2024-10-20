@@ -91,6 +91,7 @@ Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
 
     if (auto* x = scene->getTextures().findByName(new_tex.name)) {
       static_cast<librii::g3d::TextureData&>(*x) = new_tex;
+      x->nextGenerationId();
       continue;
     }
     auto& t = scene->getTextures().add();
