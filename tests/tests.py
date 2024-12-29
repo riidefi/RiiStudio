@@ -27,6 +27,10 @@ TEST_DATA = {
 	# luigi_circuit.kmp
 	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
+	# strobenz.kmp
+	# Fixes cannon point (CNPT) indices
+	'5a526e9fd12b7437afc989b087e43df8': '01d10a5c1be7e83eead19e1126a1a4d1',
+
 	# luigi_circuit.brres
 	'b84346d8549d38f4ba75a47eb87e9ca6': 'b84346d8549d38f4ba75a47eb87e9ca6',
   # old_town_ds.brres: Has isotropic non-identity scale

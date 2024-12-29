@@ -97,7 +97,9 @@ void to_json(json& j, const Area& a) {
 }
 
 void from_json(const json& j, Area& a) {
-  j.at("mType").get_to(a.mType);
+  int m_type{};
+  j.at("mType").get_to(m_type);
+  a.mType = static_cast<AreaType>(m_type);
   from_json(j["mModel"], a.mModel);
   j.at("mCameraIndex").get_to(a.mCameraIndex);
   j.at("mPriority").get_to(a.mPriority);
