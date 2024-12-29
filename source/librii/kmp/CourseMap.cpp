@@ -40,7 +40,13 @@ Result<std::string> IdToStr(int id) {
 }
 Result<int> StrToId(std::string_view name) {
   for (int i = 0; i < Flow.remap_table.size(); ++i) {
-    if (Flow.parameters[Flow.remap_table[i]].Name == name) {
+    const int indirect = Flow.remap_table[i];
+    
+    if (indirect < 0 || indirect >= Flow.parameters.size()) {
+      continue;
+    }
+    
+    if (Flow.parameters[indirect].Name == name) {
       return i;
     }
   }
