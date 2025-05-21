@@ -9,6 +9,8 @@
 #include <librii/egg/Blight.hpp>
 #include <rsl/FsDialog.hpp>
 
+#include <variant>
+
 namespace riistudio::frontend {
 
 // Implements a single tab for now
