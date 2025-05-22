@@ -219,64 +219,67 @@ static void devacuumHashTable(Yaz_file_struct* file) {
   /* 3.  Sweep each bucket.  Whenever we encounter the head of a probe
            cluster, we compress it by repeatedly pulling live elements
            leftward into the nearest hole. */
-  for (u32 i = 0; i != 0x3fff+1; ++i) {
+  for (u32 i = 0; i < 0x4000; ++i) {
     /* Only start vacuumming from the first live element in a cluster. */
-    if ((isEverUsed(file->hashMap[i]) != 0x0) &&
-        (uVar17 = i, !isTombstone(file->hashMap[i]))) {
-      /* ------------------------------------------------------------------
-      * Step A – find the first truly empty slot (EVER_USED == 0) after
-      *           this live element.  That becomes our movable "hole."
-      * ----------------------------------------------------------------*/
-      do {
-        uVar17 = uVar17 + 1 & 0x3fff;
-        puVar14 = file->hashMap + i;
-        uVar11 = i;
-      } while ((short)file->hashMap[uVar17] < 0x0);
-      
-      /* ------------------------------------------------------------------
-         * Step B – walk *backwards* through the cluster, pulling any element
-         *           that may legally move into the hole (Robin‑Hood rule).
-         * ----------------------------------------------------------------*/
-      do {
-        /* Walk left until we find a live entry; tomb‑stones are skipped. */
-        *puVar14 = 0x0;
-        file->hashMeta[uVar11] = 0xffff;
-        uVar9 = uVar17;
-        do {
-          do {
-            uVar9 = (uVar9 - 1) % HASH_MAP_SIZE;
-            if (uVar11 == uVar9) { // cluster fully compacted
-              assert(*puVar14 == 0x0);
-              goto CONTINUE_LOOP;
-            }
-            res = file->hashMap[uVar9];
-            puVar15 = file->hashMap + uVar9;
-            assert(isEverUsed(res));
-          } while (!isTombstone(res));
-          
-          /* Compute / fetch the element's home bucket (canonical hash). */
-          hh = file->hashMeta[uVar9];
-          if (hh == 0xffff) {
-            hh = homeBucket(file, res);
-            file->hashMeta[uVar9] = (short)hh;
-          }
-          assert(hh < HASH_MAP_SIZE);
-        /* If moving the element would *increase* its probe distance,
-              we must stop--the invariant of non‑decreasing distances
-              would be violated. */
-        } while (((uVar9 - hh) % HASH_MAP_SIZE) <
-                  ((uVar11 - hh) % HASH_MAP_SIZE));
-        /* Move the entry one position forward (into the hole). */
-        *puVar14 = *puVar15;
-        file->hashMeta[uVar11] = file->hashMeta[uVar9];
-        /* Leave an "ever used but empty" marker behind. */
-        *puVar15 = 0x8000; // EVER_USED, not TOMBSTONE
-        file->hashMeta[uVar9] = 0xffff;
-        puVar14 = puVar15;  // new hole sits one step left
-        uVar11 = uVar9;
-        assert(!isTombstone(*puVar15));
-      } while (true);
+    if (!isEverUsed(file->hashMap[i]) || isTombstone(file->hashMap[i])) {
+      continue;
     }
+
+    uVar17 = i;
+
+    /* ------------------------------------------------------------------
+    * Step A – find the first truly empty slot (EVER_USED == 0) after
+    *           this live element.  That becomes our movable "hole."
+    * ----------------------------------------------------------------*/
+    do {
+      uVar17 = uVar17 + 1 & 0x3fff;
+      puVar14 = file->hashMap + i;
+      uVar11 = i;
+    } while ((short)file->hashMap[uVar17] < 0x0);
+    
+    /* ------------------------------------------------------------------
+        * Step B – walk *backwards* through the cluster, pulling any element
+        *           that may legally move into the hole (Robin‑Hood rule).
+        * ----------------------------------------------------------------*/
+    do {
+      /* Walk left until we find a live entry; tomb‑stones are skipped. */
+      *puVar14 = 0x0;
+      file->hashMeta[uVar11] = 0xffff;
+      uVar9 = uVar17;
+      do {
+        do {
+          uVar9 = (uVar9 - 1) % HASH_MAP_SIZE;
+          if (uVar11 == uVar9) { // cluster fully compacted
+            assert(*puVar14 == 0x0);
+            goto CONTINUE_LOOP;
+          }
+          res = file->hashMap[uVar9];
+          puVar15 = file->hashMap + uVar9;
+          assert(isEverUsed(res));
+        } while (!isTombstone(res));
+        
+        /* Compute / fetch the element's home bucket (canonical hash). */
+        hh = file->hashMeta[uVar9];
+        if (hh == 0xffff) {
+          hh = homeBucket(file, res);
+          file->hashMeta[uVar9] = (short)hh;
+        }
+        assert(hh < HASH_MAP_SIZE);
+      /* If moving the element would *increase* its probe distance,
+            we must stop--the invariant of non‑decreasing distances
+            would be violated. */
+      } while (((uVar9 - hh) % HASH_MAP_SIZE) <
+                ((uVar11 - hh) % HASH_MAP_SIZE));
+      /* Move the entry one position forward (into the hole). */
+      *puVar14 = *puVar15;
+      file->hashMeta[uVar11] = file->hashMeta[uVar9];
+      /* Leave an "ever used but empty" marker behind. */
+      *puVar15 = 0x8000; // EVER_USED, not TOMBSTONE
+      file->hashMeta[uVar9] = 0xffff;
+      puVar14 = puVar15;  // new hole sits one step left
+      uVar11 = uVar9;
+      assert(!isTombstone(*puVar15));
+    } while (true);
   CONTINUE_LOOP:
     ;
   }
