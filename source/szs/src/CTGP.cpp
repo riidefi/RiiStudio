@@ -208,8 +208,7 @@ static void devacuumHashTable(Yaz_file_struct* file) {
   /* 2.  Mark every entry in the metadata cache as "unknown." */
   memset(&file->hashMeta, 0xff, 0x8000);
 
-  u32 copyLen = 0x0;
-  u16* puVar13 = file->hashMap;
+  u32 i = 0;
   bool bVar1;
   u32 uVar9;
   u32 uVar11;
@@ -224,16 +223,16 @@ static void devacuumHashTable(Yaz_file_struct* file) {
            leftward into the nearest hole. */
   do {
     /* Only start vacuumming from the first live element in a cluster. */
-    if ((isEverUsed(*puVar13) != 0x0) &&
-        (uVar17 = copyLen, !isTombstone(*puVar13))) {
+    if ((isEverUsed(file->hashMap[i]) != 0x0) &&
+        (uVar17 = i, !isTombstone(file->hashMap[i]))) {
       /* ------------------------------------------------------------------
       * Step A – find the first truly empty slot (EVER_USED == 0) after
       *           this live element.  That becomes our movable "hole."
       * ----------------------------------------------------------------*/
       do {
         uVar17 = uVar17 + 1 & 0x3fff;
-        puVar14 = puVar13;
-        uVar11 = copyLen;
+        puVar14 = file->hashMap + i;
+        uVar11 = i;
       } while ((short)file->hashMap[uVar17] < 0x0);
       
       /* ------------------------------------------------------------------
@@ -281,9 +280,8 @@ static void devacuumHashTable(Yaz_file_struct* file) {
       } while (true);
     }
   CONTINUE_LOOP:
-    bVar1 = copyLen != 0x3fff;
-    puVar13 = puVar13 + 1;
-    copyLen = copyLen + 1;
+    bVar1 = i != 0x3fff;
+    ++i;
   } while (bVar1);
 
   /* 4.  All tomb-stones eliminated--reset the counter. */
