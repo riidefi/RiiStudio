@@ -168,7 +168,7 @@ static int WriteMatchToFile(Yaz_file_struct* file) {
 }
 
 /*****************************************************************************
- * Compact ("vacuum") the open‑addressed hash table used by the Yaz‑style
+ * Compact ("de-vacuum") the open‑addressed hash table used by the Yaz‑style
  * LZ77/LZSS encoder.  It erases tomb‑stones and shifts live entries left so
  * that probe sequences remain contiguous (Robin‑Hood deletion).
  *
@@ -310,7 +310,7 @@ static void refreshWindow(Yaz_file_struct* file) {
     assert((res & 0x8000) != 0);
     if (((res & 0x4000) != 0x0) && (copyLen == (res & 0x3fff)))
       break;
-    iVar7 = iVar7 + -1;
+    iVar7--;
     assert(iVar7 != 0);
     uVar11 = uVar11 + 1 & 0x3fff;
     res = file->hashMap[uVar11];
@@ -321,16 +321,16 @@ static void refreshWindow(Yaz_file_struct* file) {
   do {
     uVar12 = uVar16 + 0x2;
     uVar3 = uVar16 + 0x3;
-    uVar16 = uVar16 + 0x1;
+    uVar16++;
     if (hh == ((u32)file->window[uVar12 & 0xfff] << 0x8 |
                 (u32)file->window[uVar3 & 0xfff] << 0x10 |
                 (u32)file->window[uVar16 & 0xfff])) {
       file->hashMap[uVar11] = ((short)copyLen + sVar8 & 0xfffU) | 0xc000;
       return;
     }
-    sVar8 = sVar8 + 0x1;
-    iVar7 = iVar7 + -0x1;
-  } while (iVar7 != 0x0);
+    sVar8++;
+    iVar7--;
+  } while (iVar7 != 0);
   file->hashVacancies++;
   file->hashMap[uVar11] = 0x8000;
 }
@@ -353,8 +353,8 @@ static void handleOtherTriple(Yaz_file_struct* file) {
                     (u32)file->window[uVar17 - 0x2 & 0xfff] << 0x10 |
                     (u32)file->window[uVar17 - 0x4 & 0xfff]))
       return;
-    uVar17 = uVar17 + 1;
-    iVar7 = iVar7 + -1;
+    uVar17++;
+    iVar7--;
   } while (iVar7 != 0x0);
   uVar17 = hash1(uVar11);
   assert(uVar17 < HASH_MAP_SIZE);
@@ -366,7 +366,7 @@ static void handleOtherTriple(Yaz_file_struct* file) {
       res = file->hashMap[uVar17];
       if ((res & 0x4000) == 0x0)
         break;
-      iVar7 = iVar7 + -1;
+      iVar7--;
       assert(iVar7 != 0);
     }
   }
