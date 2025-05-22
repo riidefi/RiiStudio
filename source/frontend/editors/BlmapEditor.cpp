@@ -5,6 +5,15 @@
 namespace riistudio::frontend {
 
 void BlmapEditorPropertyGrid::Draw(librii::egg::LightTexture& tex) {
+  if (ImGui::BeginChild("HelpBox", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f), true, ImGuiWindowFlags_NoScrollbar)) {
+    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), (const char*)ICON_FA_BOOK_OPEN);
+    ImGui::SameLine();
+    ImGui::Text("Documentation: ");
+    ImGui::SameLine();
+    ImGui::TextLinkOpenURL("https://wiki.tockdom.com/wiki/BLMAP_(File_Format)");
+  }
+  ImGui::EndChild();
+  
   tex.baseLayer = imcxx::EnumCombo("Base Layer Type", tex.baseLayer);
 
   ImGui::InputText("Texture Name", tex.textureName.data(),
