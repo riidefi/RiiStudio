@@ -167,6 +167,74 @@ static int WriteMatchToFile(Yaz_file_struct* file) {
   return 0;
 }
 
+static void devacuumHashTable(Yaz_file_struct* file) {
+  if (file->hashVacancies <= 0x555)
+    return;
+  memset(&file->hashMeta, 0xff, 0x8000);
+  u32 copyLen = 0x0;
+  u16* puVar13 = file->hashMap;
+  bool bVar1;
+  u32 uVar9;
+  u32 uVar11;
+  u32 uVar17;
+  u16* puVar14;
+  u16* puVar15;
+  u16 res;
+  u32 hh;
+  
+  do {
+    if (((*puVar13 & 0x8000) != 0x0) &&
+        (uVar17 = copyLen, (*puVar13 & 0x4000) == 0x0)) {
+      do {
+        uVar17 = uVar17 + 1 & 0x3fff;
+        puVar14 = puVar13;
+        uVar11 = copyLen;
+      } while ((short)file->hashMap[uVar17] < 0x0);
+      do {
+        *puVar14 = 0x0;
+        file->hashMeta[uVar11] = 0xffff;
+        uVar9 = uVar17;
+        do {
+          do {
+            uVar9 = (uVar9 - 1) % HASH_MAP_SIZE;
+            if (uVar11 == uVar9) {
+              assert(*puVar14 == 0x0);
+              goto LAB_807eb594;
+            }
+            res = file->hashMap[uVar9];
+            puVar15 = file->hashMap + uVar9;
+            assert((res & 0x8000) != 0x0);
+          } while ((res & 0x4000) == 0x0);
+          hh = file->hashMeta[uVar9];
+          if (hh == 0xffff) {
+            hh = hash1(
+                (u32)file->window[(res + 1) % WINDOW_SIZE] << 0x8 |
+                (u32)file->window[(res + 2) % WINDOW_SIZE] << 0x10 |
+                (u32)file->window[res % WINDOW_SIZE]);
+            hh = hh & 0xffff;
+            file->hashMeta[uVar9] = (short)hh;
+          }
+          assert(hh < HASH_MAP_SIZE);
+        } while (((uVar9 - hh) % HASH_MAP_SIZE) <
+                  ((uVar11 - hh) % HASH_MAP_SIZE));
+        *puVar14 = *puVar15;
+        file->hashMeta[uVar11] = file->hashMeta[uVar9];
+        *puVar15 = 0x8000;
+        file->hashMeta[uVar9] = 0xffff;
+        puVar14 = puVar15;
+        uVar11 = uVar9;
+        assert((*puVar15 & 0x4000) == 0);
+      } while (true);
+    }
+  LAB_807eb594:
+    bVar1 = copyLen != 0x3fff;
+    puVar13 = puVar13 + 1;
+    copyLen = copyLen + 1;
+  } while (bVar1);
+  uVar17 = file->bytesProcessed;
+  file->hashVacancies = 0;
+} 
+
 static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
   // Gather lookahead
   u32 copyLen = file->lookAheadBytes + 1;
@@ -233,62 +301,7 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
     file->hashVacancies = uVar9;
     
     // "de-vacuum" hash table
-    if (file->hashVacancies > 0x555) {
-      memset(&file->hashMeta, 0xff, 0x8000);
-      copyLen = 0x0;
-      puVar13 = file->hashMap;
-      do {
-        if (((*puVar13 & 0x8000) != 0x0) &&
-            (uVar17 = copyLen, (*puVar13 & 0x4000) == 0x0)) {
-          do {
-            uVar17 = uVar17 + 1 & 0x3fff;
-            puVar14 = puVar13;
-            uVar11 = copyLen;
-          } while ((short)file->hashMap[uVar17] < 0x0);
-          do {
-            *puVar14 = 0x0;
-            file->hashMeta[uVar11] = 0xffff;
-            uVar9 = uVar17;
-            do {
-              do {
-                uVar9 = (uVar9 - 1) % HASH_MAP_SIZE;
-                if (uVar11 == uVar9) {
-                  assert(*puVar14 == 0x0);
-                  goto LAB_807eb594;
-                }
-                res = file->hashMap[uVar9];
-                puVar15 = file->hashMap + uVar9;
-                assert((res & 0x8000) != 0x0);
-              } while ((res & 0x4000) == 0x0);
-              hh = file->hashMeta[uVar9];
-              if (hh == 0xffff) {
-                hh = hash1(
-                    (u32)file->window[(res + 1) % WINDOW_SIZE] << 0x8 |
-                    (u32)file->window[(res + 2) % WINDOW_SIZE] << 0x10 |
-                    (u32)file->window[res % WINDOW_SIZE]);
-                hh = hh & 0xffff;
-                file->hashMeta[uVar9] = (short)hh;
-              }
-              assert(hh < HASH_MAP_SIZE);
-            } while (((uVar9 - hh) % HASH_MAP_SIZE) <
-                     ((uVar11 - hh) % HASH_MAP_SIZE));
-            *puVar14 = *puVar15;
-            file->hashMeta[uVar11] = file->hashMeta[uVar9];
-            *puVar15 = 0x8000;
-            file->hashMeta[uVar9] = 0xffff;
-            puVar14 = puVar15;
-            uVar11 = uVar9;
-            assert((*puVar15 & 0x4000) == 0);
-          } while (true);
-        }
-      LAB_807eb594:
-        bVar1 = copyLen != 0x3fff;
-        puVar13 = puVar13 + 1;
-        copyLen = copyLen + 1;
-      } while (bVar1);
-      uVar17 = file->bytesProcessed;
-      file->hashVacancies = 0;
-    }
+    devacuumHashTable(file);
   }
   // Handle other triple
   if (0x9 < uVar17) {
