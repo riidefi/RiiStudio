@@ -13,8 +13,11 @@ namespace riistudio::frontend {
 bool FancyFolderNode(ImVec4 color, const char* icon,
                      std::string_view unitPlural, size_t numEntries) {
   ImGui::PushStyleColor(ImGuiCol_Text, color);
-  auto collapsingHeaderSalted = std::string(icon) + "##" + std::string(unitPlural);
-  bool opened = ImGui::CollapsingHeader(collapsingHeaderSalted.c_str());
+  auto collapsingHeaderSalted =
+      std::string(icon) + "##" + std::string(unitPlural);
+  bool opened = ImGui::TreeNodeEx(collapsingHeaderSalted.c_str(),
+                                  ImGuiTreeNodeFlags_Framed |
+                                      ImGuiTreeNodeFlags_NoAutoOpenOnLog);
   ImGui::PopStyleColor();
   ImGui::SameLine();
   ImGui::TextUnformatted(
@@ -42,8 +45,8 @@ FancyObject(size_t i, bool curNodeSelected, ImVec4 type_icon_color,
   auto id = std::format("{}", display_id_relative_to_parent);
   {
     const auto sel_id = id + "##sel";
-    ImGui::Selectable(sel_id.c_str(), curNodeSelected, ImGuiSelectableFlags_None,
-                      {0, icon_size});
+    ImGui::Selectable(sel_id.c_str(), curNodeSelected,
+                      ImGuiSelectableFlags_None, {0, icon_size});
     if (util::ShouldContextOpen()) {
       result.contextMenu = true;
     }

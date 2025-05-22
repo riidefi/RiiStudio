@@ -43,8 +43,6 @@ bool OutlinerWidget::PushFolder(Node& folder, u32 numChildren) {
   if (!opened) {
     return false;
   }
-  ImGui::Indent();
-  ImGui::PushID(folder.key.c_str());
   return true;
 }
 
