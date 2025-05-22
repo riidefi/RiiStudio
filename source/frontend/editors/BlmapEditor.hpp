@@ -59,7 +59,7 @@ private:
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
     if (i == 0) {
-      auto str = std::format("BFG file ({} entries)", num_entries);
+      auto str = std::format("BLMAP file ({} entries)", num_entries);
       bool b = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
       ImGui::TableNextColumn();
       return b;
