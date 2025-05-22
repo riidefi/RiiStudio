@@ -288,90 +288,119 @@ static void devacuumHashTable(Yaz_file_struct* file) {
 }
 
 static void refreshWindow(Yaz_file_struct* file) {
-  u32 copyLen;
-  u32 hh;
-  u32 uVar11;
-  int iVar7;
-  u16 res;
-  short sVar8;
-  u32 uVar16;
-  u32 uVar12;
-  u32 uVar3;
-
-  copyLen = file->windowPos + 0x1 & 0xfff;
-  hh = (u32)file->window[copyLen + 0x1 & 0xfff] << 0x8 |
-        (u32)file->window[copyLen + 0x2 & 0xfff] << 0x10 |
-        (u32)file->window[copyLen];
-  uVar11 = hash1(hh);
-  assert(uVar11 <= 0x3fff);
-  iVar7 = 0x4001;
-  res = file->hashMap[uVar11];
+  // Calculate the next position in the circular window buffer
+  u32 windowPos = file->windowPos + 1 & 0xfff;
+  
+  // Construct a 3-byte key from the window at the current position
+  u32 key = (u32)file->window[windowPos + 1 & 0xfff] << 0x8 |
+            (u32)file->window[windowPos + 2 & 0xfff] << 0x10 |
+            (u32)file->window[windowPos];
+  
+  // Hash the key to find its bucket in the hash table
+  u32 bucketIndex = hash1(key);
+  assert(bucketIndex <= 0x3fff);
+  
+  // Linear probing to find the matching entry
+  int probeLimit = 0x4001;  // Prevent infinite loops
+  u16 entry = file->hashMap[bucketIndex];
+  
+  // Search for the entry that matches our window position
   while (true) {
-    assert((res & 0x8000) != 0);
-    if (((res & 0x4000) != 0x0) && (copyLen == (res & 0x3fff)))
+    assert(isEverUsed(entry));
+    if (isTombstone(entry) && windowPos == (entry & 0x3fff))
       break;
-    iVar7--;
-    assert(iVar7 != 0);
-    uVar11 = uVar11 + 1 & 0x3fff;
-    res = file->hashMap[uVar11];
+    
+    probeLimit--;
+    assert(probeLimit != 0);
+    bucketIndex = (bucketIndex + 1) & 0x3fff;
+    entry = file->hashMap[bucketIndex];
   }
-  sVar8 = 1;
-  iVar7 = 0x4;
-  uVar16 = copyLen;
+  
+  // Check the next 4 positions to see if we have a matching sequence
+  short offset = 1;
+  int remainingChecks = 4;
+  u32 checkPos = windowPos;
+  
   do {
-    uVar12 = uVar16 + 0x2;
-    uVar3 = uVar16 + 0x3;
-    uVar16++;
-    if (hh == ((u32)file->window[uVar12 & 0xfff] << 0x8 |
-                (u32)file->window[uVar3 & 0xfff] << 0x10 |
-                (u32)file->window[uVar16 & 0xfff])) {
-      file->hashMap[uVar11] = ((short)copyLen + sVar8 & 0xfffU) | 0xc000;
+    u32 pos2 = checkPos + 2;
+    u32 pos3 = checkPos + 3;
+    checkPos++;
+    
+    // Construct key at the check position and compare with original key
+    u32 checkKey = (u32)file->window[pos2 & 0xfff] << 0x8 |
+                   (u32)file->window[pos3 & 0xfff] << 0x10 |
+                   (u32)file->window[checkPos & 0xfff];
+    
+    if (key == checkKey) {
+      // Found a match, update the hash map entry with the new position and mark as tombstone
+      file->hashMap[bucketIndex] = ((short)windowPos + offset & 0xfff) | 0xc000;
       return;
     }
-    sVar8++;
-    iVar7--;
-  } while (iVar7 != 0);
+    
+    offset++;
+    remainingChecks--;
+  } while (remainingChecks != 0);
+  
+  // No match found, mark the entry as a tombstone and increment vacancy counter
   file->hashVacancies++;
-  file->hashMap[uVar11] = 0x8000;
+  file->hashMap[bucketIndex] = 0x8000;
 }
 
 static void handleOtherTriple(Yaz_file_struct* file) {
-  u32 copyLen;
-  u32 uVar11;
-  int iVar7;
-  u32 uVar17;
-  u16 res;
+  // Calculate the position in the window to copy from
+  u32 windowPos = file->windowPos - 3 & 0xfff;
   
-  copyLen = file->windowPos - 3 & 0xfff;
-  uVar11 = (u32)file->window[(copyLen + 1) % WINDOW_SIZE] << 0x8 |
-            (u32)file->window[(copyLen + 2) % WINDOW_SIZE] << 0x10 |
-            (u32)file->window[copyLen];
-  iVar7 = 0x4;
-  uVar17 = copyLen;
+  // Construct the key from three consecutive bytes in the window
+  u32 key = (u32)file->window[(windowPos + 1) % WINDOW_SIZE] << 0x8 |
+            (u32)file->window[(windowPos + 2) % WINDOW_SIZE] << 0x10 |
+            (u32)file->window[windowPos];
+  
+  // Check the next 4 positions to see if we have a matching key
+  int remainingChecks = 4;
+  u32 checkPos = windowPos;
+  
   do {
-    if (uVar11 == ((u32)file->window[uVar17 - 0x3 & 0xfff] << 0x8 |
-                    (u32)file->window[uVar17 - 0x2 & 0xfff] << 0x10 |
-                    (u32)file->window[uVar17 - 0x4 & 0xfff]))
+    // Construct key at the check position and compare with original key
+    u32 checkKey = (u32)file->window[checkPos - 0x3 & 0xfff] << 0x8 |
+                   (u32)file->window[checkPos - 0x2 & 0xfff] << 0x10 |
+                   (u32)file->window[checkPos - 0x4 & 0xfff];
+    
+    // If keys match, we're done
+    if (key == checkKey)
       return;
-    uVar17++;
-    iVar7--;
-  } while (iVar7 != 0x0);
-  uVar17 = hash1(uVar11);
-  assert(uVar17 < HASH_MAP_SIZE);
-  res = file->hashMap[uVar17];
-  if ((res & 0x4000) != 0x0) {
-    iVar7 = 0x4000;
+    
+    checkPos++;
+    remainingChecks--;
+  } while (remainingChecks != 0);
+  
+  // Hash the key to find its bucket in the hash table
+  u32 bucketIndex = hash1(key);
+  assert(bucketIndex < HASH_MAP_SIZE);
+  
+  // Get the entry at the bucket
+  u16 entry = file->hashMap[bucketIndex];
+  
+  // Linear probing to find an available slot if needed
+  if (isTombstone(entry)) {
+    int probeLimit = 0x4000;  // Prevent infinite loops
+    
     while (true) {
-      uVar17 = uVar17 + 1 & 0x3fff;
-      res = file->hashMap[uVar17];
-      if ((res & 0x4000) == 0x0)
+      bucketIndex = (bucketIndex + 1) & 0x3fff;
+      entry = file->hashMap[bucketIndex];
+      
+      if (!isTombstone(entry))
         break;
-      iVar7--;
-      assert(iVar7 != 0);
+      
+      probeLimit--;
+      assert(probeLimit != 0);
     }
   }
-  file->hashMap[uVar17] = (u16)copyLen | 0xc000;
-  file->hashVacancies = file->hashVacancies - (res >> 0xf);
+  
+  // Update the hash map with the new position and mark as used
+  file->hashMap[bucketIndex] = (u16)windowPos | 0xc000;
+  
+  // Update vacancy counter if we're replacing a tombstone
+  file->hashVacancies = file->hashVacancies - (entry >> 0xf);
 }
 
 static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
