@@ -210,7 +210,6 @@ static void devacuumHashTable(Yaz_file_struct* file) {
 
   u32 uVar9;
   u32 uVar11;
-  u32 uVar17;
   u16* puVar14;
   u16* puVar15;
   u16 res;
@@ -225,17 +224,17 @@ static void devacuumHashTable(Yaz_file_struct* file) {
       continue;
     }
 
-    uVar17 = i;
+    u32 hole = i;
 
     /* ------------------------------------------------------------------
     * Step A – find the first truly empty slot (EVER_USED == 0) after
     *           this live element.  That becomes our movable "hole."
     * ----------------------------------------------------------------*/
     do {
-      uVar17 = uVar17 + 1 & 0x3fff;
+      hole = hole + 1 & 0x3fff;
       puVar14 = file->hashMap + i;
       uVar11 = i;
-    } while ((short)file->hashMap[uVar17] < 0x0);
+    } while ((short)file->hashMap[hole] < 0x0);
     
     /* ------------------------------------------------------------------
         * Step B – walk *backwards* through the cluster, pulling any element
@@ -245,7 +244,7 @@ static void devacuumHashTable(Yaz_file_struct* file) {
       /* Walk left until we find a live entry; tomb‑stones are skipped. */
       *puVar14 = 0x0;
       file->hashMeta[uVar11] = 0xffff;
-      uVar9 = uVar17;
+      uVar9 = hole;
       do {
         do {
           uVar9 = (uVar9 - 1) % HASH_MAP_SIZE;
