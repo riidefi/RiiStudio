@@ -40,7 +40,8 @@ FancyObject(size_t i, bool curNodeSelected, ImVec4 type_icon_color,
 
   auto id = std::format("{}", display_id_relative_to_parent);
   {
-    ImGui::Selectable(id.c_str(), curNodeSelected, ImGuiSelectableFlags_None,
+    const auto sel_id = id + "##sel";
+    ImGui::Selectable(sel_id.c_str(), curNodeSelected, ImGuiSelectableFlags_None,
                       {0, icon_size});
     if (util::ShouldContextOpen()) {
       result.contextMenu = true;
