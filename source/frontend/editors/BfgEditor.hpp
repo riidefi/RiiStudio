@@ -71,7 +71,7 @@ private:
     ImGui::TableNextColumn();
     if (i - 1 < colors.size()) {
       auto c = colors[i - 1];
-      ImGui::ColorEdit4(std::format("##C{}", i).c_str(), &c.x,
+      ImGui::ColorEdit3(std::format("##C{}", i).c_str(), &c.x,
                         ImGuiColorEditFlags_NoPicker |
                             ImGuiColorEditFlags_NoInputs |
                             ImGuiColorEditFlags_NoLabel);
