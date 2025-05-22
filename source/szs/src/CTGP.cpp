@@ -235,6 +235,93 @@ static void devacuumHashTable(Yaz_file_struct* file) {
   file->hashVacancies = 0;
 } 
 
+static void refreshWindow(Yaz_file_struct* file) {
+  u32 copyLen;
+  u32 hh;
+  u32 uVar11;
+  int iVar7;
+  u16 res;
+  short sVar8;
+  u32 uVar16;
+  u32 uVar12;
+  u32 uVar3;
+
+  copyLen = file->windowPos + 0x1 & 0xfff;
+  hh = (u32)file->window[copyLen + 0x1 & 0xfff] << 0x8 |
+        (u32)file->window[copyLen + 0x2 & 0xfff] << 0x10 |
+        (u32)file->window[copyLen];
+  uVar11 = hash1(hh);
+  assert(uVar11 <= 0x3fff);
+  iVar7 = 0x4001;
+  res = file->hashMap[uVar11];
+  while (true) {
+    assert((res & 0x8000) != 0);
+    if (((res & 0x4000) != 0x0) && (copyLen == (res & 0x3fff)))
+      break;
+    iVar7 = iVar7 + -1;
+    assert(iVar7 != 0);
+    uVar11 = uVar11 + 1 & 0x3fff;
+    res = file->hashMap[uVar11];
+  }
+  sVar8 = 1;
+  iVar7 = 0x4;
+  uVar16 = copyLen;
+  do {
+    uVar12 = uVar16 + 0x2;
+    uVar3 = uVar16 + 0x3;
+    uVar16 = uVar16 + 0x1;
+    if (hh == ((u32)file->window[uVar12 & 0xfff] << 0x8 |
+                (u32)file->window[uVar3 & 0xfff] << 0x10 |
+                (u32)file->window[uVar16 & 0xfff])) {
+      file->hashMap[uVar11] = ((short)copyLen + sVar8 & 0xfffU) | 0xc000;
+      return;
+    }
+    sVar8 = sVar8 + 0x1;
+    iVar7 = iVar7 + -0x1;
+  } while (iVar7 != 0x0);
+  file->hashVacancies++;
+  file->hashMap[uVar11] = 0x8000;
+}
+
+static void handleOtherTriple(Yaz_file_struct* file) {
+  u32 copyLen;
+  u32 uVar11;
+  int iVar7;
+  u32 uVar17;
+  u16 res;
+  
+  copyLen = file->windowPos - 3 & 0xfff;
+  uVar11 = (u32)file->window[(copyLen + 1) % WINDOW_SIZE] << 0x8 |
+            (u32)file->window[(copyLen + 2) % WINDOW_SIZE] << 0x10 |
+            (u32)file->window[copyLen];
+  iVar7 = 0x4;
+  uVar17 = copyLen;
+  do {
+    if (uVar11 == ((u32)file->window[uVar17 - 0x3 & 0xfff] << 0x8 |
+                    (u32)file->window[uVar17 - 0x2 & 0xfff] << 0x10 |
+                    (u32)file->window[uVar17 - 0x4 & 0xfff]))
+      return;
+    uVar17 = uVar17 + 1;
+    iVar7 = iVar7 + -1;
+  } while (iVar7 != 0x0);
+  uVar17 = hash1(uVar11);
+  assert(uVar17 < HASH_MAP_SIZE);
+  res = file->hashMap[uVar17];
+  if ((res & 0x4000) != 0x0) {
+    iVar7 = 0x4000;
+    while (true) {
+      uVar17 = uVar17 + 1 & 0x3fff;
+      res = file->hashMap[uVar17];
+      if ((res & 0x4000) == 0x0)
+        break;
+      iVar7 = iVar7 + -1;
+      assert(iVar7 != 0);
+    }
+  }
+  file->hashMap[uVar17] = (u16)copyLen | 0xc000;
+  file->hashVacancies = file->hashVacancies - (res >> 0xf);
+}
+
 static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
   // Gather lookahead
   u32 copyLen = file->lookAheadBytes + 1;
@@ -261,79 +348,13 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
 
   // Once we have exhausted the window we need to refresh it
   if (iVar7 > 4100) {
-    copyLen = file->windowPos + 0x1 & 0xfff;
-    hh = (u32)file->window[copyLen + 0x1 & 0xfff] << 0x8 |
-         (u32)file->window[copyLen + 0x2 & 0xfff] << 0x10 |
-         (u32)file->window[copyLen];
-    uVar11 = hash1(hh);
-    assert(uVar11 <= 0x3fff);
-    iVar7 = 0x4001;
-    res = file->hashMap[uVar11];
-    while (true) {
-      assert((res & 0x8000) != 0);
-      if (((res & 0x4000) != 0x0) && (copyLen == (res & 0x3fff)))
-        break;
-      iVar7 = iVar7 + -1;
-      assert(iVar7 != 0);
-      uVar11 = uVar11 + 1 & 0x3fff;
-      res = file->hashMap[uVar11];
-    }
-    sVar8 = 1;
-    iVar7 = 0x4;
-    uVar16 = copyLen;
-    do {
-      uVar12 = uVar16 + 0x2;
-      uVar3 = uVar16 + 0x3;
-      uVar16 = uVar16 + 0x1;
-      if (hh == ((u32)file->window[uVar12 & 0xfff] << 0x8 |
-                 (u32)file->window[uVar3 & 0xfff] << 0x10 |
-                 (u32)file->window[uVar16 & 0xfff])) {
-        file->hashMap[uVar11] = ((short)copyLen + sVar8 & 0xfffU) | 0xc000;
-        goto LAB_807eb550;
-      }
-      sVar8 = sVar8 + 0x1;
-      iVar7 = iVar7 + -0x1;
-    } while (iVar7 != 0x0);
-    file->hashVacancies++;
-    file->hashMap[uVar11] = 0x8000;
-  LAB_807eb550:    
+    refreshWindow(file);
     // "de-vacuum" hash table
     devacuumHashTable(file);
   }
   // Handle other triple
   if (0x9 < uVar17) {
-    copyLen = file->windowPos - 3 & 0xfff;
-    uVar11 = (u32)file->window[(copyLen + 1) % WINDOW_SIZE] << 0x8 |
-             (u32)file->window[(copyLen + 2) % WINDOW_SIZE] << 0x10 |
-             (u32)file->window[copyLen];
-    iVar7 = 0x4;
-    uVar17 = copyLen;
-    do {
-      if (uVar11 == ((u32)file->window[uVar17 - 0x3 & 0xfff] << 0x8 |
-                     (u32)file->window[uVar17 - 0x2 & 0xfff] << 0x10 |
-                     (u32)file->window[uVar17 - 0x4 & 0xfff]))
-        goto LAB_807eb78c;
-      uVar17 = uVar17 + 1;
-      iVar7 = iVar7 + -1;
-    } while (iVar7 != 0x0);
-    uVar17 = hash1(uVar11);
-    assert(uVar17 < HASH_MAP_SIZE);
-    res = file->hashMap[uVar17];
-    if ((res & 0x4000) != 0x0) {
-      iVar7 = 0x4000;
-      while (true) {
-        uVar17 = uVar17 + 1 & 0x3fff;
-        res = file->hashMap[uVar17];
-        if ((res & 0x4000) == 0x0)
-          break;
-        iVar7 = iVar7 + -1;
-        assert(iVar7 != 0);
-      }
-    }
-    file->hashMap[uVar17] = (u16)copyLen | 0xc000;
-    file->hashVacancies = file->hashVacancies - (res >> 0xf);
-  LAB_807eb78c:
-    ;
+    handleOtherTriple(file);
   }
   if (file->matchPos != -1) {
     // Try to extend match
