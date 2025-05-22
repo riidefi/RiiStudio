@@ -277,9 +277,9 @@ void BRRESEditor::draw_() {
 
   // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {
-    if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
       mHistory.undo(*mRoot, mSelection);
-    } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
+    } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
       mHistory.redo(*mRoot, mSelection);
     }
   }
@@ -429,9 +429,9 @@ void BMDEditor::draw_() {
 
   // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {
-    if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
       mHistory.undo(*mRoot, mSelection);
-    } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
+    } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
       mHistory.redo(*mRoot, mSelection);
     }
   }

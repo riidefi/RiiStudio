@@ -77,7 +77,7 @@ void ImagePreview::draw(float wd, float ht, bool mip_slider) {
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, static_cast<f32>(mLod));
 
   ImGui::Image(
-      (void*)(intptr_t)mGpuTexId,
+      (ImTextureID)(intptr_t)mGpuTexId,
       ImVec2((wd > 0 ? wd : width) * mScale, (ht > 0 ? ht : height) * mScale));
 #endif
 

@@ -81,10 +81,10 @@ template <typename T> struct AutoHistory {
 
     // TODO: Only affect active window
     if (ImGui::GetIO().KeyCtrl) {
-      if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
+      if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
         UndoHistory(history_cursor, mKmpHistory);
         kmp = mKmpHistory[history_cursor];
-      } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
+      } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
         RedoHistory(history_cursor, mKmpHistory);
         kmp = mKmpHistory[history_cursor];
       }

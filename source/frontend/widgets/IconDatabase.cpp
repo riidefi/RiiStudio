@@ -17,7 +17,7 @@ IconDatabase::Key IconDatabase::addIcon(const lib3d::Texture& texture) {
   return id;
 }
 void IconDatabase::drawIcon(Key id, int wd, int ht) const {
-  ImGui::Image((void*)(intptr_t)mIcons[id].glId,
+  ImGui::Image((ImTextureID)(intptr_t)mIcons[id].glId,
                ImVec2((wd > 0 ? wd : mIconDim), (ht > 0 ? ht : mIconDim)));
 }
 

@@ -261,17 +261,17 @@ void CurveEditor::handle_clicking_on(GuiFrameContext& c,
   if (hovered_part.is_Curve(curve_idx)) {
     c.active_track_idx = curve_idx;
   } else if (c.keyframe_selection && hovered_part.is_None() &&
-             ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
+             ImGui::GetIO().KeyMods == ImGuiMod_None) {
     c.keyframe_selection->clear();
   } else if (c.keyframe_selection && hovered_part.is_Keyframe(keyframe)) {
-    if (ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
+    if (ImGui::GetIO().KeyMods == ImGuiMod_None) {
       bool should_select = !c.keyframe_selection->is_active(keyframe);
 
       c.keyframe_selection->clear();
 
       if (should_select)
         c.keyframe_selection->select(keyframe, true);
-    } else if (ImGui::GetIO().KeyMods == ImGuiModFlags_Ctrl) {
+    } else if (ImGui::GetIO().KeyMods == ImGuiMod_Ctrl) {
       if (c.keyframe_selection->is_active(keyframe)) {
         c.keyframe_selection->deselect(keyframe);
       } else {
@@ -413,10 +413,10 @@ void CurveEditor::handle_zooming(GuiFrameContext& c) {
   bool zoom_horizontally = false;
   bool zoom_vertically = false;
 
-  if (ImGui::GetIO().KeyMods == (ImGuiModFlags_Ctrl | ImGuiModFlags_Shift)) {
+  if (ImGui::GetIO().KeyMods == (ImGuiMod_Ctrl | ImGuiMod_Shift)) {
     zoom_horizontally = true;
   } else if (ImGui::GetIO().KeyMods ==
-             (ImGuiModFlags_Ctrl | ImGuiModFlags_Alt)) {
+             (ImGuiMod_Ctrl | ImGuiMod_Alt)) {
     zoom_vertically = true;
   } else {
     zoom_horizontally = true;

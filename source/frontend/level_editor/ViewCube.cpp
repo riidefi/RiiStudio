@@ -29,7 +29,9 @@ bool DrawViewCube(float last_width, float last_height, glm::mat4& view_mtx,
   ImGuizmo::SetRect(pos.x, pos.y - shifted_y, last_width, last_height);
 
   auto tVm = view_mtx;
-  auto max = ImGui::GetContentRegionMaxAbs();
+  // TODO: Migrated from GetContentRegionMaxAbs based on https://github.com/ocornut/imgui/commit/4227402b2fe46a24663fd16efd042a8527d2bbed
+  //       Not sure what the correct behavior is here or why we used this API to begin with.
+  auto max = ImGui::GetContentRegionAvail() + ImGui::GetCurrentWindow()->DC.CursorPos;
 
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 4; ++j) {
