@@ -474,6 +474,11 @@ static Expr& solve_tev_stage_impl(const T& substage,
       printExprPoly(*root, builder, true);
   };
 
+  // Print initial expression
+  if (do_print_inter) {
+    builder.append("(D + (((1-C) * A) + (C * B)) + BIAS) * SCALE\n");
+  }
+
   print_inter();
   while (optimizeNode(*root)) {
     print_inter();
