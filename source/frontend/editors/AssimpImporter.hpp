@@ -11,11 +11,16 @@
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/Scene.hpp>
 
+#include <frontend/widgets/PropertyEditorWidget.hpp>
+
 namespace riistudio::frontend {
 
 class AssimpEditorPropertyGrid {
 public:
   void Draw(librii::assimp2rhst::Settings& x, bool& tristrip);
+
+private:
+  PropertyEditorState m_propState{};
 };
 
 class AssimpImporter : public frontend::StudioWindow {

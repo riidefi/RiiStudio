@@ -1,9 +1,11 @@
 #include "AssimpImporter.hpp"
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/vec3.hpp>
 #include <rsl/Defer.hpp>
 
 #include <frontend/legacy_editor/EditorWindow.hpp>
 #include <frontend/root.hpp>
+#include <frontend/widgets/PropertyEditorWidget.hpp>
 
 namespace riistudio::frontend {
 
@@ -51,9 +53,19 @@ void ImporterSettings(librii::assimp2rhst::Settings& ctx) {
   // aiProcess_Debone - TODO
   // aiProcess_GlobalScale
   ImGui::InputFloat("Model Scale"_j, &ctx.mMagnification);
-  ImGui::Checkbox("Emulate BrawlBox Model Scale (This is incorrect and goes "
-                  "against the COLLADA (.dae) specification but may be useful)",
-                  &ctx.mIgnoreRootTransform);
+
+  if (ImGui::Checkbox("Emulate BrawlBox Model Scale",
+                      &ctx.mIgnoreRootTransform)) {
+    // Checkbox clicked, no need to show popup
+  } else if (ImGui::IsItemHovered()) {
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+    ImGui::TextUnformatted("This is incorrect and goes against the COLLADA "
+                           "(.dae) specification but may be useful");
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+  }
+
   // aiProcess_ForceGenNormals - TODO
   // aiProcess_DropNormals - TODO
 
@@ -63,15 +75,44 @@ void ImporterSettings(librii::assimp2rhst::Settings& ctx) {
 
 void MipMapSettings(librii::assimp2rhst::Settings& ctx) {
   ImGui::Checkbox("Generate Mipmaps"_j, &ctx.mGenerateMipMaps);
+  if (ImGui::IsItemHovered()) {
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+    ImGui::TextUnformatted(
+        "Mipmaps are pre-calculated, optimized texture versions at different "
+        "resolutions that improve rendering quality and performance. Strongly "
+        "recommended to keep enabled for better visual quality at different "
+        "distances.");
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+  }
   {
     util::ConditionalActive g(ctx.mGenerateMipMaps);
     ImGui::Indent(50);
     ImGui::SliderInt("Minimum mipmap dimension."_j, &ctx.mMinMipDimension, 1,
                      512);
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+      ImGui::TextUnformatted("Default: 32 pixels. We won't generate mipmap LOD "
+                             "levels smaller than this dimension.");
+      ImGui::PopTextWrapPos();
+      ImGui::EndTooltip();
+    }
     ctx.mMinMipDimension =
         librii::assimp2rhst::ClampMipMapDimension(ctx.mMinMipDimension);
 
     ImGui::SliderInt("Maximum number of mipmaps."_j, &ctx.mMaxMipCount, 0, 8);
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+      ImGui::TextUnformatted(
+          "Default: 5. We won't generate more than this many LOD levels, even "
+          "if the smallest LOD level is above our minimum mip dimension (for "
+          "instance on a very large image).");
+      ImGui::PopTextWrapPos();
+      ImGui::EndTooltip();
+    }
 
     ImGui::Indent(-50);
   }
@@ -124,25 +165,63 @@ void MeshSettings(librii::assimp2rhst::Settings& ctx) {
 }
 
 void MaskSettings(librii::assimp2rhst::Settings& ctx) {
-  ImGui::CheckboxFlags((const char*)ICON_FA_SORT_AMOUNT_UP u8" Vertex Normals",
-                       &ctx.mDataToInclude, aiComponent_NORMALS);
-  // aiComponent_TANGENTS_AND_BITANGENTS: Unsupported
-  ImGui::CheckboxFlags((const char*)ICON_FA_PALETTE u8" Vertex Colors",
-                       &ctx.mDataToInclude, aiComponent_COLORS);
-  ImGui::CheckboxFlags((const char*)ICON_FA_GLOBE u8" UV Maps",
-                       &ctx.mDataToInclude, aiComponent_TEXCOORDS);
-  ImGui::CheckboxFlags((const char*)ICON_FA_BONE u8" Bone Weights",
-                       &ctx.mDataToInclude, aiComponent_BONEWEIGHTS);
-  // aiComponent_ANIMATIONS: Unsupported
-  // TODO: aiComponent_TEXTURES: Unsupported
-  // aiComponent_LIGHTS: Unsupported
-  // aiComponent_CAMERAS: Unsupported
-  ImGui::CheckboxFlags((const char*)ICON_FA_PROJECT_DIAGRAM u8" Meshes",
-                       &ctx.mDataToInclude, aiComponent_MESHES);
-  ImGui::CheckboxFlags((const char*)ICON_FA_PAINT_BRUSH u8" Materials",
-                       &ctx.mDataToInclude, aiComponent_MATERIALS);
+  if (ImGui::BeginTable("DataToImportTable", 2, ImGuiTableFlags_Borders)) {
+    ImGui::TableSetupColumn("Component", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("Include", ImGuiTableColumnFlags_WidthStretch);
+    ImGui::TableHeadersRow();
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::TextUnformatted(
+        (const char*)ICON_FA_SORT_AMOUNT_UP u8" Vertex Normals");
+    ImGui::TableNextColumn();
+    ImGui::CheckboxFlags("##normals", &ctx.mDataToInclude, aiComponent_NORMALS);
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::TextUnformatted((const char*)ICON_FA_PALETTE u8" Vertex Colors");
+    ImGui::TableNextColumn();
+    ImGui::CheckboxFlags("##colors", &ctx.mDataToInclude, aiComponent_COLORS);
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::TextUnformatted((const char*)ICON_FA_GLOBE u8" UV Maps");
+    ImGui::TableNextColumn();
+    ImGui::CheckboxFlags("##uvmaps", &ctx.mDataToInclude,
+                         aiComponent_TEXCOORDS);
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::TextUnformatted((const char*)ICON_FA_BONE u8" Bone Weights");
+    ImGui::TableNextColumn();
+    ImGui::CheckboxFlags("##bones", &ctx.mDataToInclude,
+                         aiComponent_BONEWEIGHTS);
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::TextUnformatted((const char*)ICON_FA_PROJECT_DIAGRAM u8" Meshes");
+    ImGui::TableNextColumn();
+    ImGui::CheckboxFlags("##meshes", &ctx.mDataToInclude, aiComponent_MESHES);
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::TextUnformatted((const char*)ICON_FA_PAINT_BRUSH u8" Materials");
+    ImGui::TableNextColumn();
+    ImGui::CheckboxFlags("##materials", &ctx.mDataToInclude,
+                         aiComponent_MATERIALS);
+
+    ImGui::EndTable();
+  }
+
+  // Note: These components are unsupported:
+  // - aiComponent_TANGENTS_AND_BITANGENTS
+  // - aiComponent_ANIMATIONS
+  // - aiComponent_TEXTURES (TODO)
+  // - aiComponent_LIGHTS
+  // - aiComponent_CAMERAS
 }
-void MeshOptimizationSettings(librii::assimp2rhst::Settings& ctx, bool& tristrip) {
+void MeshOptimizationSettings(librii::assimp2rhst::Settings& ctx,
+                              bool& tristrip) {
   if (ImGui::BeginChild("HelpBox3",
                         ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f),
                         true, ImGuiWindowFlags_NoScrollbar)) {
@@ -162,6 +241,116 @@ void MeshOptimizationSettings(librii::assimp2rhst::Settings& ctx, bool& tristrip
 }
 } // namespace
 
+class AssimpEditorTabSheet {
+public:
+  void Draw(std::function<void(void)> draw) {
+    std::vector<std::string> icons{(const char*)ICON_FA_EXPAND_ARROWS_ALT,
+                                   (const char*)ICON_FA_IMAGES,
+                                   (const char*)ICON_FA_BRUSH,
+                                   (const char*)ICON_FA_PROJECT_DIAGRAM,
+                                   (const char*)ICON_FA_TRASH,
+                                   (const char*)ICON_FA_PROJECT_DIAGRAM};
+    std::vector<const char*> labels{"Scale",
+                                    "Mip Maps",
+                                    "Material Settings",
+                                    "Pre-BRRES Optimization",
+                                    "Data to Import",
+                                    "BRRES Optimization"};
+    std::vector<ImVec4> iconColors{
+        ImVec4(0.5f, 0.8f, 1.0f, 1.0f), // Blue for Scale
+        ImVec4(1.0f, 0.5f, 0.8f, 1.0f), // Pink for Mip Maps
+        ImVec4(0.8f, 0.6f, 0.2f, 1.0f), // Orange for Material Settings
+        ImVec4(0.2f, 0.8f, 0.4f, 1.0f), // Green for Pre-BRRES Optimization
+        ImVec4(1.0f, 0.3f, 0.3f, 1.0f), // Red for Data to Import
+        ImVec4(0.4f, 0.7f, 0.9f, 1.0f)  // Light blue for BRRES Optimization
+    };
+
+    std::function<bool(int)> drawTab = [&](int index) {
+      switch (index) {
+      case 0:
+        ImporterSettings(ctx);
+        break;
+      case 1:
+        MipMapSettings(ctx);
+        break;
+      case 2:
+        MaterialSettings(ctx);
+        break;
+      case 3:
+        MeshSettings(ctx);
+        break;
+      case 4:
+        MaskSettings(ctx);
+        break;
+      case 5:
+        MeshOptimizationSettings(ctx, tristrip);
+        break;
+      default:
+        return false;
+      }
+      return true;
+    };
+    std::function<void(int)> drawTabTitle = [&](int index) {
+      bool isNonDefault = false;
+      switch (index) {
+      case 0:
+        isNonDefault = ctx.mMagnification != 1.0f || ctx.mIgnoreRootTransform;
+        break;
+      case 1:
+        isNonDefault = !ctx.mGenerateMipMaps || ctx.mMinMipDimension != 32 ||
+                       ctx.mMaxMipCount != 5;
+        break;
+      case 2:
+        isNonDefault =
+            !ctx.mAutoTransparent ||
+            (ctx.mAiFlags & aiProcess_RemoveRedundantMaterials) == 0 ||
+            ctx.mAiFlags & aiProcess_TransformUVCoords ||
+            ctx.mModelTint != glm::vec3(1.0f);
+        break;
+      case 3:
+        isNonDefault = ctx.mAiFlags != (librii::assimp2rhst::AlwaysFlags |
+                                        librii::assimp2rhst::DefaultFlags);
+        break;
+      case 4:
+        isNonDefault =
+            ctx.mDataToInclude != librii::assimp2rhst::DefaultInclusionMask();
+        break;
+      case 5:
+        isNonDefault = !tristrip;
+        break;
+      }
+
+      // Draw colored icon
+      ImGui::PushStyleColor(ImGuiCol_Text,
+                            ImGui::ColorConvertFloat4ToU32(iconColors[index]));
+      ImGui::TextUnformatted(icons[index].c_str());
+      ImGui::PopStyleColor();
+
+      ImGui::SameLine(0, 0);
+
+      // Draw label with conditional yellow color for non-default settings
+      if (isNonDefault) {
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+        ImGui::TextUnformatted(labels[index]);
+        ImGui::PopStyleColor();
+      } else {
+        ImGui::Text(" %s", labels[index]);
+      }
+    };
+
+    std::vector<std::string> titles(icons.size());
+    for (size_t i = 0; i < icons.size(); i++) {
+      titles[i] = std::string(icons[i]) + std::string(" ") + labels[i];
+    }
+
+    DrawPropertyEditorWidgetV2_Header(m_state, false);
+    DrawPropertyEditorWidgetV3_Body(m_state, drawTab, drawTabTitle, titles);
+  }
+  PropertyEditorState& m_state;
+  librii::assimp2rhst::Settings& ctx;
+  bool& tristrip;
+};
+
 void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx,
                                     bool& tristrip) {
   if (ImGui::BeginChild("HelpBox",
@@ -177,34 +366,8 @@ void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx,
   }
   ImGui::EndChild();
 
-  if (ImGui::CollapsingHeader("Importing Settings"_j,
-                              ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImporterSettings(ctx);
-  }
-
-  if (ImGui::CollapsingHeader((const char*)ICON_FA_IMAGES u8" Mip Maps",
-                              ImGuiTreeNodeFlags_DefaultOpen)) {
-    MipMapSettings(ctx);
-  }
-  if (ImGui::CollapsingHeader((const char*)ICON_FA_BRUSH u8" Material Settings",
-                              ImGuiTreeNodeFlags_DefaultOpen)) {
-    MaterialSettings(ctx);
-  }
-  if (ImGui::CollapsingHeader(
-          (const char*)ICON_FA_PROJECT_DIAGRAM u8" Mesh Settings",
-          ImGuiTreeNodeFlags_DefaultOpen)) {
-    MeshSettings(ctx);
-  }
-  if (ImGui::CollapsingHeader(
-          (const char*)ICON_FA_PROJECT_DIAGRAM u8" Data to Import",
-          ImGuiTreeNodeFlags_DefaultOpen)) {
-    MaskSettings(ctx);
-  }
-  if (ImGui::CollapsingHeader(
-          (const char*)ICON_FA_PROJECT_DIAGRAM u8" Mesh Optimization",
-          ImGuiTreeNodeFlags_DefaultOpen)) {
-    MeshOptimizationSettings(ctx, tristrip);
-  }
+  AssimpEditorTabSheet sheet{m_propState, ctx, tristrip};
+  sheet.Draw([]() {});
 }
 
 void AssimpImporter::draw_() {
