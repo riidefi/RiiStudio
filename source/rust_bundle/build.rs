@@ -38,8 +38,13 @@ fn main() {
 
     #[cfg(windows)]
     let cargo_dir = format!("{}cargo\\build\\x86_64-pc-windows-msvc\\release\\", build_dir);
+    
+    // New format for corrosion: build/cargo/brres-sys_2eabb/aarch64-apple-darwin/release/
+    // (WAS: build/argo/build/aarch64-apple-darwin/release/)
+    //
+    // The .a files are mirrored in build/* though
     #[cfg(unix)]
-    let cargo_dir = format!("{}cargo/build/aarch64-apple-darwin/release/", build_dir);
+    let cargo_dir = format!("{}", build_dir);
 
     #[cfg(unix)]
     {
