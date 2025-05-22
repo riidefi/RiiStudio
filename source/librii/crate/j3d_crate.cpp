@@ -5,6 +5,8 @@
 #include <rsl/ArrayUtil.hpp>
 #include <rsl/WriteFile.hpp>
 
+#include <fmt/chrono.h>
+
 namespace librii::crate {
 
 struct SimpleTransaction {
@@ -62,9 +64,7 @@ WriteRSPresetJ3D(const CrateAnimationJ3D& preset, bool cli) {
   auto json = preset.metadata_json;
   // Fill in date field
   const auto now = std::chrono::system_clock::now();
-#if defined(_WIN32)
-  json["date_created"] = std::format("{:%B %d, %Y}", now);
-#endif
+  json["date_created"] = fmt::format("{:%B %d, %Y}", now);
   json["tool"] = std::format("RiiStudio {}{}", cli ? "CLI " : "",
                              std::string_view(GIT_TAG));
 
