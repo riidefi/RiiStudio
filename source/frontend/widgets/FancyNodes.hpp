@@ -13,7 +13,8 @@ namespace riistudio::frontend {
 bool FancyFolderNode(ImVec4 color, const char* icon,
                      std::string_view unitPlural, size_t numEntries) {
   ImGui::PushStyleColor(ImGuiCol_Text, color);
-  bool opened = ImGui::CollapsingHeader(icon);
+  auto collapsingHeaderSalted = std::string(icon) + "##" + std::string(unitPlural);
+  bool opened = ImGui::CollapsingHeader(collapsingHeaderSalted.c_str());
   ImGui::PopStyleColor();
   ImGui::SameLine();
   ImGui::TextUnformatted(
