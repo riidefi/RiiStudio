@@ -358,16 +358,14 @@ static std::optional<int> HandleResidue(Yaz_file_struct* file) {
         if (file->codeBufferIndex != 0)
           break;
       } else {
-        u32 bufferLocation = file->codeBufferLocation;
-        u32 bufferIndex = file->codeBufferIndex - 1;
-        file->codeBuffer[bufferLocation] =
+        file->codeBuffer[file->codeBufferLocation] =
             file->window[(file->windowPos - file->matchLen) %
                              WINDOW_SIZE];
         file->codeBufferLocation++;
-        file->codeBufferIndex = bufferIndex;
-        file->codeBuffer[0] |= (1 << bufferIndex);
+        file->codeBufferIndex--;
+        file->codeBuffer[0] |= (1 << file->codeBufferIndex);
         file->matchLen--;
-        if (bufferIndex != 0)
+        if (file->codeBufferIndex != 0)
           break;
       }
       if (Yaz_buffer_putcode_r(file) != 0) {
