@@ -61,7 +61,7 @@ template <typename T> struct AutoHistory {
       assert(kmp == kmp && "Initial state is invalid");
       mKmpHistory.push_back(kmp);
       return;
-	}
+    }
 
     if (restoreInvalidState(kmp) != RestoreStatus::AlreadyValid)
       return;
@@ -80,14 +80,15 @@ template <typename T> struct AutoHistory {
     }
 
     // TODO: Only affect active window
-    if (ImGui::GetIO().KeyCtrl) {
-      if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
-        UndoHistory(history_cursor, mKmpHistory);
-        kmp = mKmpHistory[history_cursor];
-      } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
-        RedoHistory(history_cursor, mKmpHistory);
-        kmp = mKmpHistory[history_cursor];
-      }
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
+                        ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteAlways)) {
+      UndoHistory(history_cursor, mKmpHistory);
+      kmp = mKmpHistory[history_cursor];
+    } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y,
+                               ImGuiInputFlags_Repeat |
+                                   ImGuiInputFlags_RouteAlways)) {
+      RedoHistory(history_cursor, mKmpHistory);
+      kmp = mKmpHistory[history_cursor];
     }
   }
 };

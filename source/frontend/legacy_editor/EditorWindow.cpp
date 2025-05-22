@@ -1,5 +1,4 @@
 #include "EditorWindow.hpp"
-#include <plugins/3d/i3dmodel.hpp>                            // lib3d::Scene
 #include <frontend/applet.hpp>                             // core::Applet
 #include <frontend/legacy_editor/views/Outliner.hpp>       // MakeHistoryList
 #include <frontend/legacy_editor/views/PropertyEditor.hpp> // MakeOutliner
@@ -8,6 +7,7 @@
 #include <frontend/widgets/HistoryListWidget.hpp>
 #include <imcxx/Widgets.hpp>
 #include <plate/toolkit/Viewport.hpp>     // plate::tk::Viewport
+#include <plugins/3d/i3dmodel.hpp>        // lib3d::Scene
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_TIMES
 
 #include <plugins/g3d/G3dIo.hpp>
@@ -276,12 +276,13 @@ void BRRESEditor::draw_() {
   mRenderTest->draw();
 
   // TODO: Only affect active window
-  if (ImGui::GetIO().KeyCtrl) {
-    if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
-      mHistory.undo(*mRoot, mSelection);
-    } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
-      mHistory.redo(*mRoot, mSelection);
-    }
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
+                      ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteAlways)) {
+    mHistory.undo(*mRoot, mSelection);
+  } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y,
+                             ImGuiInputFlags_Repeat |
+                                 ImGuiInputFlags_RouteAlways)) {
+    mHistory.redo(*mRoot, mSelection);
   }
 }
 
@@ -428,12 +429,13 @@ void BMDEditor::draw_() {
   mRenderTest->draw();
 
   // TODO: Only affect active window
-  if (ImGui::GetIO().KeyCtrl) {
-    if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
-      mHistory.undo(*mRoot, mSelection);
-    } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
-      mHistory.redo(*mRoot, mSelection);
-    }
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
+                      ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteAlways)) {
+    mHistory.undo(*mRoot, mSelection);
+  } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y,
+                             ImGuiInputFlags_Repeat |
+                                 ImGuiInputFlags_RouteAlways)) {
+    mHistory.redo(*mRoot, mSelection);
   }
 }
 void BMDEditor::saveAsImpl(std::string path) {
