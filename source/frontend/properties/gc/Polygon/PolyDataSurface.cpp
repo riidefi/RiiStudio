@@ -1,11 +1,16 @@
 #include "PolyDataSurface.hpp"
 
+#include <imcxx/Widgets.hpp>
+
 namespace libcube::UI {
 
 using namespace librii;
 
 void drawProperty(kpi::PropertyDelegate<libcube::IndexedPolygon>& dl,
                   PolyDataSurface) {
+  // ImGui::PushStyleVar(ImGuiStyleVar_TableAngledHeadersAngle, 15.0f * 2.0f * 3.1415926535 / 360.0f);
+  // Defer defer([&]() { ImGui::PopStyleVar(); });
+
   auto& poly = dl.getActive();
   auto& desc = poly.getVcd();
   auto& mesh_data = poly.getMeshData();
@@ -69,23 +74,36 @@ void drawProperty(kpi::PropertyDelegate<libcube::IndexedPolygon>& dl,
         ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
         ImGuiTableFlags_Sortable;
     if (ImGui::BeginTable("Vertex data"_j, 2 + attrib_cnt, table_flags)) {
-      u32 q = 0;
-      ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+      ImGui::TableSetupColumn("Primitive Index"_j
+#ifdef WIP_ANGLED_HEADERS
+                              , ImGuiTableColumnFlags_AngledHeader
+#endif
+      );
+      ImGui::TableSetupColumn("Vertex Index"_j
+#ifdef WIP_ANGLED_HEADERS
+                              , ImGuiTableColumnFlags_AngledHeader
+#endif
+      );
 
-      ImGui::TableSetColumnIndex(0);
-      ImGui::TextUnformatted("Primitive Index"_j);
-      ImGui::TableSetColumnIndex(1);
-      ImGui::TextUnformatted("Vertex Index"_j);
+      u32 q = 0;
       for (auto& e : poly.getVcd().mAttributes) {
         if (e.second == gx::VertexAttributeType::None)
           continue;
 
-        ImGui::TableSetColumnIndex(2 + q);
-
         int type = static_cast<int>(e.first);
-        ImGui::TextUnformatted(vertexAttribNamesArray[type]);
+        ImGui::TableSetupColumn(vertexAttribNamesArray[type]
+#ifdef WIP_ANGLED_HEADERS
+                                , ImGuiTableColumnFlags_AngledHeader
+#endif
+        );
         ++q;
       }
+
+#ifdef WIP_ANGLED_HEADERS
+      ImGui::TableAngledHeadersRow();
+#endif
+      ImGui::TableHeadersRow();
+
       static const std::array<std::string, 8> prim_types{
           "Quads"_j,        "QuadStrips"_j, "Triangles"_j,  "TriangleStrips"_j,
           "TriangleFans"_j, "Lines"_j,      "LineStrips"_j, "Points"_j};
