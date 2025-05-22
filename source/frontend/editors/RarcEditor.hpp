@@ -81,6 +81,12 @@ public:
   void draw_() override {
     setName("RARC Editor: " + m_path);
     m_sheet.Draw([&]() { m_grid.Draw(m_rarc, this); });
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_Repeat)) {
+      saveButton();
+    } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
+                               ImGuiInputFlags_Repeat)) {
+      saveAsButton();
+    }
   }
   ImGuiID buildDock(ImGuiID root_id) override {
     // ImGui::DockBuilderDockWindow("Properties", root_id);

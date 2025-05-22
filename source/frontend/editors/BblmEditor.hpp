@@ -49,6 +49,12 @@ public:
     setName("BBLM Editor: " + m_path);
     m_sheet.Draw([&]() { m_grid.Draw(); });
     m_history.update(m_grid.m_blm);
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_Repeat)) {
+      saveButton();
+    } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
+                               ImGuiInputFlags_Repeat)) {
+      saveAsButton();
+    }
   }
   ImGuiID buildDock(ImGuiID root_id) override {
     // ImGui::DockBuilderDockWindow("Properties", root_id);

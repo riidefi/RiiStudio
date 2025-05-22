@@ -375,6 +375,13 @@ public:
     ImGui::End();
 
     // m_history.update(m_jpa);
+
+	if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_Repeat)) {
+      saveButton();
+    } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
+                               ImGuiInputFlags_Repeat)) {
+      saveAsButton();
+    }
   }
 
   ImGuiID buildDock(ImGuiID root_id) override {

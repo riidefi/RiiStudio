@@ -280,6 +280,12 @@ void BRRESEditor::draw_() {
   } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y,
                              ImGuiInputFlags_Repeat)) {
     mHistory.redo(*mRoot, mSelection);
+  } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S,
+                             ImGuiInputFlags_Repeat)) {
+    saveButton();
+  } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
+                             ImGuiInputFlags_Repeat)) {
+    saveAsButton();
   }
 }
 
@@ -430,6 +436,12 @@ void BMDEditor::draw_() {
   } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y,
                              ImGuiInputFlags_Repeat)) {
     mHistory.redo(*mRoot, mSelection);
+  } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S,
+                             ImGuiInputFlags_Repeat)) {
+    saveButton();
+  } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
+                             ImGuiInputFlags_Repeat)) {
+    saveAsButton();
   }
 }
 void BMDEditor::saveAsImpl(std::string path) {

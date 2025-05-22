@@ -264,11 +264,13 @@ void RootWindow::drawFileMenu() {
       mFileHost.openFile();
     }
 #endif
-    if (ImGui::MenuItem("Save"_j)) {
+    auto saveStr = "Save"_j + std::string(" (Ctrl+S)");
+    if (ImGui::MenuItem(saveStr.c_str())) {
       saveButton();
     }
 #if !defined(__EMSCRIPTEN__)
-    if (ImGui::MenuItem("Save As"_j)) {
+    auto saveAsStr = "Save As"_j + std::string(" (Ctrl+Shift+S)");
+    if (ImGui::MenuItem(saveAsStr.c_str())) {
       saveAsButton();
     }
 #endif
