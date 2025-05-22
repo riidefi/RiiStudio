@@ -167,11 +167,18 @@ static int WriteMatchToFile(Yaz_file_struct* file) {
 }
 
 static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
+  u32 copyLen = file->byteShifterRemaining + 1;
+  int iVar7 = file->iteration;
+  u32 uVar17 = iVar7 + 1;
+  file->iteration++;
+  file->byteShifterRemaining = copyLen;
+  file->field5_0x1010 = value << 0x18 | file->field5_0x1010 >> 0x8;
+  if (copyLen < 0x3) {
+    return value;
+  }
   bool bVar1;
-  u32 copyLen;
   u32 uVar3;
   u32 hh;
-  int iVar7;
   short sVar8;
   u32 uVar9;
   u32 uVar11;
@@ -180,18 +187,8 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
   u16* puVar14;
   u16* puVar15;
   u32 uVar16;
-  u32 uVar17;
   u16* puVar18;
   u16 res;
-  copyLen = file->byteShifterRemaining + 1;
-  iVar7 = file->iteration;
-  uVar17 = iVar7 + 1;
-  file->iteration = uVar17;
-  file->byteShifterRemaining = copyLen;
-  file->field5_0x1010 = value << 0x18 | file->field5_0x1010 >> 0x8;
-  if (copyLen < 0x3) {
-    return value;
-  }
   if (0x6 < iVar7 + -0xffe) {
     puVar18 = file->hashMap;
     uVar9 = file->field7_0x1018;
