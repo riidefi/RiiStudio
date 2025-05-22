@@ -672,6 +672,21 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           if (ImGui::BeginTabItem("Mapping (Advanced Version)"_j)) {
             if (ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
+              if (ImGui::BeginChild(
+                      "HelpBox1",
+                      ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f),
+                      true, ImGuiWindowFlags_NoScrollbar)) {
+                ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f),
+                                   (const char*)ICON_FA_BOOK_OPEN);
+                ImGui::SameLine();
+                ImGui::Text("Documentation (Developer): ");
+                ImGui::SameLine();
+                ImGui::TextLinkOpenURL(
+                    "GXSetTexCoordGen2 (libogc)",
+                    "https://libogc.devkitpro.org/"
+                    "gx_8h.html#a55a426a3ff796db584302bddd829f002");
+              }
+              ImGui::EndChild();
               librii::hx::TexGenType hx_tg =
                   librii::hx::elevateTexGenType(tg.func);
 
@@ -714,8 +729,24 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
               AUTO_PROP(texGens[i].sourceParam, src);
             }
             if (tm != nullptr &&
-                ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
+                ImGui::CollapsingHeader("Mapping Method",
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
+              if (ImGui::BeginChild(
+                      "HelpBox2",
+                      ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f),
+                      true, ImGuiWindowFlags_NoScrollbar)) {
+                ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f),
+                                   (const char*)ICON_FA_BOOK_OPEN);
+                ImGui::SameLine();
+                ImGui::Text("Documentation (Developer): ");
+                ImGui::SameLine();
+                ImGui::TextLinkOpenURL(
+                    "nw4r::g3d::detail::ScnDependentMtxFunc (ogws decomp)",
+                    "https://github.com/kiwi515/ogws/blob/master/src/nw4r/g3d/"
+                    "g3d_state.cpp#L15");
+              }
+              ImGui::EndChild();
+
               // TODO: Effect matrix
               {
                 auto xfmodel = DrawCommXModel(tm->transformModel, is_j3d);
