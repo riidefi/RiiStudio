@@ -155,7 +155,7 @@ checksum = "3b59fc5417e036e53226bbebd90196825d358624fd5577432c4e486c95b1b096"
 [[package]]
 name = "wbz_converter"
 version = "0.1.0"
-source = "git+https://github.com/GnomedDev/wbz-to-szs-rs#ec67461eb06d233f15268bfaa4847e0a732801d2"
+source = "git+https://github.com/riidefi/wbz-to-szs-rs#4b795212b8c446ac65726975670cea208028833d"
 dependencies = [
  "arrayvec",
  "bzip2",

@@ -7,5 +7,5 @@ edition = "2018"
 crate-type=["staticlib","cdylib"]
 
 [dependencies]
-wbz_converter = { git = "https://github.com/GnomedDev/wbz-to-szs-rs" }
+wbz_converter = { git = "https://github.com/riidefi/wbz-to-szs-rs" }
 libc = "0.2"

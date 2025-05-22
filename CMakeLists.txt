@@ -166,7 +166,11 @@ if (NOT EMSCRIPTEN)
   corrosion_import_crate(MANIFEST_PATH source/c-discord-rich-presence/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 endif()
 # Annoying because bzip2
-corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES cdylib FLAGS --crate-type=cdylib)
+else()
+  corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
+endif()
 corrosion_import_crate(MANIFEST_PATH source/cli/rszst_arg_parser/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 
 if (NOT(CMAKE_BUILD_TYPE STREQUAL "Debug"))
