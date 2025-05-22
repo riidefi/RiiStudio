@@ -79,14 +79,11 @@ template <typename T> struct AutoHistory {
       commit_posted = false;
     }
 
-    // TODO: Only affect active window
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
-                        ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteAlways)) {
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_Repeat)) {
       UndoHistory(history_cursor, mKmpHistory);
       kmp = mKmpHistory[history_cursor];
     } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y,
-                               ImGuiInputFlags_Repeat |
-                                   ImGuiInputFlags_RouteAlways)) {
+                               ImGuiInputFlags_Repeat)) {
       RedoHistory(history_cursor, mKmpHistory);
       kmp = mKmpHistory[history_cursor];
     }

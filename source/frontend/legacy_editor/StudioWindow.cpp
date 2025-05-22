@@ -1,5 +1,7 @@
 #include "StudioWindow.hpp"
 
+#include "imgui/imgui_internal.h"
+
 namespace riistudio::frontend {
 
 StudioWindow::StudioWindow(const std::string& name, DockSetting dockspace)
@@ -42,13 +44,13 @@ void StudioWindow::drawDockspace() {
   const ImGuiID dockspaceId = ImGui::GetID(idIfyChild("###DockSpace").c_str());
   if (!ImGui::DockBuilderGetNode(dockspaceId)) {
     ImGui::DockBuilderRemoveNode(dockspaceId);
-    ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_None);
+    ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockedWindowsInFocusRoute);
 
     buildDock(dockspaceId);
 
     ImGui::DockBuilderFinish(dockspaceId);
   }
-  ImGui::DockSpace(dockspaceId, {}, ImGuiDockNodeFlags_PassthruCentralNode,
+  ImGui::DockSpace(dockspaceId, {}, ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_DockedWindowsInFocusRoute,
                    getWindowClass());
 }
 

@@ -275,13 +275,10 @@ void BRRESEditor::draw_() {
 
   mRenderTest->draw();
 
-  // TODO: Only affect active window
-  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
-                      ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteAlways)) {
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_Repeat)) {
     mHistory.undo(*mRoot, mSelection);
   } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y,
-                             ImGuiInputFlags_Repeat |
-                                 ImGuiInputFlags_RouteAlways)) {
+                             ImGuiInputFlags_Repeat)) {
     mHistory.redo(*mRoot, mSelection);
   }
 }
@@ -428,13 +425,10 @@ void BMDEditor::draw_() {
 
   mRenderTest->draw();
 
-  // TODO: Only affect active window
-  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
-                      ImGuiInputFlags_Repeat | ImGuiInputFlags_RouteAlways)) {
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_Repeat)) {
     mHistory.undo(*mRoot, mSelection);
   } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y,
-                             ImGuiInputFlags_Repeat |
-                                 ImGuiInputFlags_RouteAlways)) {
+                             ImGuiInputFlags_Repeat)) {
     mHistory.redo(*mRoot, mSelection);
   }
 }
