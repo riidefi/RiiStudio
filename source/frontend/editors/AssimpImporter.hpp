@@ -15,7 +15,7 @@ namespace riistudio::frontend {
 
 class AssimpEditorPropertyGrid {
 public:
-  void Draw(librii::assimp2rhst::Settings& x);
+  void Draw(librii::assimp2rhst::Settings& x, bool& tristrip);
 };
 
 class AssimpImporter : public frontend::StudioWindow {
@@ -75,7 +75,7 @@ private:
       };
       auto mips = getMips();
       bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_path, info,
-                                             progress, mips);
+                                             progress, mips, tristrip);
       // We can trust the UI thread will not write to this when in ::Waiting
       if (!ok) {
         m_err = "Failed to convert to BRRES/BMD.";
@@ -109,6 +109,7 @@ private:
   AssimpEditorPropertyGrid m_grid;
   std::string m_path;
   librii::assimp2rhst::Settings m_settings;
+  bool tristrip = true;
   State m_state = State::PickFormat;
   std::unique_ptr<libcube::Scene> m_result = nullptr;
   // .brres, .bmd

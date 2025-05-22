@@ -7,13 +7,18 @@
 
 namespace riistudio::frontend {
 
-void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx) {
-  if (ImGui::BeginChild("HelpBox", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f), true, ImGuiWindowFlags_NoScrollbar)) {
-    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), (const char*)ICON_FA_BOOK_OPEN);
+void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx,
+                                    bool& tristrip) {
+  if (ImGui::BeginChild("HelpBox",
+                        ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f),
+                        true, ImGuiWindowFlags_NoScrollbar)) {
+    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f),
+                       (const char*)ICON_FA_BOOK_OPEN);
     ImGui::SameLine();
     ImGui::Text("Documentation: ");
     ImGui::SameLine();
-    ImGui::TextLinkOpenURL("https://wiki.tockdom.com/wiki/Creating_a_BRRES_with_RiiStudio#RiiStudio");
+    ImGui::TextLinkOpenURL("https://wiki.tockdom.com/wiki/"
+                           "Creating_a_BRRES_with_RiiStudio#RiiStudio");
   }
   ImGui::EndChild();
 
@@ -102,6 +107,19 @@ void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx) {
   if (ImGui::CollapsingHeader(
           (const char*)ICON_FA_PROJECT_DIAGRAM u8" Mesh Settings",
           ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::BeginChild(
+            "HelpBox2", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f),
+            true, ImGuiWindowFlags_NoScrollbar)) {
+      ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f),
+                         (const char*)ICON_FA_BOOK_OPEN);
+      ImGui::SameLine();
+      ImGui::Text("Documentation (Developer): ");
+      ImGui::SameLine();
+      ImGui::TextLinkOpenURL("postprocess.h (assimp)",
+                             "https://github.com/assimp/assimp/blob/master/"
+                             "include/assimp/postprocess.h#L396");
+    }
+    ImGui::EndChild();
     // aiProcess_FindDegenerates - TODO
     ImGui::CheckboxFlags("Remove degenerate triangles"_j, &ctx.mAiFlags,
                          aiProcess_FindDegenerates);
@@ -145,6 +163,26 @@ void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx) {
     ImGui::CheckboxFlags((const char*)ICON_FA_PAINT_BRUSH u8" Materials",
                          &ctx.mDataToInclude, aiComponent_MATERIALS);
   }
+  if (ImGui::CollapsingHeader(
+          (const char*)ICON_FA_PROJECT_DIAGRAM u8" Mesh Optimization",
+          ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::BeginChild(
+            "HelpBox3", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f),
+            true, ImGuiWindowFlags_NoScrollbar)) {
+      ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f),
+                         (const char*)ICON_FA_BOOK_OPEN);
+      ImGui::SameLine();
+      ImGui::Text("Documentation (Developer): ");
+      ImGui::SameLine();
+      ImGui::TextLinkOpenURL(
+          "https://wiki.tockdom.com/wiki/"
+          "Creating_a_BRRES_with_RiiStudio#Technical_Explanation");
+    }
+    ImGui::EndChild();
+    ImGui::Checkbox(
+        (const char*)ICON_FA_PROJECT_DIAGRAM u8" Triangle Strip Meshes?",
+        &tristrip);
+  }
 }
 
 void AssimpImporter::draw_() {
@@ -168,7 +206,7 @@ void AssimpImporter::draw_() {
   if (m_state == State::Settings) {
     auto h = ImGui::GetContentRegionAvail().y;
     if (ImGui::BeginChild("SW", ImVec2{0.0f, h - 26.0f})) {
-      m_grid.Draw(m_settings);
+      m_grid.Draw(m_settings, tristrip);
       ImGui::EndChild();
     }
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
