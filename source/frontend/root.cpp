@@ -258,9 +258,13 @@ void RootWindow::drawSettingsMenu() {
   }
 }
 void RootWindow::drawFileMenu() {
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_Repeat)) {
+    mFileHost.openFile();
+  }
   if (ImGui::BeginMenu("File"_j)) {
 #if !defined(__EMSCRIPTEN__)
-    if (ImGui::MenuItem("Open"_j)) {
+    auto openStr = "Open"_j + std::string(" (Ctrl+O)");
+    if (ImGui::MenuItem(openStr.c_str())) {
       mFileHost.openFile();
     }
 #endif
