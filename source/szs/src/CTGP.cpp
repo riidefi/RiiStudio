@@ -12,6 +12,7 @@
 #define WINDOW_SIZE 0x1000
 #define HASH_MAP_SIZE 0x4000
 
+#define MIN_SZS_RUNLENGTH 3
 #define MAX_SZS_SMALL_RUNLENGTH 0x11
 #define MAX_SZS_RUNLENGTH 0x111
 
@@ -167,13 +168,14 @@ static int WriteMatchToFile(Yaz_file_struct* file) {
 }
 
 static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
+  // Gather lookahead
   u32 copyLen = file->lookAheadBytes + 1;
   int iVar7 = file->bytesProcessed;
   u32 uVar17 = iVar7 + 1;
   file->bytesProcessed++;
   file->lookAheadBytes = copyLen;
   file->lookAhead = value << 0x18 | file->lookAhead >> 0x8;
-  if (copyLen < 0x3) {
+  if (copyLen < MIN_SZS_RUNLENGTH) { // = 3
     return value;
   }
   bool bVar1;
@@ -187,10 +189,10 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
   u16* puVar14;
   u16* puVar15;
   u32 uVar16;
-  u16* puVar18;
   u16 res;
-  if (0x6 < iVar7 + -0xffe) {
-    puVar18 = file->hashMap;
+
+  // Once we have exhausted the window we need to refresh it
+  if (iVar7 > 4100) {
     uVar9 = file->hashVacancies;
     copyLen = file->windowPos + 0x1 & 0xfff;
     hh = (u32)file->window[copyLen + 0x1 & 0xfff] << 0x8 |
@@ -207,7 +209,7 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
       iVar7 = iVar7 + -1;
       assert(iVar7 != 0);
       uVar11 = uVar11 + 1 & 0x3fff;
-      res = puVar18[uVar11];
+      res = file->hashMap[uVar11];
     }
     sVar8 = 1;
     iVar7 = 0x4;
@@ -229,10 +231,12 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
     file->hashMap[uVar11] = 0x8000;
   LAB_807eb550:
     file->hashVacancies = uVar9;
-    if (0x555 < uVar9) {
+    
+    // "de-vacuum" hash table
+    if (file->hashVacancies > 0x555) {
       memset(&file->hashMeta, 0xff, 0x8000);
       copyLen = 0x0;
-      puVar13 = puVar18;
+      puVar13 = file->hashMap;
       do {
         if (((*puVar13 & 0x8000) != 0x0) &&
             (uVar17 = copyLen, (*puVar13 & 0x4000) == 0x0)) {
@@ -240,7 +244,7 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
             uVar17 = uVar17 + 1 & 0x3fff;
             puVar14 = puVar13;
             uVar11 = copyLen;
-          } while ((short)puVar18[uVar17] < 0x0);
+          } while ((short)file->hashMap[uVar17] < 0x0);
           do {
             *puVar14 = 0x0;
             file->hashMeta[uVar11] = 0xffff;
@@ -252,8 +256,8 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
                   assert(*puVar14 == 0x0);
                   goto LAB_807eb594;
                 }
-                res = puVar18[uVar9];
-                puVar15 = puVar18 + uVar9;
+                res = file->hashMap[uVar9];
+                puVar15 = file->hashMap + uVar9;
                 assert((res & 0x8000) != 0x0);
               } while ((res & 0x4000) == 0x0);
               hh = file->hashMeta[uVar9];
@@ -283,9 +287,10 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
         copyLen = copyLen + 1;
       } while (bVar1);
       uVar17 = file->bytesProcessed;
-      file->hashVacancies = 0x0;
+      file->hashVacancies = 0;
     }
   }
+  // Handle other triple
   if (0x9 < uVar17) {
     uVar9 = file->hashVacancies;
     copyLen = file->windowPos - 3 & 0xfff;
@@ -323,6 +328,7 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
   }
   iVar7 = file->matchPos;
   if (iVar7 != -1) {
+    // Try to extend match
     if ((file->lookAhead >> 0x8 & 0xff) == (u32)file->window[iVar7]) {
       copyLen = file->windowPos;
       file->window[copyLen] = (u8)(file->lookAhead >> 0x8);
