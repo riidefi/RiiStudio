@@ -261,7 +261,6 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
 
   // Once we have exhausted the window we need to refresh it
   if (iVar7 > 4100) {
-    uVar9 = file->hashVacancies;
     copyLen = file->windowPos + 0x1 & 0xfff;
     hh = (u32)file->window[copyLen + 0x1 & 0xfff] << 0x8 |
          (u32)file->window[copyLen + 0x2 & 0xfff] << 0x10 |
@@ -295,17 +294,14 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
       sVar8 = sVar8 + 0x1;
       iVar7 = iVar7 + -0x1;
     } while (iVar7 != 0x0);
-    uVar9 = uVar9 + 0x1;
+    file->hashVacancies++;
     file->hashMap[uVar11] = 0x8000;
-  LAB_807eb550:
-    file->hashVacancies = uVar9;
-    
+  LAB_807eb550:    
     // "de-vacuum" hash table
     devacuumHashTable(file);
   }
   // Handle other triple
   if (0x9 < uVar17) {
-    uVar9 = file->hashVacancies;
     copyLen = file->windowPos - 3 & 0xfff;
     uVar11 = (u32)file->window[(copyLen + 1) % WINDOW_SIZE] << 0x8 |
              (u32)file->window[(copyLen + 2) % WINDOW_SIZE] << 0x10 |
@@ -335,23 +331,21 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
       }
     }
     file->hashMap[uVar17] = (u16)copyLen | 0xc000;
-    uVar9 = uVar9 - (res >> 0xf);
+    file->hashVacancies = file->hashVacancies - (res >> 0xf);
   LAB_807eb78c:
-    file->hashVacancies = uVar9;
+    ;
   }
-  iVar7 = file->matchPos;
-  if (iVar7 != -1) {
+  if (file->matchPos != -1) {
     // Try to extend match
-    if ((file->lookAhead >> 0x8 & 0xff) == (u32)file->window[iVar7]) {
+    if ((file->lookAhead >> 0x8 & 0xff) == (u32)file->window[file->matchPos]) {
       copyLen = file->windowPos;
       file->window[copyLen] = (u8)(file->lookAhead >> 0x8);
       copyLen = copyLen + 1 & 0xfff;
       file->windowPos = copyLen;
       file->lookAheadBytes = file->lookAheadBytes - 1;
-      uVar17 = iVar7 + 1U & 0xfff;
-      file->matchPos = uVar17;
+      file->matchPos = (u32)(file->matchPos + 1U & 0xfff);
       file->matchLen = file->matchLen + 1;
-      assert(file->matchDist == ((copyLen - 1) - uVar17 & 0xfff));
+      assert(file->matchDist == ((copyLen - 1) - file->matchPos & 0xfff));
       return value;
     }
     if (WriteMatchToFile(file) != 0) {
