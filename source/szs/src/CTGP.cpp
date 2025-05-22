@@ -324,49 +324,33 @@ static void handleOtherTriple(Yaz_file_struct* file) {
 
 static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
   // Gather lookahead
-  u32 copyLen = file->lookAheadBytes + 1;
-  int iVar7 = file->bytesProcessed;
-  u32 uVar17 = iVar7 + 1;
+  int old_bytes_processed = file->bytesProcessed;
   file->bytesProcessed++;
-  file->lookAheadBytes = copyLen;
+  file->lookAheadBytes = file->lookAheadBytes + 1;
   file->lookAhead = value << 0x18 | file->lookAhead >> 0x8;
-  if (copyLen < MIN_SZS_RUNLENGTH) { // = 3
+  if (file->lookAheadBytes < MIN_SZS_RUNLENGTH) { // = 3
     return value;
   }
-  bool bVar1;
-  u32 uVar3;
-  u32 hh;
-  short sVar8;
-  u32 uVar9;
-  u32 uVar11;
-  u32 uVar12;
-  u16* puVar13;
-  u16* puVar14;
-  u16* puVar15;
-  u32 uVar16;
-  u16 res;
 
   // Once we have exhausted the window we need to refresh it
-  if (iVar7 > 4100) {
+  if (old_bytes_processed > 4100) {
     refreshWindow(file);
     // "de-vacuum" hash table
     devacuumHashTable(file);
   }
   // Handle other triple
-  if (0x9 < uVar17) {
+  if (file->bytesProcessed > 9) {
     handleOtherTriple(file);
   }
   if (file->matchPos != -1) {
     // Try to extend match
     if ((file->lookAhead >> 0x8 & 0xff) == (u32)file->window[file->matchPos]) {
-      copyLen = file->windowPos;
-      file->window[copyLen] = (u8)(file->lookAhead >> 0x8);
-      copyLen = copyLen + 1 & 0xfff;
-      file->windowPos = copyLen;
+      file->window[file->windowPos] = (u8)(file->lookAhead >> 0x8);
+      file->windowPos = file->windowPos + 1 & 0xfff;
       file->lookAheadBytes = file->lookAheadBytes - 1;
       file->matchPos = (u32)(file->matchPos + 1U & 0xfff);
       file->matchLen = file->matchLen + 1;
-      assert(file->matchDist == ((copyLen - 1) - file->matchPos & 0xfff));
+      assert(file->matchDist == ((file->windowPos - 1) - file->matchPos & 0xfff));
       return value;
     }
     if (WriteMatchToFile(file) != 0) {
