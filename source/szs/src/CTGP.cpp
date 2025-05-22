@@ -208,8 +208,6 @@ static void devacuumHashTable(Yaz_file_struct* file) {
   /* 2.  Mark every entry in the metadata cache as "unknown." */
   memset(&file->hashMeta, 0xff, 0x8000);
 
-  u32 i = 0;
-  bool bVar1;
   u32 uVar9;
   u32 uVar11;
   u32 uVar17;
@@ -221,7 +219,7 @@ static void devacuumHashTable(Yaz_file_struct* file) {
   /* 3.  Sweep each bucket.  Whenever we encounter the head of a probe
            cluster, we compress it by repeatedly pulling live elements
            leftward into the nearest hole. */
-  do {
+  for (u32 i = 0; i != 0x3fff+1; ++i) {
     /* Only start vacuumming from the first live element in a cluster. */
     if ((isEverUsed(file->hashMap[i]) != 0x0) &&
         (uVar17 = i, !isTombstone(file->hashMap[i]))) {
@@ -280,9 +278,8 @@ static void devacuumHashTable(Yaz_file_struct* file) {
       } while (true);
     }
   CONTINUE_LOOP:
-    bVar1 = i != 0x3fff;
-    ++i;
-  } while (bVar1);
+    ;
+  }
 
   /* 4.  All tomb-stones eliminated--reset the counter. */
   file->hashVacancies = 0;
