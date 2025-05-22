@@ -10,6 +10,7 @@
 #include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/data/ModelData.hpp>
 #include <librii/g3d/data/VertexData.hpp>
+#include <librii/g3d/io/AnimClrIO.hpp>
 #include <librii/gx.h>
 #include <plugins/gc/Export/Scene.hpp>
 #include <tuple>
@@ -83,6 +84,19 @@ struct SRT0 : public librii::g3d::SrtAnim, public virtual kpi::IObject {
   }
   SRT0& operator=(const SRT0& rhs) {
     static_cast<librii::g3d::SrtAnim&>(*this) = rhs;
+    return *this;
+  }
+
+  std::string getName() const { return name; }
+  void setName(const std::string& _name) { name = _name; }
+};
+
+struct CLR0 : public librii::g3d::ClrAnim, public virtual kpi::IObject {
+  bool operator==(const CLR0& rhs) const {
+    return static_cast<const librii::g3d::ClrAnim&>(*this) == rhs;
+  }
+  CLR0& operator=(const CLR0& rhs) {
+    static_cast<librii::g3d::ClrAnim&>(*this) = rhs;
     return *this;
   }
 

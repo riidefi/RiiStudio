@@ -129,7 +129,6 @@ public:
 
 struct SceneData {
     std::vector<librii::g3d::ChrAnim> chrs;
-    std::vector<librii::g3d::ClrAnim> clrs;
     std::vector<librii::g3d::PatAnim> pats;
     std::vector<librii::g3d::BinaryVis> viss;
     std::string path;
@@ -147,9 +146,11 @@ class Collection
     kpi::MutCollectionRange<Model> getModels() { return { &mModels }; }
     kpi::MutCollectionRange<Texture> getTextures() { return { &mTextures }; }
     kpi::MutCollectionRange<SRT0> getAnim_Srts() { return { &mAnim_Srts }; }
+    kpi::MutCollectionRange<CLR0> getAnim_Clrs() { return { &mAnim_Clrs }; }
     kpi::ConstCollectionRange<Model> getModels() const { return { &mModels }; }
     kpi::ConstCollectionRange<Texture> getTextures() const { return { &mTextures }; }
     kpi::ConstCollectionRange<SRT0> getAnim_Srts() const { return { &mAnim_Srts }; }
+    kpi::ConstCollectionRange<CLR0> getAnim_Clrs() const { return { &mAnim_Clrs }; }
 
 	librii::g3d::Archive toLibRii() const;
 
@@ -157,15 +158,18 @@ protected:
     kpi::ICollection* v_getModels() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mModels)); }
     kpi::ICollection* v_getTextures() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mTextures)); }
     kpi::ICollection* v_getAnim_Srts() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mAnim_Srts)); }
+    kpi::ICollection* v_getAnim_Clrs() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mAnim_Clrs)); }
     void onRelocate() {
         mModels.onParentMoved(this);
         mTextures.onParentMoved(this);
         mAnim_Srts.onParentMoved(this);
+        mAnim_Clrs.onParentMoved(this);
     }
     Collection(Collection&& rhs) {
         new (&mModels) decltype(mModels) (std::move(rhs.mModels));
         new (&mTextures) decltype(mTextures) (std::move(rhs.mTextures));
         new (&mAnim_Srts) decltype(mAnim_Srts) (std::move(rhs.mAnim_Srts));
+        new (&mAnim_Clrs) decltype(mAnim_Clrs) (std::move(rhs.mAnim_Clrs));
 
         onRelocate();
     }
@@ -173,6 +177,7 @@ protected:
         new (&mModels) decltype(mModels) (rhs.mModels);
         new (&mTextures) decltype(mTextures) (rhs.mTextures);
         new (&mAnim_Srts) decltype(mAnim_Srts) (rhs.mAnim_Srts);
+        new (&mAnim_Clrs) decltype(mAnim_Clrs) (rhs.mAnim_Clrs);
 
         onRelocate();
     }
@@ -191,6 +196,7 @@ private:
     kpi::CollectionImpl<Model> mModels{this};
     kpi::CollectionImpl<Texture> mTextures{this};
     kpi::CollectionImpl<SRT0> mAnim_Srts{this};
+    kpi::CollectionImpl<CLR0> mAnim_Clrs{this};
 
 public:
     struct _Memento : public kpi::IMemento {
@@ -198,12 +204,14 @@ public:
         kpi::ConstPersistentVec<Model> mModels;
         kpi::ConstPersistentVec<Texture> mTextures;
         kpi::ConstPersistentVec<SRT0> mAnim_Srts;
+        kpi::ConstPersistentVec<CLR0> mAnim_Clrs;
         template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
             const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
             sd = static_cast<const SceneData&>(_new);
             kpi::nextFolder(this->mModels, _new.getModels(), old ? &old->mModels : nullptr);
             kpi::nextFolder(this->mTextures, _new.getTextures(), old ? &old->mTextures : nullptr);
             kpi::nextFolder(this->mAnim_Srts, _new.getAnim_Srts(), old ? &old->mAnim_Srts : nullptr);
+            kpi::nextFolder(this->mAnim_Clrs, _new.getAnim_Clrs(), old ? &old->mAnim_Clrs : nullptr);
         }
     };
     std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const {
@@ -216,6 +224,7 @@ public:
         kpi::fromFolder(getModels(), in->mModels);
         kpi::fromFolder(getTextures(), in->mTextures);
         kpi::fromFolder(getAnim_Srts(), in->mAnim_Srts);
+        kpi::fromFolder(getAnim_Clrs(), in->mAnim_Clrs);
     }
     template<typename T> void* operator=(const T& rhs) { from(rhs); return this; }
 };

@@ -4,6 +4,7 @@
 
 #include <frontend/properties/g3d/G3dSrtView.hpp>
 #include <frontend/properties/g3d/G3dUi.hpp>
+#include <frontend/properties/g3d/G3dUniformAnimView.hpp>
 #include <frontend/properties/g3d/G3dVertexColorView.hpp>
 #include <frontend/properties/gc/Bone/BoneDisplaySurface.hpp>
 #include <frontend/properties/gc/Bone/BoneTransformSurface.hpp>
@@ -106,6 +107,10 @@ struct G3dMdlViews {
 };
 struct J3dMdlViews {
   riistudio::j3d::ui::ModelJ3DSurface ms;
+};
+
+struct G3dUniformAnimViews {
+  riistudio::g3d::G3dUniformAnimDataSurface data;
 };
 
 // TODO:

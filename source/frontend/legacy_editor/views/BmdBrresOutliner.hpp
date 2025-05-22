@@ -276,22 +276,17 @@ static inline std::vector<Node> CollectNodes(g3d::Collection* g3d,
     };
     result.push_back(n);
   }
-  auto add_new_clr0 = [pG = g3d]() {
-    auto& x = pG->clrs.emplace_back();
-    x.name = "Untitled CLR0";
-  };
-  result.push_back(HeaderBarImpl("clr0", 1, g3d->clrs.size(), nullptr,
-                                 add_new_clr0, nullptr));
-  for (int i = 0; i < g3d->clrs.size(); ++i) {
-    auto& tex = g3d->clrs[i];
+  result.push_back(HeaderBar("clr0", 1, g3d->getAnim_Clrs().low, outliner));
+  for (int i = 0; i < g3d->getAnim_Clrs().size(); ++i) {
+    auto& clr = g3d->getAnim_Clrs()[i];
     Node n{
         .indent = 2,
         .rti = richtypes["clr0"],
-        .icons_right = {},
-        .draw_context_menu_fn = nullptr,
-        .draw_modal_fn = nullptr,
-        .public_name = tex.name,
-        .obj = nullptr,
+        .icons_right = GetNodeIcons(clr),
+        .draw_context_menu_fn = CtxDraw(&clr),
+        .draw_modal_fn = ModalDraw(&clr),
+        .public_name = clr.name,
+        .obj = &clr,
         .is_container = false,
         .is_rich = true,
         .display_id_relative_to_parent = static_cast<int>(i),

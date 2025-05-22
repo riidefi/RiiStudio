@@ -12,6 +12,7 @@ struct BrresBmdPropEdit {
   riistudio::G3dTexViews mG3dTexView;
   riistudio::G3dVcViews mG3dVcView;
   riistudio::G3dSrtViews mG3dSrtView;
+  riistudio::G3dUniformAnimViews mG3dUniformAnimView;
 
   riistudio::J3dMdlViews mJ3dMdlView;
   riistudio::J3dMaterialViews mJ3dMatView;
@@ -67,6 +68,10 @@ struct BrresBmdPropEdit {
     auto* j3tex = dynamic_cast<j3d::Texture*>(node);
     if (j3tex != nullptr) {
       return Views_TabTitles(mG3dTexView);
+    }
+    auto* g3dclr = dynamic_cast<riistudio::g3d::CLR0*>(node);
+    if (g3dclr != nullptr) {
+      return Views_TabTitles(mG3dUniformAnimView);
     }
     return {};
   }
@@ -129,6 +134,11 @@ struct BrresBmdPropEdit {
     auto* j3tex = dynamic_cast<j3d::Texture*>(node);
     if (j3tex != nullptr) {
       Views_TabTitleFancy(mG3dTexView, index);
+      return;
+    }
+    auto* g3dclr = dynamic_cast<riistudio::g3d::CLR0*>(node);
+    if (g3dclr != nullptr) {
+      Views_TabTitleFancy(mG3dUniformAnimView, index);
       return;
     }
     ImGui::Text("???");
@@ -243,6 +253,14 @@ struct BrresBmdPropEdit {
                                                 selected, drawIcon);
       auto cv = CovariantPD<j3d::Texture, libcube::Texture>::from(dl);
       auto ok = Views_Tab(mJ3dTexView, cv, index);
+      handleUpdates();
+      return ok;
+    }
+    auto* g3dclr = dynamic_cast<riistudio::g3d::CLR0*>(node);
+    if (g3dclr != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::g3d::CLR0>(
+          postUpdate, commit, g3dclr, selected, drawIcon);
+      auto ok = Views_Tab(mG3dUniformAnimView, dl, index);
       handleUpdates();
       return ok;
     }

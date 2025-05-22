@@ -106,10 +106,12 @@ Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
     static_cast<librii::g3d::SrtAnimationArchive&>(t) = new_srt;
   }
   for (auto& new_clr : anim.clr) {
-    if (auto* x = findByName2(scene->clrs, new_clr.name)) {
+    if (auto* x = scene->getAnim_Clrs().findByName(new_clr.name);
+        x != nullptr) {
       new_clr.name += "_" + std::to_string(std::rand());
     }
-    scene->clrs.emplace_back(new_clr);
+    auto& t = scene->getAnim_Clrs().add();
+    static_cast<librii::g3d::ClrAnim&>(t) = new_clr;
   }
   for (auto& new_pat : anim.pat) {
     if (auto* x = findByName2(scene->pats, new_pat.name)) {

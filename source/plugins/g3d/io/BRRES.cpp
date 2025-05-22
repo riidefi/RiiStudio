@@ -94,8 +94,10 @@ Result<void> ReadBRRES(Collection& collection, librii::g3d::Archive& archive,
     static_cast<librii::g3d::SrtAnimationArchive&>(
         collection.getAnim_Srts().add()) = srt;
   }
+  for (auto& clr : archive.clrs) {
+    static_cast<librii::g3d::ClrAnim&>(collection.getAnim_Clrs().add()) = clr;
+  }
   collection.chrs = archive.chrs;
-  collection.clrs = archive.clrs;
   collection.pats = archive.pats;
   collection.viss = archive.viss;
   return {};
@@ -147,7 +149,7 @@ librii::g3d::Archive Collection::toLibRii() const {
   librii::g3d::Archive arc{
       .textures = getTextures() | rsl::ToList<librii::g3d::TextureData>(),
       .chrs = chrs,
-      .clrs = clrs,
+      .clrs = getAnim_Clrs() | rsl::ToList<librii::g3d::ClrAnim>(),
       .pats = pats,
       .srts = getAnim_Srts() | rsl::ToList<librii::g3d::SrtAnimationArchive>(),
       .viss = viss,
