@@ -5,8 +5,7 @@ namespace libcube::UI {
 using namespace librii;
 using namespace riistudio::util;
 
-#define STATIC_STRVIEW(s)                                                      \
-  { s, sizeof(s) - 1 }
+#define STATIC_STRVIEW(s) {s, sizeof(s) - 1}
 
 std::string_view colorOpt = STATIC_STRVIEW("Register 3 Color\0"
                                            "Register 3 Alpha\0"
@@ -204,7 +203,20 @@ IndStage drawIndStage(IndStage stage) {
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("Advanced"_j)) {
-
+      if (ImGui::BeginChild(
+              "HelpBox1",
+              ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 1.5f), true,
+              ImGuiWindowFlags_NoScrollbar)) {
+        ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f),
+                           (const char*)ICON_FA_BOOK_OPEN);
+        ImGui::SameLine();
+        ImGui::Text("Documentation (Developer): ");
+        ImGui::SameLine();
+        ImGui::TextLinkOpenURL("GXSetTevIndirect (libogc)",
+                               "https://libogc.devkitpro.org/"
+                               "gx_8h.html#a00fa37cf7924a9992978ef2263ca3e3d");
+      }
+      ImGui::EndChild();
       int s = stage.indStageSel;
       ImGui::Combo("Displacement Configuration", &s,
                    "Configuration 0\0"
