@@ -167,6 +167,26 @@ static int WriteMatchToFile(Yaz_file_struct* file) {
   return 0;
 }
 
+/*****************************************************************************
+ * Compact (“vacuum”) the open‑addressed hash table used by the Yaz‑style
+ * LZ77/LZSS encoder.  It erases tomb‑stones and shifts live entries left so
+ * that probe sequences remain contiguous (Robin‑Hood deletion).
+ *
+ *  ─── Bit layout of each 16‑bit slot ──────────────────────────────────────
+ *  15 : EVER_USED   – set once the bucket has been touched (0x8000)
+ *  14 : TOMBSTONE   – set when the element was deleted      (0x4000)
+ *  13‑0 : WINDOW_POS – 14‑bit offset into the sliding window
+ *
+ *  A bucket is:
+ *     • *empty*        : EVER_USED == 0
+ *     • *live* element : EVER_USED == 1 && TOMBSTONE == 0
+ *     • *tomb‑stone*   : EVER_USED == 1 && TOMBSTONE == 1
+ ****************************************************************************/
+static inline bool isEverUsed(uint16_t v)    { return v & 0x8000; }
+static inline bool isTombstone(uint16_t v)   { return v & 0x4000; }
+static inline bool isLive(uint16_t v)        { return isEverUsed(v) && !isTombstone(v); }
+
+
 static void devacuumHashTable(Yaz_file_struct* file) {
   if (file->hashVacancies <= 0x555)
     return;
@@ -183,8 +203,8 @@ static void devacuumHashTable(Yaz_file_struct* file) {
   u32 hh;
   
   do {
-    if (((*puVar13 & 0x8000) != 0x0) &&
-        (uVar17 = copyLen, (*puVar13 & 0x4000) == 0x0)) {
+    if ((isEverUsed(*puVar13) != 0x0) &&
+        (uVar17 = copyLen, !isTombstone(*puVar13))) {
       do {
         uVar17 = uVar17 + 1 & 0x3fff;
         puVar14 = puVar13;
@@ -203,8 +223,8 @@ static void devacuumHashTable(Yaz_file_struct* file) {
             }
             res = file->hashMap[uVar9];
             puVar15 = file->hashMap + uVar9;
-            assert((res & 0x8000) != 0x0);
-          } while ((res & 0x4000) == 0x0);
+            assert(isEverUsed(res));
+          } while (!isTombstone(res));
           hh = file->hashMeta[uVar9];
           if (hh == 0xffff) {
             hh = hash1(
@@ -223,7 +243,7 @@ static void devacuumHashTable(Yaz_file_struct* file) {
         file->hashMeta[uVar9] = 0xffff;
         puVar14 = puVar15;
         uVar11 = uVar9;
-        assert((*puVar15 & 0x4000) == 0);
+        assert(!isTombstone(*puVar15));
       } while (true);
     }
   LAB_807eb594:
@@ -231,9 +251,8 @@ static void devacuumHashTable(Yaz_file_struct* file) {
     puVar13 = puVar13 + 1;
     copyLen = copyLen + 1;
   } while (bVar1);
-  uVar17 = file->bytesProcessed;
   file->hashVacancies = 0;
-} 
+}
 
 static void refreshWindow(Yaz_file_struct* file) {
   u32 copyLen;
