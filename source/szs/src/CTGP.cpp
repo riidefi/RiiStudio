@@ -343,7 +343,7 @@ static std::optional<int> HandleNewInputByte(Yaz_file_struct* file, int value) {
 }
 
 static std::optional<int> HandleResidue(Yaz_file_struct* file) {
-  while (file->matchLen != 0x0) {
+  while (file->matchLen > 0) {
     while (true) {
       assert(file->matchPos != -1);
       if (file->codeBufferIndex == 0) {
@@ -353,21 +353,18 @@ static std::optional<int> HandleResidue(Yaz_file_struct* file) {
                              WINDOW_SIZE];
         file->codeBufferLocation = 2;
         file->codeBufferIndex = 7;
-        file->codeBuffer[0] |= 0x80;
-        file->matchLen--;
-        if (file->codeBufferIndex != 0)
-          break;
+        
       } else {
         file->codeBuffer[file->codeBufferLocation] =
             file->window[(file->windowPos - file->matchLen) %
                              WINDOW_SIZE];
         file->codeBufferLocation++;
         file->codeBufferIndex--;
-        file->codeBuffer[0] |= (1 << file->codeBufferIndex);
-        file->matchLen--;
-        if (file->codeBufferIndex != 0)
-          break;
       }
+      file->codeBuffer[0] |= (1 << file->codeBufferIndex);
+      file->matchLen--;
+      if (file->codeBufferIndex != 0)
+        break;
       if (Yaz_buffer_putcode_r(file) != 0) {
         return -1;
       }
