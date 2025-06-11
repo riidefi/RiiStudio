@@ -173,9 +173,8 @@ MakeFans(std::span<const u32> index_data, u32 restart, u32 min_len,
   rsmeshopt::TriFanMeshOptimizer fan_pass;
   rsmeshopt::TriFanOptions options{min_len, max_runs};
   std::vector<u32> stripified;
-  bool ok = fan_pass.GenerateTriangleFansWithPrimitiveRestart(
-      index_data, ~0u, std::back_inserter(stripified), options);
-  EXPECT(ok);
+  TRY(fan_pass.GenerateTriangleFansWithPrimitiveRestart(
+      index_data, ~0u, std::back_inserter(stripified), options));
   return stripified;
 }
 

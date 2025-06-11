@@ -10,6 +10,8 @@
 #include <span>
 #include <vector>
 
+#include <rsl/Try.hpp>
+
 namespace rsmeshopt {
 
 // Options for TriFanMeshOptimizer
@@ -79,7 +81,7 @@ public:
   // the given type).
   // https://www.khronos.org/opengl/wiki/Vertex_Rendering#Primitive_Restart
   template <typename OutputIteratorT, typename IndexTypeT>
-  bool GenerateTriangleFansWithPrimitiveRestart(
+  Result<void> GenerateTriangleFansWithPrimitiveRestart(
       std::span<const u32> mesh, IndexTypeT primitive_restart_index,
       OutputIteratorT out_it, TriFanOptions options = {});
 
@@ -88,10 +90,16 @@ public:
   int num_fans() const { return num_fans_; }
 
 private:
-  bool Prepare(std::span<const u32> mesh, const TriFanOptions& options) {
-    assert(mesh.size() % 3 == 0);
+  Result<void> Prepare(std::span<const u32> mesh,
+                       const TriFanOptions& options) {
+    if (mesh.size() % 3 != 0) {
+      return std::unexpected(
+          "TriFanMeshOptimizer::Prepare: `mesh` is not fully triangulated "
+          "(`mesh.size() % 3` is nonzero)");
+    }
     if (MeshUtils::TriangleArrayHoldsDuplicates(mesh)) {
-      return false;
+      return std::unexpected(
+          "TriFanMeshOptimizer::Prepare: `mesh` contains duplicate triangles");
     }
     mesh_ = mesh;
     face_visited_.clear();
@@ -105,12 +113,12 @@ private:
     }
     min_fan_size_ = options.min_fan_size;
     max_runs_ = options.max_runs;
-    return true;
+    return {};
   }
 
   template <typename OutputIteratorT>
-  bool StoreFan(size_t center, std::span<const u32> fan,
-                OutputIteratorT out_it) {
+  Result<void> StoreFan(size_t center, std::span<const u32> fan,
+                        OutputIteratorT out_it) {
     ++num_fans_;
     std::vector<size_t> island_;
     for (size_t face : fan) {
@@ -135,14 +143,16 @@ private:
 
     RingIterator<size_t> ring_iterator(center, island_);
     if (!ring_iterator.valid()) {
-      return false;
+      return std::unexpected(
+          "TriFanMeshOptimizer::StoreFan: `ring_iterator.valid()` failed");
     }
     for (auto vtx : ring_iterator) {
       *out_it++ = vtx;
       ++num_verts;
     }
-    assert(num_verts == island_.size() / 3 + 2);
-    return true;
+    EXPECT(num_verts == island_.size() / 3 + 2 &&
+           "Not a well-formed fan? Shouldn't be possible");
+    return {};
   }
 
   std::vector<std::vector<u32>>
@@ -177,12 +187,10 @@ private:
 };
 
 template <typename OutputIteratorT, typename IndexTypeT>
-bool TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
+Result<void> TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
     std::span<const u32> mesh, IndexTypeT primitive_restart_index,
     OutputIteratorT out_it, TriFanOptions options) {
-  if (!Prepare(mesh, options)) {
-    return false;
-  }
+  TRY(Prepare(mesh, options));
 
   size_t num_runs = std::min<size_t>(num_vertices_, max_runs_);
   for (size_t i = 0; i < num_runs; ++i) {
@@ -195,9 +203,7 @@ bool TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
     }
     auto fans = FindFansFromCenter(center, primitive_restart_index, out_it);
     for (auto& fan : fans) {
-      if (!StoreFan(center, fan, out_it)) {
-        return false;
-      }
+      TRY(StoreFan(center, fan, out_it));
       *out_it++ = primitive_restart_index;
     }
     // Effectively kill this vertex from our subgraph moving forward
@@ -214,7 +220,7 @@ bool TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
     }
   }
 
-  return true;
+  return {};
 }
 
 } // namespace rsmeshopt
