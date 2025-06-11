@@ -174,7 +174,7 @@ private:
   }
 
   std::span<const u32> mesh_{};
-  int num_vertices_{};
+  size_t num_vertices_{};
   std::vector<bool> face_visited_{};
 
   // Holds twice the degree of each vertex N

@@ -69,13 +69,13 @@ bool TriangleFanSplitter::CanAddToFan(const std::set<size_t>& island,
         mesh_[island_face + 2],
     };
     for (int i = 0; i < 3; ++i) {
-      int cand_edge_from = face[(i + 2) % 3];
-      int cand_vert = face[i];
-      int cand_edge_to = face[(i + 1) % 3];
+      size_t cand_edge_from = face[(i + 2) % 3];
+      size_t cand_vert = face[i];
+      size_t cand_edge_to = face[(i + 1) % 3];
       for (int j = 0; j < 3; ++j) {
-        int island_edge_from = island_face_indices[(j + 2) % 3];
-        int island_vert = island_face_indices[j];
-        int island_edge_to = island_face_indices[(j + 1) % 3];
+        size_t island_edge_from = island_face_indices[(j + 2) % 3];
+        size_t island_vert = island_face_indices[j];
+        size_t island_edge_to = island_face_indices[(j + 1) % 3];
         if (cand_vert == island_vert) {
           // The center will always match
           if (cand_vert == center_) {
