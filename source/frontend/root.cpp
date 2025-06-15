@@ -249,10 +249,15 @@ void RootWindow::drawSettingsMenu() {
     mThemeUpdated |= DrawThemeEditor(mThemeData, nullptr);
 
 #ifdef BUILD_DEBUG
-    ImGui::Checkbox("ImGui Demo", &bDemo);
+    ImGui::Checkbox("[DEBUG] ImGui Demo", &bDemo);
 #endif
 
     ImGui::Checkbox("Advanced Mode"_j, &gIsAdvancedMode);
+
+#ifdef BUILD_DEBUG
+    ImGui::Checkbox("[DEBUG] Show latest changelog on GitHub",
+                    &mUpdater.mShowChangelog);
+#endif
 
     ImGui::EndMenu();
   }

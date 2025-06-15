@@ -12,10 +12,16 @@ void UpdaterView::draw() {
   if (!Updater_IsOnline(*mUpdater))
     return;
 
-  if (Updater_WasUpdated(*mUpdater)) {
-    if (auto body = Updater_GetChangeLog(*mUpdater); body.has_value()) {
-      DrawChangeLog(&mShowChangelog, *body);
-    }
+  if (Updater_WasUpdated(*mUpdater) && !mHasHandledPostUpdateUITasks) {
+    // Right after updating, display the latest changelog on GitHub
+    // (though allow the user to close this)
+    mShowChangelog = true;
+
+    mHasHandledPostUpdateUITasks = true;
+  }
+
+  if (auto body = Updater_GetChangeLog(*mUpdater); body.has_value()) {
+    DrawChangeLog(&mShowChangelog, *body);
   }
 
   Updater_Calc(*mUpdater);

@@ -28,8 +28,13 @@ private:
   Action DrawUpdaterUI(const char* version, std::optional<float> progress);
 
   std::unique_ptr<Updater, void (*)(Updater*)> mUpdater;
-  bool mShowChangelog = true;
+
+public:
+  bool mShowChangelog = false;
+
+private:
   bool mShowUpdateDialog = false;
+  bool mHasHandledPostUpdateUITasks = false;
 };
 
 } // namespace riistudio
