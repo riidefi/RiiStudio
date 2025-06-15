@@ -55,7 +55,7 @@ fn main() {
         println!("cargo:rustc-link-lib=static={}", "freetype");
         println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/glfw/3.4/lib/");
         println!("cargo:rustc-link-lib=static={}", "glfw");
-        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/assimp/6.0.0/lib/");
+        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/assimp/6.0.1/lib/");
         println!("cargo:rustc-link-lib=static={}", "assimp");
         println!("cargo:rustc-link-lib=static={}", "dl");
         println!("cargo:rustc-link-lib=static={}", "c++");

@@ -199,7 +199,7 @@ elseif (APPLE)
     set(HOMEBREW_CELLAR "/usr/local/Cellar")
   endif()
  
-  set(ASSIMP_VERSION "6.0.0")
+  set(ASSIMP_VERSION "6.0.1")
   target_link_libraries(librii PUBLIC "${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib")
 elseif (EMSCRIPTEN)
   target_link_libraries(librii PUBLIC
