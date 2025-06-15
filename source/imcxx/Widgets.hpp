@@ -272,10 +272,23 @@ static inline Defer RAIICustomSelectable(bool sel) {
 //   return tree_node_ex_result && IsNodeSwitchedTo();
 // }
 
+static void MarkdownLinkCallback(ImGui::MarkdownLinkCallbackData data) {
+  // std::string_view link_desc_sv(data.text, data.textLength); // in square
+  // brackets []
+  std::string_view link_url_sv(data.link, data.linkLength); // in parens ()
+
+  std::string link_url(link_url_sv);
+
+  auto& io = ImGui::GetPlatformIO();
+  if (io.Platform_OpenInShellFn != nullptr) {
+    io.Platform_OpenInShellFn(ImGui::GetCurrentContext(), link_url.c_str());
+  }
+}
+
 // You can make your own Markdown function with your prefered string container
 // and markdown config.
 static ImGui::MarkdownConfig mdConfig{
-    nullptr,
+    MarkdownLinkCallback,
     nullptr,
     reinterpret_cast<const char*>(ICON_FA_LINK),
     {{NULL, true}, {NULL, true}, {NULL, false}}};
