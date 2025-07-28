@@ -1073,7 +1073,8 @@ void import_texture(std::string tex, libcube::Texture* pdata,
       return;
     }
   }
-  rsl::error("Cannot find texture {}", tex.c_str());
+  auto path_ = file_path.string();
+  rsl::error("Cannot find texture {} (initial path: {})", tex.c_str(), path_);
   // 32x32 (32bpp)
   const auto dummy_width = 32;
   const auto dummy_height = 32;
@@ -1093,17 +1094,21 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
                  std::function<void(std::string, std::string)> info,
                  std::function<void(std::string_view, float)> progress,
                  std::optional<MipGen> mips, bool tristrip, bool verbose) {
-  std::set<std::string> textures_needed;
+  std::map<std::string, std::string /*path_hint (OPTIONAL)*/> textures_needed;
 
   for (auto& mat : rhst.materials) {
     if (mat.samplers.empty()) {
+      // For Assimp importer
+      // TODO: Remove this and move to the sampler-only workflow
       if (!mat.texture_name.empty()) {
-        textures_needed.emplace(mat.texture_name);
+        textures_needed.emplace(mat.texture_name, mat.texture_path_hint);
       }
     } else {
       for (auto& sam : mat.samplers) {
+        // Asssimp importer won't specify samplers; this is only the Blender
+        // plugin route?
         if (!sam.texture_name.empty()) {
-          textures_needed.emplace(sam.texture_name);
+          textures_needed.emplace(sam.texture_name, "");
         }
       }
     }
@@ -1127,19 +1132,17 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
   }
 
   for (auto& tex : textures_needed) {
-    rsl::info("Importing texture: {}", tex.c_str());
+    rsl::info("Importing texture: {}", tex.first.c_str());
 
     auto& data = scene.getTextures().add();
-    data.setName(getFileShort(tex));
+    data.setName(getFileShort(tex.first));
   }
-  // Favor PNG, and the current directory
-  auto file_path = std::filesystem::path(path);
 
   std::vector<std::future<void>> futures;
 
   for (int i = 0; i < scene.getTextures().size(); ++i) {
     libcube::Texture* data = &scene.getTextures()[i];
-
+    std::filesystem::path file_path = textures_needed[data->getName()];
     futures.push_back(std::async(std::launch::async, [=] {
       import_texture(data->getName(), data, file_path, mips);
     }));

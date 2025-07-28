@@ -109,6 +109,9 @@ struct Material {
 
   // Dramatic simplification
   std::string texture;
+
+  // (OPTIONAL) Full absolute/relative path on disk to a .png file typically
+  std::string texture_path_hint;
 };
 
 struct Node {

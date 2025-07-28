@@ -205,6 +205,7 @@ Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
     mr.name = new_mats[i];
 
     mr.texture_name = pMat->texture;
+    mr.texture_path_hint = pMat->texture_path_hint;
   }
 
   // TODO: Handle material limitations for samplers..

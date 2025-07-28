@@ -209,7 +209,19 @@ struct PixelEngine {
 };
 
 struct ProtoSampler {
+  // TODO(rii): I would rather see raw texture bytes referenced, to be honest.
+  //            (maybe a texture array with entries of each `std::vector<u8>
+  //            encoded_texture`, texture format, width, height, etc?)
+  //
+  // - The blender plugin handles texture encoding, and it wouldn't be too much
+  //   effort to make the assimp code do so too! RHST need not be general beyond
+  //   GC/Wii, and GC/Wii has consistent texture hardware support.
+  //
+  // - Encoding can be done with gctex fairly easily. There's some nuance for
+  //   mipmap encoding; this is handled by the `librii::texture` wrapper
+  //
   std::string texture_name = "";
+
   WrapMode wrap_u = WrapMode::Repeat;
   WrapMode wrap_v = WrapMode::Repeat;
 
@@ -463,8 +475,12 @@ struct ProtoMaterial {
 
   std::vector<ProtoSampler> samplers;
 
+  // TODO: Remove legacy support! Assimp should be swapped over to sampler
+  // config method.
+
   // Legacy support
   std::string texture_name = "";
+  std::string texture_path_hint = ""; // For Assimp route
   WrapMode wrap_u = WrapMode::Repeat;
   WrapMode wrap_v = WrapMode::Repeat;
   bool min_filter = true;

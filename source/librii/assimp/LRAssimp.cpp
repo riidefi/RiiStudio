@@ -122,6 +122,7 @@ std::vector<Mesh> ReadMeshes(const aiScene& scn,
 // Old code, taken from Material.hpp
 namespace {
 struct ImpSampler {
+  std::string name;
   std::string path;
   u32 uv_channel;
 };
@@ -160,7 +161,8 @@ ImpMaterial ReadImp(const aiMaterial& mat) {
       const auto [path, uvindex, mapmode] = GetTexture(&mat, t, j);
 
       ImpSampler impSamp{
-          .path = getFileShort(path.C_Str()),
+          .name = getFileShort(path.C_Str()),
+          .path = {path.C_Str()},
           .uv_channel = uvindex,
       };
       impMat.samplers.push_back(impSamp);
@@ -192,10 +194,12 @@ static inline glm::mat4 getMat4(const aiMatrix4x4& mtx) {
 } // namespace
 Material ReadMaterial(const aiMaterial& mat) {
   auto imp = ReadImp(mat);
-  std::string tex = imp.samplers.empty() ? "" : imp.samplers[0].path;
+  std::string tex = imp.samplers.empty() ? "" : imp.samplers[0].name;
+  std::string tex_path_hint = imp.samplers.empty() ? "" : imp.samplers[0].path;
   return {
       .name = const_cast<aiMaterial&>(mat).GetName().C_Str(),
       .texture = tex,
+	  .texture_path_hint = tex_path_hint,
   };
 }
 std::vector<Material> ReadMaterials(const aiScene& scn) {
