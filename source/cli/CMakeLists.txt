@@ -49,14 +49,16 @@ elseif (APPLE)
  
   set(GLFW_VERSION "3.4")
   set(FREETYPE_VERSION "2.13.3")
+  set(XZ_VERSION "5.8.1")
  
-  SET_TARGET_PROPERTIES(cli PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -framework SystemConfiguration -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+  SET_TARGET_PROPERTIES(cli PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -framework SystemConfiguration -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib ${HOMEBREW_CELLAR}/xz/${XZ_VERSION}/lib/liblzma.a")
 elseif (UNIX AND NOT EMSCRIPTEN)
   find_library(GLFW3_LIBRARY NAMES libglfw.so PATHS /usr/lib)
   find_library(FREETYPE_LIBRARY NAMES libfreetype.so PATHS /usr/lib)
   find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
   find_library(SSL_LIBRARY NAMES libssl.so PATHS /usr/lib)
   find_library(CRYPTO_LIBRARY NAMES libcrypto.so PATHS /usr/lib)
+  # TODO: May need liblzma on linux now
   target_link_libraries(cli PUBLIC
     ${GLFW3_LIBRARY}
     ${FREETYPE_LIBRARY}

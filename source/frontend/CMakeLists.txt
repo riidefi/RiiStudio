@@ -153,8 +153,9 @@ if (NOT MSVC)
 
     set(GLFW_VERSION "3.4")
     set(FREETYPE_VERSION "2.13.3")
+    set(XZ_VERSION "5.8.1")
 
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -framework SystemConfiguration -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -framework SystemConfiguration -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib ${HOMEBREW_CELLAR}/xz/${XZ_VERSION}/lib/liblzma.a")
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
     if (EMSCRIPTEN)
