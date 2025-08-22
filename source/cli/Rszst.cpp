@@ -708,9 +708,7 @@ private:
     m_to = m_opt.to.view();
 
     if (m_to.empty()) {
-      std::filesystem::path p = m_from;
-      p.replace_extension(".d");
-      m_to = p;
+      m_to = m_from.parent_path();
     }
     if (!FS_TRY(rsl::filesystem::exists(m_from))) {
       fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
